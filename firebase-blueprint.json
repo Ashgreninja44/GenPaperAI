@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "GeneratedPaper": {
+      "title": "GeneratedPaper",
+      "description": "A generated question paper.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "config": { "type": "object" },
+        "title": { "type": "string" },
+        "questions": { "type": "array" },
+        "answerKey": { "type": "string" },
+        "uid": { "type": "string", "description": "The user ID of the owner." }
+      },
+      "required": ["id", "timestamp", "config", "title", "questions", "answerKey", "uid"]
+    },
+    "QuestionBank": {
+      "title": "QuestionBank",
+      "description": "A collection of questions for a specific subject/grade.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "board": { "type": "string" },
+        "subject": { "type": "string" },
+        "grade": { "type": "string" },
+        "lastUpdated": { "type": "number" },
+        "content": { "type": "string" },
+        "uid": { "type": "string", "description": "The user ID of the owner." }
+      },
+      "required": ["id", "subject", "grade", "lastUpdated", "content", "uid"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile and preferences.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "profilePhoto": { "type": "string" },
+        "selectedTheme": { "type": "string" },
+        "preferences": {
+          "type": "object",
+          "properties": {
+            "themeColor": { "type": "string" },
+            "background": { "type": "string" }
+          }
+        },
+        "provider": { "type": "string", "enum": ["google", "microsoft", "email"] },
+        "createdAt": { "type": "number" },
+        "defaultPaperSettings": {
+          "type": "object",
+          "properties": {
+            "board": { "type": "string" },
+            "grade": { "type": "string" },
+            "subject": { "type": "string" },
+            "schoolName": { "type": "string" }
+          }
+        },
+        "role": { "type": "string", "enum": ["user", "admin"] }
+      },
+      "required": ["uid", "name", "email", "selectedTheme", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/papers/{paperId}": {
+      "schema": "GeneratedPaper",
+      "description": "User's generated question papers."
+    },
+    "/banks/{bankId}": {
+      "schema": "QuestionBank",
+      "description": "User's question banks."
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile data."
+    }
+  }
+}

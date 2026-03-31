@@ -1,0 +1,5 @@
+{
+  "name": "GenPaper AI",
+  "description": "An AI-powered academic question paper generator using Bloom's Taxonomy standards.",
+  "requestFramePermissions": []
+}
