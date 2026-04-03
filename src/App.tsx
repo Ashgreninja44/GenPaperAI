@@ -28,7 +28,7 @@ import {
   updateProfile,
   sendPasswordResetEmail
 } from './firebase';
-import { collection, query, where, onSnapshot, setDoc, doc, deleteDoc, getDocFromServer, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, setDoc, doc, deleteDoc, getDocFromServer, getDoc, updateDoc, getDocs, writeBatch } from 'firebase/firestore';
 import { LogOut, User as UserIcon, Settings as SettingsIcon, Mail, Shield, Globe, Loader2, AlertCircle, CheckCircle2, Key, Eye, EyeOff } from 'lucide-react';
 
 type View = 'dashboard' | 'create' | 'preview' | 'bank' | 'settings' | 'profile';
@@ -55,7 +55,7 @@ const App: React.FC = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState<string | null>(null); // 'google', 'microsoft', 'email'
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   
   // Email Auth Modal State
@@ -434,8 +434,19 @@ const App: React.FC = () => {
       // Sanitize the object to remove any undefined values before saving to Firestore
       const sanitizedPaper = sanitizeForFirestore(newPaper);
       
-      // Save to Firestore
-      await setDoc(doc(db, 'papers', sanitizedPaper.id), sanitizedPaper);
+      // Split metadata and questions
+      const { questions, ...metadata } = sanitizedPaper;
+      
+      // Save metadata to 'papers'
+      await setDoc(doc(db, 'papers', metadata.id), metadata);
+      
+      // Save questions to 'paperQuestions/{paperId}/questions/{questionId}'
+      const batch = writeBatch(db);
+      questions.forEach((q: any) => {
+        const qRef = doc(db, 'paperQuestions', metadata.id, 'questions', q.question_id);
+        batch.set(qRef, q);
+      });
+      await batch.commit();
       
       setCurrentPaper(sanitizedPaper);
       setView('preview');
@@ -468,7 +479,21 @@ const App: React.FC = () => {
     if (!user) return;
     try {
         const sanitizedPaper = sanitizeForFirestore(updatedPaper);
-        await setDoc(doc(db, 'papers', sanitizedPaper.id), sanitizedPaper);
+        
+        // Split metadata and questions
+        const { questions, ...metadata } = sanitizedPaper;
+        
+        // Update metadata
+        await setDoc(doc(db, 'papers', metadata.id), metadata);
+        
+        // Update questions (using batch for efficiency)
+        const batch = writeBatch(db);
+        questions.forEach((q: any) => {
+          const qRef = doc(db, 'paperQuestions', metadata.id, 'questions', q.question_id);
+          batch.set(qRef, q);
+        });
+        await batch.commit();
+        
         setCurrentPaper(sanitizedPaper);
     } catch (err: any) {
         if (err.message.includes('permission-denied')) {
@@ -482,6 +507,11 @@ const App: React.FC = () => {
     if (!user) return;
     try {
         await deleteDoc(doc(db, 'papers', id));
+        
+        // Also delete questions (optional but good practice)
+        // Note: Firestore doesn't delete subcollections automatically, 
+        // but we can leave them or delete them if we have a list.
+        // For now, metadata deletion is enough for the UI.
     } catch (err: any) {
         if (err.message.includes('permission-denied')) {
             handleFirestoreError(err, OperationType.DELETE, 'papers/' + id);
@@ -502,9 +532,19 @@ const App: React.FC = () => {
     }
   };
 
-  const handleViewPaper = (paper: GeneratedPaper) => {
-    setCurrentPaper(paper);
-    setView('preview');
+  const handleViewPaper = async (paperMetadata: GeneratedPaper) => {
+    try {
+      // Fetch questions for this paper
+      const qSnap = await getDocs(collection(db, 'paperQuestions', paperMetadata.id, 'questions'));
+      const questions = qSnap.docs.map(doc => doc.data() as any);
+      
+      const fullPaper = { ...paperMetadata, questions };
+      setCurrentPaper(fullPaper);
+      setView('preview');
+    } catch (err: any) {
+      console.error("Error fetching paper questions:", err);
+      setError("Failed to load paper questions.");
+    }
   };
 
   const handleCreateNew = useCallback(() => {
@@ -535,11 +575,11 @@ const App: React.FC = () => {
 
       {/* Top Navigation Bar - Liquid Glass Effect */}
       {location.pathname !== '/reset-password' && (
-        <nav className="liquid-nav sticky top-4 z-50 px-3 sm:px-6 py-2 sm:py-3 flex justify-between items-center transition-all duration-300 rounded-2xl mx-2 sm:mx-4 mb-4">
+        <nav className="liquid-nav sticky top-4 z-50 px-3 sm:px-6 py-2 sm:py-3 flex justify-between items-center transition-all duration-300 rounded-2xl mx-2 sm:mx-4 mb-4 overflow-visible">
           <div className="flex items-center gap-2 sm:gap-3" onClick={handleBackToDashboard} style={{cursor: 'pointer'}}>
               <span className="inline text-lg sm:text-xl font-bold tracking-tight text-white drop-shadow-md">GenPaper<span className="text-amber-400 drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">AI</span></span>
           </div>
-          <div className="flex gap-1.5 sm:gap-2 items-center overflow-hidden">
+          <div className="flex gap-1.5 sm:gap-2 items-center">
                {user ? (
                    <>
                       <button 
@@ -561,10 +601,14 @@ const App: React.FC = () => {
                       </button>
                       
                       {/* User Profile Dropdown */}
-                      <div className="relative flex-shrink-0">
+                      <div className="relative flex-shrink-0 z-[60]">
                           <button 
-                              onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white/30 overflow-hidden shadow-lg hover:border-white/60 transition-all duration-300 focus:outline-none bg-white/10"
+                              onClick={(e) => {
+                                  e.stopPropagation();
+                                  console.log("Profile menu clicked, current state:", isOpen);
+                                  setIsOpen(!isOpen);
+                              }}
+                              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white/30 overflow-hidden shadow-lg hover:border-white/60 transition-all duration-300 focus:outline-none bg-white/10 cursor-pointer"
                           >
                               {(userProfile?.profilePhoto || user.photoURL) ? (
                                   <img 
@@ -580,13 +624,13 @@ const App: React.FC = () => {
                               )}
                           </button>
 
-                          {isProfileMenuOpen && (
+                          {isOpen && (
                               <>
                                   <div 
-                                      className="fixed inset-0 z-40" 
-                                      onClick={() => setIsProfileMenuOpen(false)}
+                                      className="fixed inset-0 z-[9998] bg-black/5" 
+                                      onClick={() => setIsOpen(false)}
                                   ></div>
-                                  <div className="absolute right-0 mt-3 w-64 glass-panel rounded-2xl shadow-2xl z-50 py-2 animate-fade-in overflow-hidden border border-white/40">
+                                  <div className="fixed top-16 right-4 w-64 glass-panel rounded-2xl shadow-2xl z-[9999] py-2 animate-fade-in border border-white/40 opacity-100 bg-white">
                                       <div className="px-4 py-4 border-b border-gray-100 mb-1 bg-gray-50/50">
                                           <div className="flex items-center gap-3">
                                               <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
@@ -605,7 +649,7 @@ const App: React.FC = () => {
                                           </div>
                                       </div>
                                       <button 
-                                          onClick={() => { setView('profile'); setIsProfileMenuOpen(false); }}
+                                          onClick={() => { setView('profile'); setIsOpen(false); }}
                                           className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
                                       >
                                           <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
@@ -614,7 +658,7 @@ const App: React.FC = () => {
                                           View Profile
                                       </button>
                                       <button 
-                                          onClick={() => { setView('settings'); setIsProfileMenuOpen(false); }}
+                                          onClick={() => { setView('settings'); setIsOpen(false); }}
                                           className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
                                       >
                                           <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
@@ -624,7 +668,7 @@ const App: React.FC = () => {
                                       </button>
                                       <div className="border-t border-gray-100 mt-1 pt-1">
                                           <button 
-                                              onClick={() => { handleLogout(); setIsProfileMenuOpen(false); }}
+                                              onClick={() => { handleLogout(); setIsOpen(false); }}
                                               className="w-full text-left px-4 py-3 text-sm font-bold text-rose-500 hover:bg-rose-50 flex items-center gap-3 transition-colors"
                                           >
                                               <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center">
