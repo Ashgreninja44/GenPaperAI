@@ -8,6 +8,46 @@ console.log("API KEY EXISTS:", !!apiKey);
 
 const ai = new GoogleGenAI({ apiKey: apiKey || 'API_KEY_NOT_SET' });
 
+/**
+ * Helper to retry a function if it fails with a 503 error.
+ * Retries up to 3 times with a 2-3 second delay.
+ */
+const withRetry = async <T>(fn: () => Promise<T>, retries = 3): Promise<T> => {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const result = await fn();
+      
+      // Handle fetch Response objects
+      if (result instanceof Response && result.status === 503 && i < retries) {
+        const delay = 2000 + Math.random() * 1000;
+        console.warn(`Service returned 503. Retrying in ${Math.round(delay)}ms... (${retries - i} left)`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      
+      return result;
+    } catch (error: any) {
+      const is503 = error?.status === 503 || 
+                    error?.message?.includes('503') || 
+                    error?.code === 503 ||
+                    error?.message?.includes('Service Unavailable');
+
+      if (is503 && i < retries) {
+        const delay = 2000 + Math.random() * 1000;
+        console.warn(`AI Service returned 503. Retrying in ${Math.round(delay)}ms... (${retries - i} left)`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+
+      if (is503) {
+        throw new Error("The AI service is currently overloaded (503). We tried to reconnect 3 times but it's still busy. Please try again in a few moments.");
+      }
+      throw error;
+    }
+  }
+  throw new Error("Maximum retry attempts reached.");
+};
+
 // Schema for individual questions
 const questionSchema: Schema = {
   type: Type.OBJECT,
@@ -136,7 +176,7 @@ export const generateQuestionPaper = async (config: PaperConfig): Promise<Genera
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await withRetry(() => ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
@@ -144,7 +184,7 @@ export const generateQuestionPaper = async (config: PaperConfig): Promise<Genera
         responseSchema: paperResponseSchema,
         temperature: 0.4,
       },
-    });
+    }));
 
     const text = response.text;
     if (!text) throw new Error("No response received from AI.");
@@ -204,7 +244,7 @@ export const regenerateSingleQuestion = async (
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await withRetry(() => ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
@@ -218,7 +258,7 @@ export const regenerateSingleQuestion = async (
         },
         temperature: 0.7,
       },
-    });
+    }));
     
     const text = response.text;
     if(!text) throw new Error("Failed to regenerate");
@@ -244,10 +284,10 @@ export const generateQuestionBankUpdate = async (subject: string, grade: string,
     Use strictly UNICODE Math. No LaTeX.
     Format as clear Markdown with headers.`;
 
-    const response = await ai.models.generateContent({
+    const response = await withRetry(() => ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt
-    });
+    }));
     return response.text || "Failed to generate content.";
 };
 
@@ -264,7 +304,7 @@ export const generateDiagramImage = async (diagramPrompt: string): Promise<strin
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await withRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash-image', // Nano Banana model
         contents: {
             parts: [{ text: imagePrompt }]
@@ -272,7 +312,7 @@ export const generateDiagramImage = async (diagramPrompt: string): Promise<strin
         config: {
            // No responseMimeType for image generation
         }
-    });
+    }));
 
     if (response.candidates?.[0]?.content?.parts) {
         for (const part of response.candidates[0].content.parts) {
@@ -341,7 +381,7 @@ export const parseQuestionsFromText = async (text: string, subjectContext: strin
     `;
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await withRetry(() => ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: prompt,
             config: {
@@ -364,7 +404,7 @@ export const parseQuestionsFromText = async (text: string, subjectContext: strin
                     }
                 }
             }
-        });
+        }));
         
         const data = JSON.parse(response.text || "{}");
         const questions = data.questions || [];
@@ -390,7 +430,7 @@ export const extractQuestionsFromUrl = async (url: string, subjectContext: strin
         // Using allorigins as a public proxy. 
         const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
         
-        const response = await fetch(proxyUrl);
+        const response = await withRetry(() => fetch(proxyUrl));
         if (!response.ok) throw new Error(`Proxy returned ${response.status}`);
         
         const data = await response.json();
@@ -445,13 +485,13 @@ export const fetchSchoolLogoUrl = async (schoolName: string, branchName: string)
     If you cannot find a direct official logo URL, return "NOT_FOUND".`;
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await withRetry(() => ai.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: query,
             config: {
                 tools: [{ googleSearch: {} }],
             },
-        });
+        }));
 
         const text = response.text?.trim();
         if (text && text.startsWith('http') && (text.toLowerCase().endsWith('.png') || text.toLowerCase().endsWith('.jpg') || text.toLowerCase().endsWith('.jpeg') || text.includes('logo'))) {
@@ -495,13 +535,13 @@ export const improveSelectedText = async (selectedText: string, context: string)
     `;
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await withRetry(() => ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: prompt,
             config: {
                 temperature: 0.7,
             },
-        });
+        }));
         
         return response.text?.trim() || selectedText;
     } catch (error) {
