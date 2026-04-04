@@ -9,6 +9,9 @@ import QuestionBankView from './components/QuestionBank';
 import Settings from './components/Settings';
 import Profile from './components/Profile';
 import ResetPassword from './components/ResetPassword';
+import BackgroundAnimation from './components/BackgroundAnimation';
+import ThemeBackdrop from './components/ThemeBackdrop';
+import Logo from './components/Logo';
 import { PaperConfig, GeneratedPaper, QuestionBank, UserProfile } from './types';
 import { generateQuestionPaper } from './services/geminiService';
 import { 
@@ -57,6 +60,7 @@ const App: React.FC = () => {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState<string | null>(null); // 'google', 'microsoft', 'email'
   const [isOpen, setIsOpen] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState('default');
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' | 'warning' } | null>(null);
 
   const showToast = useCallback((message: string, type: 'error' | 'success' | 'warning' = 'error') => {
@@ -218,6 +222,7 @@ const App: React.FC = () => {
   }, [userProfile]);
 
   const applyTheme = (theme: string) => {
+    setCurrentTheme(theme);
     const bgWrapper = document.querySelector('.premium-bg-wrapper') as HTMLElement;
     if (bgWrapper) {
       bgWrapper.style.background = THEMES[theme] || THEMES.default;
@@ -603,6 +608,7 @@ const App: React.FC = () => {
       {location.pathname !== '/reset-password' && (
         <nav className="liquid-nav sticky top-4 z-50 px-3 sm:px-6 py-2 sm:py-3 flex justify-between items-center transition-all duration-300 rounded-2xl mx-2 sm:mx-4 mb-4 overflow-visible">
           <div className="flex items-center gap-2 sm:gap-3" onClick={handleBackToDashboard} style={{cursor: 'pointer'}}>
+              <Logo className="w-8 h-8 sm:w-9 sm:h-9 shadow-lg" />
               <span className="inline text-lg sm:text-xl font-bold tracking-tight text-white drop-shadow-md">GenPaper<span className="text-amber-400 drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">AI</span></span>
           </div>
           <div className="flex gap-1.5 sm:gap-2 items-center">
@@ -758,6 +764,9 @@ const App: React.FC = () => {
         )}
       </AnimatePresence>
 
+      {/* Background Animations */}
+      <ThemeBackdrop theme={currentTheme} />
+
       {/* Main Content Area */}
       <main className="container mx-auto py-4 px-4 relative z-10 flex-grow">
         <Routes>
@@ -773,9 +782,7 @@ const App: React.FC = () => {
             ) : !user ? (
                 <div className="max-w-2xl mx-auto text-center py-12 sm:py-20 animate-fade-in">
                     <div className="flex justify-center mb-8">
-                        <div className="bg-gradient-to-br from-[#8A2CB0] to-[#EEA727] w-16 h-16 sm:w-24 sm:h-24 rounded-2xl sm:rounded-[2rem] flex items-center justify-center text-white font-bold text-3xl sm:text-5xl shadow-2xl shadow-[#8A2CB0]/40 border border-white/30">
-                            G
-                        </div>
+                        <Logo className="w-16 h-16 sm:w-24 sm:h-24 shadow-2xl shadow-[#8A2CB0]/40" />
                     </div>
                     <h2 className="text-3xl sm:text-5xl font-black text-white mb-6 drop-shadow-lg leading-tight">Generate Question Papers in Seconds</h2>
                     <p className="text-xl text-white/80 mb-10 leading-relaxed">

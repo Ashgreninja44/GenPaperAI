@@ -9,3 +9,134 @@ body {
   min-width: 320px;
   min-height: 100vh;
 }
+
+/* Theme Animations */
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(2%, 3%) scale(1.1); }
+  66% { transform: translate(-2%, 1%) scale(0.9); }
+}
+
+@keyframes drift {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(100px, 100px); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.2); }
+}
+
+@keyframes wave {
+  0%, 100% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
+  33% { border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%; }
+  66% { border-radius: 30% 70% 70% 30% / 50% 40% 30% 60%; }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.05); }
+}
+
+.bg-particle {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(2px);
+}
+
+.bg-shape {
+  position: absolute;
+  pointer-events: none;
+  filter: blur(40px);
+  opacity: 0.3;
+}
+
+/* Moon */
+.moon {
+  position: absolute;
+  top: 10%;
+  right: 10%;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff, #ccc);
+  box-shadow: 0 0 25px rgba(255,255,255,0.4);
+  animation: moonMove 60s linear infinite;
+}
+
+@keyframes moonMove {
+  from { transform: translateX(0); }
+  to { transform: translateX(-200px); }
+}
+
+/* Sun */
+.sun {
+  position: absolute;
+  bottom: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffcc66, #ff6600);
+  box-shadow: 0 0 60px rgba(255, 150, 50, 0.6);
+  z-index: 0;
+  animation: sunFloat 25s ease-in-out infinite;
+}
+
+@keyframes sunFloat {
+  0%   { transform: translate(-50%, 0px); opacity: 1; }
+  50%  { transform: translate(-50%, -40px); opacity: 1; }
+  100% { transform: translate(-50%, 0px); opacity: 1; }
+}
+
+.sun-glow {
+  position: absolute;
+  bottom: 10%;
+  left: 50%;
+  width: 300px;
+  height: 150px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(255,150,0,0.3), transparent);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+/* Fireflies */
+.firefly {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #b6ffb0;
+  border-radius: 50%;
+  opacity: 0.6;
+  animation: float 20s infinite ease-in-out;
+}
+
+/* Generic float */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-30px); }
+  100% { transform: translateY(0px); }
+}
+
+/* Ocean gradient */
+.ocean-waves {
+  animation: waveMove 20s infinite linear;
+  background-size: 200% 200%;
+}
+
+@keyframes waveMove {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+/* Global blur */
+.blur-overlay {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(40px);
+  opacity: 0.6;
+  pointer-events: none;
+}
