@@ -27,7 +27,11 @@ const PaperPreview: React.FC<PaperPreviewProps> = ({ paper, onBack, onUpdatePape
   // Sync questions if paper changes (e.g. after save)
   useEffect(() => {
     if (paper.questions) {
-      setQuestions(paper.questions);
+      // Sort questions by section to ensure sequential numbering within sections
+      const sortedQuestions = [...paper.questions].sort((a, b) => {
+        return a.section.localeCompare(b.section);
+      });
+      setQuestions(sortedQuestions);
     }
   }, [paper.questions]);
 
@@ -184,16 +188,19 @@ const PaperPreview: React.FC<PaperPreviewProps> = ({ paper, onBack, onUpdatePape
   const constructedPaperContent = useMemo(() => {
     let content = "";
     let currentSection = "";
+    let sectionIdx = 0;
 
-    questions.forEach((q, index) => {
+    questions.forEach((q) => {
         // Section Header
         if (q.section !== currentSection) {
             content += `\n\n**${q.section}**\n\n`;
             currentSection = q.section;
+            sectionIdx = 0;
         }
+        sectionIdx++;
 
         // Question Text
-        content += `${index + 1}. ${q.question_text}  ([${q.marks} Mark${q.marks > 1 ? 's' : ''}])\n`;
+        content += `${sectionIdx}. ${q.question_text}  ([${q.marks} Mark${q.marks > 1 ? 's' : ''}])\n`;
 
         // Diagram Placeholder for TXT export (since images won't show)
         if (q.image_url) {
@@ -225,17 +232,20 @@ const PaperPreview: React.FC<PaperPreviewProps> = ({ paper, onBack, onUpdatePape
       // Build HTML for Word dynamically, injecting images where needed
       let html = '';
       let currentSection = "";
+      let sectionIdx = 0;
 
-      questions.forEach((q, index) => {
+      questions.forEach((q) => {
            if (q.section !== currentSection) {
                html += `<h3 style="font-size:14pt; font-weight:bold; text-transform:uppercase; margin-top:12pt; margin-bottom:6pt; font-family: 'Times New Roman', serif;">${q.section}</h3>`;
                currentSection = q.section;
+               sectionIdx = 0;
            }
+           sectionIdx++;
 
            // Pre-wrap style is essential for vertical fractions
            const cleanText = q.question_text.replace(/\*\*/g, '');
            
-           html += `<div style="font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.5; white-space: pre-wrap;"><b>${index + 1}.</b> ${cleanText} <b>[${q.marks}]</b></div>`;
+           html += `<div style="font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.5; white-space: pre-wrap;"><b>${sectionIdx}.</b> ${cleanText} <b>[${q.marks}]</b></div>`;
 
            if (q.image_url) {
                html += `<p><img src="${q.image_url}" width="300" style="width:300px; height:auto;" /></p>`;
@@ -333,18 +343,21 @@ const PaperPreview: React.FC<PaperPreviewProps> = ({ paper, onBack, onUpdatePape
   // Render questions for Preview Mode (includes images)
   const renderPreviewContent = () => {
       let currentSection = "";
+      let sectionIdx = 0;
       return questions.map((q, index) => {
           let sectionHeader = null;
           if (q.section !== currentSection) {
               currentSection = q.section;
+              sectionIdx = 0;
               sectionHeader = <h3 key={`sect-${index}`} style={{ fontFamily: effectiveHeadingFont }} className="text-lg font-bold mt-6 mb-3 uppercase tracking-wide text-gray-900">{q.section}</h3>;
           }
+          sectionIdx++;
           
           return (
               <div key={q.question_id} className="mb-6 break-inside-avoid page-break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                   {sectionHeader}
                   <div className="flex gap-2 text-gray-800 text-base leading-relaxed">
-                      <span className="font-bold">{index + 1}.</span>
+                      <span className="font-bold">{sectionIdx}.</span>
                       <div className="flex-1">
                           <MarkdownRenderer content={q.question_text} bodyFont={effectiveBodyFont} />
                           
@@ -483,13 +496,11 @@ const PaperPreview: React.FC<PaperPreviewProps> = ({ paper, onBack, onUpdatePape
                           <h3 className="text-lg font-bold text-[#3C128D] mb-4 border-b border-[#3C128D]/20 pb-2">{section}</h3>
                           <div className="grid grid-cols-1 gap-4">
                               {questions.filter(q => q.section === section).map((q, idx) => {
-                                  // Global index finding
-                                  const globalIdx = questions.findIndex(item => item.question_id === q.question_id);
                                   return (
                                     <QuestionCard 
                                         key={q.question_id} 
                                         question={q} 
-                                        index={globalIdx} 
+                                        index={idx} 
                                         onRegenerate={handleRegenerateQuestion} 
                                         onUpdateText={handleUpdateQuestionText}
                                         onUpdateOption={handleUpdateQuestionOption}
