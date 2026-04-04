@@ -1,6 +1,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import Dashboard from './components/Dashboard';
 import PaperForm from './components/PaperForm';
 import PaperPreview from './components/PaperPreview';
@@ -56,7 +57,12 @@ const App: React.FC = () => {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState<string | null>(null); // 'google', 'microsoft', 'email'
   const [isOpen, setIsOpen] = useState(false);
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' | 'warning' } | null>(null);
+
+  const showToast = useCallback((message: string, type: 'error' | 'success' | 'warning' = 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
   
   // Email Auth Modal State
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -171,12 +177,12 @@ const App: React.FC = () => {
     getRedirectResult(auth).then((result) => {
       if (result) {
         console.log("Redirect login success:", result.user.uid);
-        setShowSuccessToast(true);
-        setTimeout(() => setShowSuccessToast(false), 3000);
+        showToast("Login Successful! Welcome back.", "success");
       }
     }).catch((err) => {
       console.error("Redirect login error:", err);
       setError("Redirect login failed: " + err.message);
+      showToast("Redirect login failed: " + err.message, "error");
     });
 
     return () => unsubscribe();
@@ -273,15 +279,13 @@ const App: React.FC = () => {
         console.log("Starting Google login...");
         const result = await signInWithPopup(auth, googleProvider);
         console.log("Google login success:", result.user.uid);
-        setShowSuccessToast(true);
-        setTimeout(() => setShowSuccessToast(false), 3000);
+        showToast("Login Successful! Welcome back.", "success");
       } else if (providerType === 'microsoft') {
         console.log("Starting Microsoft login...");
         try {
           const result = await signInWithPopup(auth, microsoftProvider);
           console.log("Microsoft login success:", result.user.uid);
-          setShowSuccessToast(true);
-          setTimeout(() => setShowSuccessToast(false), 3000);
+          showToast("Login Successful! Welcome back.", "success");
         } catch (popupErr: any) {
           console.warn("Microsoft popup failed, falling back to redirect:", popupErr.message);
           // Fallback to redirect if popup fails (common in some browsers/iframes)
@@ -294,6 +298,7 @@ const App: React.FC = () => {
         console.log(`${providerType} login popup closed by user`);
       } else {
         setError(`${providerType} login failed: ` + err.message);
+        showToast(`${providerType} login failed: ` + err.message, "error");
       }
     } finally {
       setIsLoggingIn(null);
@@ -327,19 +332,22 @@ const App: React.FC = () => {
         console.log("Email login success:", result.user.uid);
       }
       setShowEmailModal(false);
-      setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 3000);
+      showToast("Login Successful! Welcome back.", "success");
       setEmailForm({ email: '', password: '', name: '' });
     } catch (err: any) {
       console.error("Email auth error:", err);
       if (err.code === 'auth/user-not-found') {
         setEmailAuthError("No user found with this email address.");
+        showToast("No user found with this email address.", "error");
       } else if (err.code === 'auth/wrong-password') {
         setEmailAuthError("Incorrect password. Please try again.");
+        showToast("Incorrect password. Please try again.", "error");
       } else if (err.code === 'auth/invalid-email') {
         setEmailAuthError("Please enter a valid email address.");
+        showToast("Please enter a valid email address.", "error");
       } else {
         setEmailAuthError(err.message);
+        showToast(err.message, "error");
       }
     } finally {
       setEmailAuthLoading(false);
@@ -363,14 +371,18 @@ const App: React.FC = () => {
       };
       await sendPasswordResetEmail(auth, emailForm.email, actionCodeSettings);
       setResetEmailSent(true);
+      showToast("Password reset email sent!", "success");
     } catch (err: any) {
       console.error("Reset email error:", err);
       if (err.code === 'auth/user-not-found') {
         setEmailAuthError("No user found with this email address.");
+        showToast("No user found with this email address.", "error");
       } else if (err.code === 'auth/invalid-email') {
         setEmailAuthError("Please enter a valid email address.");
+        showToast("Please enter a valid email address.", "error");
       } else {
         setEmailAuthError(err.message);
+        showToast(err.message, "error");
       }
     } finally {
       setResetLoading(false);
@@ -383,6 +395,7 @@ const App: React.FC = () => {
       setView('dashboard');
     } catch (err: any) {
       setError("Logout failed: " + err.message);
+      showToast("Logout failed: " + err.message, "error");
     }
   };
 
@@ -391,8 +404,10 @@ const App: React.FC = () => {
     try {
       const sanitizedUpdates = sanitizeForFirestore(updates);
       await updateDoc(doc(db, 'users', user.uid), sanitizedUpdates);
+      showToast("Profile updated successfully!", "success");
     } catch (err: any) {
       setError("Failed to update profile: " + err.message);
+      showToast("Failed to update profile: " + err.message, "error");
     }
   };
 
@@ -422,6 +437,7 @@ const App: React.FC = () => {
   const handleGenerate = async (config: PaperConfig) => {
     if (!user) {
         setError("Please login to generate papers.");
+        showToast("Please login to generate papers.", "error");
         return;
     }
 
@@ -450,11 +466,13 @@ const App: React.FC = () => {
       
       setCurrentPaper(sanitizedPaper);
       setView('preview');
+      showToast("Question paper generated successfully!", "success");
     } catch (err: any) {
       if (err.message.includes('permission-denied')) {
         handleFirestoreError(err, OperationType.WRITE, 'papers/' + config.subject);
       }
       setError(err.message || "Failed to generate paper. Please try again.");
+      showToast(err.message || "Failed to generate paper. Please try again.", "error");
     } finally {
       setIsGenerating(false);
     }
@@ -467,11 +485,13 @@ const App: React.FC = () => {
         updatedBank.uid = user.uid;
         const sanitizedBank = sanitizeForFirestore(updatedBank);
         await setDoc(doc(db, 'banks', sanitizedBank.id), sanitizedBank);
+        showToast("Question bank saved!", "success");
     } catch (err: any) {
         if (err.message.includes('permission-denied')) {
             handleFirestoreError(err, OperationType.WRITE, 'banks/' + updatedBank.id);
         }
         setError("Failed to save question bank: " + err.message);
+        showToast("Failed to save question bank: " + err.message, "error");
     }
   };
 
@@ -495,11 +515,13 @@ const App: React.FC = () => {
         await batch.commit();
         
         setCurrentPaper(sanitizedPaper);
+        showToast("Paper updated successfully!", "success");
     } catch (err: any) {
         if (err.message.includes('permission-denied')) {
             handleFirestoreError(err, OperationType.WRITE, 'papers/' + updatedPaper.id);
         }
         setError("Failed to update paper: " + err.message);
+        showToast("Failed to update paper: " + err.message, "error");
     }
   };
 
@@ -507,7 +529,7 @@ const App: React.FC = () => {
     if (!user) return;
     try {
         await deleteDoc(doc(db, 'papers', id));
-        
+        showToast("Paper deleted successfully!", "success");
         // Also delete questions (optional but good practice)
         // Note: Firestore doesn't delete subcollections automatically, 
         // but we can leave them or delete them if we have a list.
@@ -517,6 +539,7 @@ const App: React.FC = () => {
             handleFirestoreError(err, OperationType.DELETE, 'papers/' + id);
         }
         setError("Failed to delete paper: " + err.message);
+        showToast("Failed to delete paper: " + err.message, "error");
     }
   };
 
@@ -524,11 +547,13 @@ const App: React.FC = () => {
     if (!user) return;
     try {
         await deleteDoc(doc(db, 'banks', id));
+        showToast("Question bank deleted!", "success");
     } catch (err: any) {
         if (err.message.includes('permission-denied')) {
             handleFirestoreError(err, OperationType.DELETE, 'banks/' + id);
         }
         setError("Failed to delete question bank: " + err.message);
+        showToast("Failed to delete question bank: " + err.message, "error");
     }
   };
 
@@ -544,6 +569,7 @@ const App: React.FC = () => {
     } catch (err: any) {
       console.error("Error fetching paper questions:", err);
       setError("Failed to load paper questions.");
+      showToast("Failed to load paper questions.", "error");
     }
   };
 
@@ -714,15 +740,23 @@ const App: React.FC = () => {
         </nav>
       )}
 
-      {/* Success Toast */}
-      {showSuccessToast && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] animate-bounce-in">
-            <div className="bg-emerald-500 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-400/30 backdrop-blur-md">
-                <CheckCircle2 className="w-5 h-5" />
-                <span className="font-bold">Login Successful! Welcome back.</span>
-            </div>
-        </div>
-      )}
+      {/* Toast Notification System */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20, x: 20 }}
+            animate={{ opacity: 1, y: 0, x: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className={`fixed top-5 right-5 z-[9999] px-6 py-4 rounded-2xl shadow-2xl text-white flex items-center gap-3 backdrop-blur-md border border-white/20
+              ${toast.type === 'error' ? 'bg-rose-500/90' : toast.type === 'success' ? 'bg-emerald-500/90' : 'bg-amber-500/90'}`}
+          >
+            {toast.type === 'error' && <AlertCircle className="w-5 h-5" />}
+            {toast.type === 'success' && <CheckCircle2 className="w-5 h-5" />}
+            {toast.type === 'warning' && <AlertCircle className="w-5 h-5" />}
+            <span className="font-bold">{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content Area */}
       <main className="container mx-auto py-4 px-4 relative z-10 flex-grow">
