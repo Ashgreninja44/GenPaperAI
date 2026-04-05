@@ -84,9 +84,24 @@ const App: React.FC = () => {
 
   const [currentPaper, setCurrentPaper] = useState<GeneratedPaper | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const location = useLocation();
+
+  // Paper Generation Progress Simulation
+  useEffect(() => {
+    if (!isGenerating) return;
+
+    const interval = setInterval(() => {
+      setGenerationProgress((prev) => {
+        if (prev >= 90) return prev;
+        return prev + Math.random() * 5;
+      });
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [isGenerating]);
 
   // Auth Listener
   useEffect(() => {
@@ -447,9 +462,11 @@ const App: React.FC = () => {
     }
 
     setIsGenerating(true);
+    setGenerationProgress(0);
     setError(null);
     try {
       const newPaper = await generateQuestionPaper(config);
+      setGenerationProgress(100);
       newPaper.uid = user.uid;
       
       // Sanitize the object to remove any undefined values before saving to Firestore
@@ -469,16 +486,18 @@ const App: React.FC = () => {
       });
       await batch.commit();
       
-      setCurrentPaper(sanitizedPaper);
-      setView('preview');
-      showToast("Question paper generated successfully!", "success");
+      setTimeout(() => {
+        setCurrentPaper(sanitizedPaper);
+        setView('preview');
+        setIsGenerating(false);
+        showToast("Question paper generated successfully!", "success");
+      }, 500);
     } catch (err: any) {
       if (err.message.includes('permission-denied')) {
         handleFirestoreError(err, OperationType.WRITE, 'papers/' + config.subject);
       }
       setError(err.message || "Failed to generate paper. Please try again.");
       showToast(err.message || "Failed to generate paper. Please try again.", "error");
-    } finally {
       setIsGenerating(false);
     }
   };
@@ -1077,6 +1096,58 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Generation Progress Overlay */}
+      <AnimatePresence>
+        {isGenerating && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[10000]"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-white rounded-3xl p-8 w-[320px] sm:w-[400px] text-center shadow-2xl border border-white/20"
+            >
+              <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <Loader2 className="w-8 h-8 text-[#8A2CB0] animate-spin" />
+              </div>
+              
+              <h3 className="text-xl font-black text-gray-900 mb-2">Generating Paper...</h3>
+              <p className="text-sm text-gray-500 mb-8 font-medium">Our AI is crafting your custom question paper. This may take a few seconds.</p>
+
+              <div className="relative pt-1">
+                <div className="flex mb-2 items-center justify-between">
+                  <div>
+                    <span className="text-xs font-black inline-block py-1 px-2 uppercase rounded-full text-[#8A2CB0] bg-purple-100">
+                      Progress
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-black inline-block text-[#8A2CB0]">
+                      {Math.round(generationProgress)}%
+                    </span>
+                  </div>
+                </div>
+                <div className="overflow-hidden h-3 mb-4 text-xs flex rounded-full bg-gray-100">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${generationProgress}%` }}
+                    transition={{ duration: 0.5 }}
+                    className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-[#3C128D] to-[#8A2CB0]"
+                  />
+                </div>
+              </div>
+              
+              <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-4">
+                Please do not close this window
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
