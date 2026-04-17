@@ -196,7 +196,8 @@ const App: React.FC = () => {
     getRedirectResult(auth).then((result) => {
       if (result) {
         console.log("Redirect login success:", result.user.uid);
-        showToast("Login Successful! Welcome back.", "success");
+        const isNewUser = result.user.metadata.creationTime === result.user.metadata.lastSignInTime;
+        showToast(isNewUser ? "🎉 Welcome to GenPaperAI!" : "👋 Welcome back!", "success");
       }
     }).catch((err) => {
       console.error("Redirect login error:", err);
@@ -299,13 +300,15 @@ const App: React.FC = () => {
         console.log("Starting Google login...");
         const result = await signInWithPopup(auth, googleProvider);
         console.log("Google login success:", result.user.uid);
-        showToast("Login Successful! Welcome back.", "success");
+        const isNewUser = result.user.metadata.creationTime === result.user.metadata.lastSignInTime;
+        showToast(isNewUser ? "🎉 Welcome to GenPaperAI!" : "👋 Welcome back!", "success");
       } else if (providerType === 'microsoft') {
         console.log("Starting Microsoft login...");
         try {
           const result = await signInWithPopup(auth, microsoftProvider);
           console.log("Microsoft login success:", result.user.uid);
-          showToast("Login Successful! Welcome back.", "success");
+          const isNewUser = result.user.metadata.creationTime === result.user.metadata.lastSignInTime;
+          showToast(isNewUser ? "🎉 Welcome to GenPaperAI!" : "👋 Welcome back!", "success");
         } catch (popupErr: any) {
           console.warn("Microsoft popup failed, falling back to redirect:", popupErr.message);
           // Fallback to redirect if popup fails (common in some browsers/iframes)
@@ -352,7 +355,8 @@ const App: React.FC = () => {
         console.log("Email login success:", result.user.uid);
       }
       setShowEmailModal(false);
-      showToast("Login Successful! Welcome back.", "success");
+      const isNewUser = auth.currentUser?.metadata.creationTime === auth.currentUser?.metadata.lastSignInTime;
+      showToast(isNewUser ? "🎉 Welcome to GenPaperAI!" : "👋 Welcome back!", "success");
       setEmailForm({ email: '', password: '', name: '' });
     } catch (err: any) {
       console.error("Email auth error:", err);
@@ -625,27 +629,27 @@ const App: React.FC = () => {
 
       {/* Top Navigation Bar - Liquid Glass Effect */}
       {location.pathname !== '/reset-password' && (
-        <nav className="liquid-nav sticky top-4 z-50 px-3 sm:px-6 py-2 sm:py-3 flex justify-between items-center transition-all duration-300 rounded-2xl mx-2 sm:mx-4 mb-4 overflow-visible">
-          <div className="flex items-center gap-2 sm:gap-3" onClick={handleBackToDashboard} style={{cursor: 'pointer'}}>
-              <Logo className="w-8 h-8 sm:w-9 sm:h-9 shadow-lg" />
-              <span className="inline text-lg sm:text-xl font-bold tracking-tight text-white drop-shadow-md">GenPaper<span className="text-amber-400 drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">AI</span></span>
+        <nav className="liquid-nav sticky top-4 z-50 w-full max-w-full overflow-hidden px-2 sm:px-6 py-2 sm:py-3 flex justify-between items-center transition-all duration-300 rounded-2xl mx-2 sm:mx-4 mb-4">
+          <div className="flex items-center gap-1 sm:gap-3 cursor-pointer" onClick={handleBackToDashboard}>
+              <Logo className="w-5 h-5 md:w-9 md:h-9 shadow-lg" />
+              <span className="inline text-lg md:text-xl font-bold tracking-tight text-white drop-shadow-md">GenPaper<span className="text-amber-400 drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">AI</span></span>
           </div>
-          <div className="flex gap-1.5 sm:gap-2 items-center">
+          <div className="flex items-center gap-0.5 md:gap-3 flex-nowrap">
                {user ? (
                    <>
                       <button 
                           onClick={() => setView('dashboard')} 
-                          className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-300 flex-shrink-0 ${view === 'dashboard' ? 'bg-white text-[#3C128D] shadow-md scale-100 ring-1 ring-[#8A2CB0]/20' : 'text-white hover:text-white/90 hover:bg-white/10'}`}
+                          className={`px-1.5 py-1 md:px-5 md:py-2 rounded-lg text-[10px] md:text-sm font-bold transition-all duration-300 whitespace-nowrap flex-shrink ${view === 'dashboard' ? 'bg-white text-[#3C128D] shadow-md scale-100 ring-1 ring-[#8A2CB0]/20' : 'text-white hover:text-white/90 hover:bg-white/10'}`}
                       >
                           <span className="hidden sm:inline">Dashboard</span>
                           <span className="sm:hidden">Home</span>
                       </button>
                       <button 
                           onClick={() => setView('bank')} 
-                          className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-300 flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ${view === 'bank' ? 'bg-white text-[#3C128D] shadow-md scale-100 ring-1 ring-[#8A2CB0]/20' : 'text-white hover:text-white/90 hover:bg-white/10'}`}
+                          className={`px-1.5 py-1 md:px-5 md:py-2 rounded-lg text-[10px] md:text-sm font-bold transition-all duration-300 flex items-center gap-0.5 md:gap-2 whitespace-nowrap flex-shrink ${view === 'bank' ? 'bg-white text-[#3C128D] shadow-md scale-100 ring-1 ring-[#8A2CB0]/20' : 'text-white hover:text-white/90 hover:bg-white/10'}`}
                       >
                           <span className="hidden sm:inline">Question Bank</span>
-                          <span className="sm:hidden">Bank</span>
+                          <span className="sm:hidden">Question Bank</span>
                           <span className="px-1 py-0.5 rounded-md bg-amber-400 text-[#3C128D] text-[8px] sm:text-[10px] font-black uppercase tracking-tighter shadow-sm border border-amber-500/30">
                             🚧
                           </span>
@@ -659,7 +663,7 @@ const App: React.FC = () => {
                                   console.log("Profile menu clicked, current state:", isOpen);
                                   setIsOpen(!isOpen);
                               }}
-                              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white/30 overflow-hidden shadow-lg hover:border-white/60 transition-all duration-300 focus:outline-none bg-white/10 cursor-pointer"
+                              className="w-6 h-6 md:w-10 md:h-10 rounded-full border border-white/30 overflow-hidden shadow-lg hover:border-white/60 transition-all duration-300 focus:outline-none bg-white/10 cursor-pointer"
                           >
                               {(userProfile?.profilePhoto || user.photoURL) ? (
                                   <img 
@@ -808,29 +812,29 @@ const App: React.FC = () => {
                         GenPaperAI helps teachers and educators create high-quality, balanced question papers using advanced AI. 
                         Login to start creating and saving your papers.
                     </p>
-                    <div className="flex flex-col sm:flex-row justify-center gap-4">
+                    <div className="flex flex-col gap-3 w-full max-w-sm mx-auto animate-fade-in" style={{ animationDelay: '0.4s' }}>
                         <button 
                             onClick={() => handleLogin('google')}
                             disabled={!!isLoggingIn}
-                            className="px-8 py-4 rounded-2xl text-lg font-black bg-white text-[#3C128D] shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70"
+                            className="w-full py-4 rounded-xl text-base font-black bg-white text-[#3C128D] shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:scale-100"
                         >
-                            {isLoggingIn === 'google' ? <Loader2 className="w-6 h-6 animate-spin" /> : <Globe className="w-6 h-6 text-blue-500" />}
+                            {isLoggingIn === 'google' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Globe className="w-5 h-5 text-blue-500" />}
                             Google
                         </button>
                         <button 
                             onClick={() => handleLogin('microsoft')}
                             disabled={!!isLoggingIn}
-                            className="px-8 py-4 rounded-2xl text-lg font-black bg-white text-[#3C128D] shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70"
+                            className="w-full py-4 rounded-xl text-base font-black bg-white text-[#3C128D] shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:scale-100"
                         >
-                            {isLoggingIn === 'microsoft' ? <Loader2 className="w-6 h-6 animate-spin" /> : <Shield className="w-6 h-6 text-blue-600" />}
+                            {isLoggingIn === 'microsoft' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5 text-blue-600" />}
                             Microsoft
                         </button>
                         <button 
                             onClick={() => { setShowEmailModal(true); setEmailMode('login'); }}
                             disabled={!!isLoggingIn}
-                            className="px-8 py-4 rounded-2xl text-lg font-black bg-white text-[#3C128D] shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70"
+                            className="w-full py-4 rounded-xl text-base font-black bg-white text-[#3C128D] shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:scale-100"
                         >
-                            <Mail className="w-6 h-6 text-rose-500" />
+                            <Mail className="w-5 h-5 text-rose-500" />
                             Email
                         </button>
                     </div>

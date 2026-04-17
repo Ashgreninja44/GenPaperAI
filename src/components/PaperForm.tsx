@@ -815,7 +815,7 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
                                         onChange={(e) => handleBankSelection(e.target.value)}
                                         className="w-full px-4 py-3 rounded-lg border dark-dropdown text-sm"
                                     >
-                                        <option value="">-- Choose a Bank --</option>
+                                        <option value="">-- Choose a Question Bank --</option>
                                         {relevantBanks.map(b => (
                                             <option key={b.id} value={b.id}>Question Bank ({new Date(b.lastUpdated).toLocaleDateString()})</option>
                                         ))}
