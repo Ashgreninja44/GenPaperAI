@@ -651,7 +651,7 @@ const App: React.FC = () => {
 
       {/* Top Navigation Bar - Liquid Glass Effect */}
       {location.pathname !== '/reset-password' && (
-        <nav className="liquid-nav sticky top-4 z-50 w-full max-w-full overflow-hidden px-2 sm:px-6 py-2 sm:py-3 flex justify-between items-center transition-all duration-300 rounded-2xl mx-2 sm:mx-4 mb-4">
+        <nav className="liquid-nav sticky top-4 z-50 w-full max-w-full px-2 sm:px-6 py-2 sm:py-3 flex justify-between items-center transition-all duration-300 rounded-2xl mx-2 sm:mx-4 mb-4">
           <div className="flex items-center gap-1 sm:gap-3 cursor-pointer" onClick={handleBackToDashboard}>
               <Logo className="w-5 h-5 md:w-9 md:h-9 shadow-lg" />
               <span className="inline text-lg md:text-xl font-bold tracking-tight text-white drop-shadow-md">GenPaper<span className="text-amber-400 drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">AI</span></span>
@@ -707,7 +707,7 @@ const App: React.FC = () => {
                                       className="fixed inset-0 z-[9998] bg-black/5" 
                                       onClick={() => setIsOpen(false)}
                                   ></div>
-                                  <div className="fixed top-16 right-4 w-64 glass-panel rounded-2xl shadow-2xl z-[9999] py-2 animate-fade-in border border-white/40 opacity-100 bg-white">
+                                  <div className="absolute top-full right-0 mt-2 w-64 glass-panel rounded-2xl shadow-2xl z-[9999] py-2 animate-fade-in border border-white/40 opacity-100 bg-white shadow-xl">
                                       <div className="px-4 py-4 border-b border-gray-100 mb-1 bg-gray-50/50">
                                           <div className="flex items-center gap-3">
                                               <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
