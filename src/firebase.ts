@@ -54,8 +54,10 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errorMessage,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -72,8 +74,21 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   }
+  
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  // Determine user-friendly error message
+  let userMessage = "A database error occurred. Please try again.";
+  if (errorMessage.includes('resource-exhausted') || errorMessage.includes('quota')) {
+    userMessage = "Database Quota Exceeded (Free Tier). The system is under high load. Please try again after some time (usually resets at midnight PST).";
+  } else if (errorMessage.includes('permission-denied')) {
+    userMessage = "You do not have permission to perform this action. Please ensure you are logged in correctly.";
+  } else if (errorMessage.includes('offline')) {
+    userMessage = "You appear to be offline. Reconnecting...";
+  }
+
+  // Prepend the detailed error info for the App to parse if needed
+  throw new Error(`[${userMessage}] ${JSON.stringify(errInfo)}`);
 }
 
 export { 

@@ -22,18 +22,44 @@ const PaperPreview: React.FC<PaperPreviewProps> = ({ paper, onBack, onUpdatePape
   const [showSavedToast, setShowSavedToast] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<'pdf' | 'word' | 'txt'>('pdf');
   const [processedLogo, setProcessedLogo] = useState<string | null>(paper.config.schoolLogo || null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, []);
+
+  const triggerAutoSave = (updatedQuestions: Question[]) => {
+    setHasUnsavedChanges(true);
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    
+    saveTimeoutRef.current = setTimeout(async () => {
+        setIsSaving(true);
+        try {
+            await onUpdatePaper({ ...paper, questions: updatedQuestions });
+            setHasUnsavedChanges(false);
+        } catch (err) {
+            console.error("Debounced save failed:", err);
+        } finally {
+            setIsSaving(false);
+        }
+    }, 5000); // 5 second debounce - very safe for quota
+  };
 
   // Sync questions if paper changes (e.g. after save)
   useEffect(() => {
-    if (paper.questions) {
+    if (paper.questions && !hasUnsavedChanges) {
       // Sort questions by section to ensure sequential numbering within sections
       const sortedQuestions = [...paper.questions].sort((a, b) => {
         return a.section.localeCompare(b.section);
       });
       setQuestions(sortedQuestions);
     }
-  }, [paper.questions]);
+  }, [paper.questions, hasUnsavedChanges]);
 
   const { schoolName, schoolLogo, logoPlacement, headingFont, bodyFont, generalInstructions } = paper.config;
   const timeAllowed = paper.config.timeAllowed || '2 Hours';
@@ -82,35 +108,62 @@ const PaperPreview: React.FC<PaperPreviewProps> = ({ paper, onBack, onUpdatePape
     const questionsNeedingImages = questions.filter(q => q.diagram_prompt && !q.image_url);
     
     if (questionsNeedingImages.length > 0) {
-        // Process one by one to avoid rate limits
-        const generateNextImage = async () => {
-             const q = questionsNeedingImages[0];
-             try {
-                 const base64Image = await generateDiagramImage(q.diagram_prompt!);
-                 
-                 const updatedQuestions = questions.map(item => 
-                    item.question_id === q.question_id 
-                       ? { ...item, image_url: base64Image } 
-                       : item
-                 );
-                 setQuestions(updatedQuestions);
-                 onUpdatePaper({ ...paper, questions: updatedQuestions });
-             } catch (e) {
-                 console.error("Failed to generate diagram for Q", q.question_id, e);
-                 // Remove the prompt so we don't retry forever
-                 const updatedQuestions = questions.map(item => 
-                    item.question_id === q.question_id 
-                       ? { ...item, diagram_prompt: undefined } 
-                       : item
-                 );
-                 setQuestions(updatedQuestions);
-                 onUpdatePaper({ ...paper, questions: updatedQuestions });
-             }
-        };
+        let isMounted = true;
         
-        generateNextImage();
+        const generateImages = async () => {
+            // Use a local copy of questions to batch updates
+            let currentQuestions = [...questions];
+            let hasChanged = false;
+
+            for (const q of questionsNeedingImages) {
+                if (!isMounted) break;
+
+                try {
+                    // Add a small delay between requests to avoid burst rate limits
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    const base64Image = await generateDiagramImage(q.diagram_prompt!);
+                    
+                    currentQuestions = currentQuestions.map(item => 
+                        item.question_id === q.question_id 
+                           ? { ...item, image_url: base64Image } 
+                           : item
+                    );
+                    hasChanged = true;
+                    
+                    // Update local state frequently for feedback
+                    if (isMounted) {
+                        setQuestions([...currentQuestions]);
+                    }
+                } catch (e) {
+                    console.error("Failed to generate diagram for Q", q.question_id, e);
+                    // Mark as failed/retried to prevent infinite retry loop
+                    currentQuestions = currentQuestions.map(item => 
+                        item.question_id === q.question_id 
+                           ? { ...item, diagram_prompt: undefined } 
+                           : item
+                    );
+                    hasChanged = true;
+                    if (isMounted) {
+                        setQuestions([...currentQuestions]);
+                    }
+                }
+            }
+
+            // Final sync to Firestore only once after batch is complete
+            if (hasChanged && isMounted) {
+                try {
+                    await onUpdatePaper({ ...paper, questions: currentQuestions });
+                } catch (err) {
+                    console.error("Firestore batch update failed during image generation", err);
+                }
+            }
+        };
+
+        generateImages();
+        return () => { isMounted = false; };
     }
-  }, [questions, paper, onUpdatePaper]);
+  }, [paper.id]); // Only run when paper changes or on mount
 
 
   // --- Logic to Regenerate a single question ---
@@ -148,19 +201,14 @@ const PaperPreview: React.FC<PaperPreviewProps> = ({ paper, onBack, onUpdatePape
   };
 
   const handleUpdateQuestionText = async (id: string, newText: string) => {
-    setIsSaving(true);
     const updatedQuestions = questions.map(q => 
         q.question_id === id ? { ...q, question_text: newText, is_manually_edited: true } : q
     );
     setQuestions(updatedQuestions);
-    await onUpdatePaper({ ...paper, questions: updatedQuestions });
-    setIsSaving(false);
-    setShowSavedToast(true);
-    setTimeout(() => setShowSavedToast(false), 2000);
+    triggerAutoSave(updatedQuestions);
   };
 
   const handleUpdateQuestionOption = async (id: string, optionIndex: number, newText: string) => {
-    setIsSaving(true);
     const updatedQuestions = questions.map(q => {
         if (q.question_id === id && q.options) {
             const newOptions = [...q.options];
@@ -170,18 +218,30 @@ const PaperPreview: React.FC<PaperPreviewProps> = ({ paper, onBack, onUpdatePape
         return q;
     });
     setQuestions(updatedQuestions);
-    await onUpdatePaper({ ...paper, questions: updatedQuestions });
-    setIsSaving(false);
-    setShowSavedToast(true);
-    setTimeout(() => setShowSavedToast(false), 2000);
+    triggerAutoSave(updatedQuestions);
+  };
+
+  const triggerAutoSaveAnswerKey = (newAnswerKey: string) => {
+    setHasUnsavedChanges(true);
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    
+    saveTimeoutRef.current = setTimeout(async () => {
+        setIsSaving(true);
+        try {
+            await onUpdatePaper({ ...paper, answerKey: newAnswerKey });
+            setHasUnsavedChanges(false);
+            setShowSavedToast(true);
+            setTimeout(() => setShowSavedToast(false), 2000);
+        } catch (err) {
+            console.error("Answer key save failed:", err);
+        } finally {
+            setIsSaving(false);
+        }
+    }, 5000);
   };
 
   const handleUpdateAnswerKey = async (newText: string) => {
-    setIsSaving(true);
-    await onUpdatePaper({ ...paper, answerKey: newText });
-    setIsSaving(false);
-    setShowSavedToast(true);
-    setTimeout(() => setShowSavedToast(false), 2000);
+    triggerAutoSaveAnswerKey(newText);
   };
 
   // --- Construct the Final Paper Text dynamically from the Question State ---
@@ -439,27 +499,34 @@ const PaperPreview: React.FC<PaperPreviewProps> = ({ paper, onBack, onUpdatePape
                         : 'bg-white text-gray-600 border-gray-200 hover:border-[#8A2CB0]/50'
                     }`}
                 >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                     </svg>
-                    Edit
+                    Edit Text
                 </button>
             )}
 
-            {showSavedToast && (
-                <div className="flex items-center gap-1.5 text-green-600 animate-fade-in">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    <span className="text-xs font-bold">Saved ✓</span>
-                </div>
-            )}
-            {isSaving && (
-                <div className="flex items-center gap-1.5 text-gray-400 animate-pulse">
-                    <div className="w-3 h-3 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin"></div>
-                    <span className="text-xs font-bold">Saving...</span>
-                </div>
-            )}
+            {/* Syncing/Saved Status */}
+            <div className="flex items-center gap-2 min-w-[80px]">
+                {isSaving ? (
+                    <div className="flex items-center gap-1.5 text-gray-400 animate-pulse">
+                        <div className="w-3 h-3 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+                        <span className="text-[10px] font-black uppercase tracking-widest leading-none">Syncing...</span>
+                    </div>
+                ) : hasUnsavedChanges ? (
+                    <div className="flex items-center gap-1.5 text-blue-500 animate-pulse">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <span className="text-[10px] font-black uppercase tracking-widest leading-none">Unsaved</span>
+                    </div>
+                ) : showSavedToast ? (
+                    <div className="flex items-center gap-1.5 text-green-600 animate-fade-in">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span className="text-[10px] font-black uppercase tracking-widest leading-none">Saved</span>
+                    </div>
+                ) : null}
+            </div>
         </div>
 
         {viewMode === 'preview' && (

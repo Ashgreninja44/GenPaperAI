@@ -458,6 +458,20 @@ const App: React.FC = () => {
     return obj;
   };
 
+  const formatErrorMessage = (msg: string) => {
+    const match = msg.match(/^\[(.*?)\]/);
+    if (match) return match[1];
+    
+    // Fallback: try to parse the JSON part if it's there
+    try {
+        const jsonPart = msg.split('] ')[1] || msg;
+        const errObj = JSON.parse(jsonPart);
+        if (errObj.error) return errObj.error.split(':')[0]; // Return the first part of the message
+    } catch(e) { /* ignore */ }
+    
+    return msg;
+  };
+
   const handleGenerate = async (config: PaperConfig) => {
     if (!user) {
         setError("Please login to generate papers.");
@@ -476,19 +490,18 @@ const App: React.FC = () => {
       // Sanitize the object to remove any undefined values before saving to Firestore
       const sanitizedPaper = sanitizeForFirestore(newPaper);
       
-      // Split metadata and questions
-      const { questions, ...metadata } = sanitizedPaper;
-      
       // Save metadata to 'papers'
+      const { questions, ...metadata } = sanitizedPaper;
       await setDoc(doc(db, 'papers', metadata.id), metadata);
       
-      // Save questions to 'paperQuestions/{paperId}/questions/{questionId}'
-      const batch = writeBatch(db);
-      questions.forEach((q: any) => {
-        const qRef = doc(db, 'paperQuestions', metadata.id, 'questions', q.question_id);
-        batch.set(qRef, q);
+      // QUOTA OPTIMIZATION: Store all questions in a single document (paperDetails)
+      // instead of separate docs to reduce writes from N+1 to 2.
+      // This is critical for staying within the free tier write limits.
+      await setDoc(doc(db, 'paperDetails', metadata.id), { 
+        questions,
+        uid: user.uid,
+        lastUpdated: Date.now()
       });
-      await batch.commit();
       
       setTimeout(() => {
         setCurrentPaper(sanitizedPaper);
@@ -500,8 +513,9 @@ const App: React.FC = () => {
       if (err.message.includes('permission-denied')) {
         handleFirestoreError(err, OperationType.WRITE, 'papers/' + config.subject);
       }
-      setError(err.message || "Failed to generate paper. Please try again.");
-      showToast(err.message || "Failed to generate paper. Please try again.", "error");
+      const displayError = formatErrorMessage(err.message);
+      setError(displayError || "Failed to generate paper. Please try again.");
+      showToast(displayError || "Failed to generate paper. Please try again.", "error");
       setIsGenerating(false);
     }
   };
@@ -534,13 +548,12 @@ const App: React.FC = () => {
         // Update metadata
         await setDoc(doc(db, 'papers', metadata.id), metadata);
         
-        // Update questions (using batch for efficiency)
-        const batch = writeBatch(db);
-        questions.forEach((q: any) => {
-          const qRef = doc(db, 'paperQuestions', metadata.id, 'questions', q.question_id);
-          batch.set(qRef, q);
+        // QUOTA OPTIMIZATION: Update all questions in a single document write
+        await setDoc(doc(db, 'paperDetails', metadata.id), { 
+          questions,
+          uid: user.uid,
+          lastUpdated: Date.now()
         });
-        await batch.commit();
         
         setCurrentPaper(sanitizedPaper);
         showToast("Paper updated successfully!", "success");
@@ -548,20 +561,21 @@ const App: React.FC = () => {
         if (err.message.includes('permission-denied')) {
             handleFirestoreError(err, OperationType.WRITE, 'papers/' + updatedPaper.id);
         }
-        setError("Failed to update paper: " + err.message);
-        showToast("Failed to update paper: " + err.message, "error");
+        const displayError = formatErrorMessage(err.message);
+        setError("Update Failed: " + displayError);
+        showToast(displayError, "error");
     }
   };
 
   const handleDeletePaper = async (id: string) => {
     if (!user) return;
     try {
-        await deleteDoc(doc(db, 'papers', id));
+        const batch = writeBatch(db);
+        batch.delete(doc(db, 'papers', id));
+        batch.delete(doc(db, 'paperDetails', id));
+        await batch.commit();
+        
         showToast("Paper deleted successfully!", "success");
-        // Also delete questions (optional but good practice)
-        // Note: Firestore doesn't delete subcollections automatically, 
-        // but we can leave them or delete them if we have a list.
-        // For now, metadata deletion is enough for the UI.
     } catch (err: any) {
         if (err.message.includes('permission-denied')) {
             handleFirestoreError(err, OperationType.DELETE, 'papers/' + id);
@@ -587,9 +601,17 @@ const App: React.FC = () => {
 
   const handleViewPaper = async (paperMetadata: GeneratedPaper) => {
     try {
-      // Fetch questions for this paper
-      const qSnap = await getDocs(collection(db, 'paperQuestions', paperMetadata.id, 'questions'));
-      const questions = qSnap.docs.map(doc => doc.data() as any);
+      // 1. Try fetching from the optimized paperDetails document (saves read quota and is much faster)
+      const detailSnap = await getDoc(doc(db, 'paperDetails', paperMetadata.id));
+      let questions = [];
+
+      if (detailSnap.exists()) {
+        questions = detailSnap.data().questions || [];
+      } else {
+        // 2. Fallback for legacy papers stored in subcollections
+        const qSnap = await getDocs(collection(db, 'paperQuestions', paperMetadata.id, 'questions'));
+        questions = qSnap.docs.map(doc => doc.data() as any);
+      }
       
       const fullPaper = { ...paperMetadata, questions };
       setCurrentPaper(fullPaper);

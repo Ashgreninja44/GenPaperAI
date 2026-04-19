@@ -17,10 +17,11 @@ const withRetry = async <T>(fn: () => Promise<T>, retries = 3): Promise<T> => {
     try {
       const result = await fn();
       
-      // Handle fetch Response objects
-      if (result instanceof Response && result.status === 503 && i < retries) {
-        const delay = 2000 + Math.random() * 1000;
-        console.warn(`Service returned 503. Retrying in ${Math.round(delay)}ms... (${retries - i} left)`);
+      // Handle fetch Response objects (sometimes SDK returns them)
+      if (result instanceof Response && (result.status === 503 || result.status === 429) && i < retries) {
+        const is429 = result.status === 429;
+        const delay = is429 ? (5000 * Math.pow(2, i)) : (2000 + Math.random() * 1000);
+        console.warn(`Service returned ${result.status}. Retrying in ${Math.round(delay)}ms... (${retries - i} left)`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
@@ -31,17 +32,28 @@ const withRetry = async <T>(fn: () => Promise<T>, retries = 3): Promise<T> => {
                     error?.message?.includes('503') || 
                     error?.code === 503 ||
                     error?.message?.includes('Service Unavailable');
+      
+      const is429 = error?.status === 429 ||
+                    error?.message?.includes('429') ||
+                    error?.message?.includes('RESOURCE_EXHAUSTED') ||
+                    error?.message?.includes('quota');
 
-      if (is503 && i < retries) {
-        const delay = 2000 + Math.random() * 1000;
-        console.warn(`AI Service returned 503. Retrying in ${Math.round(delay)}ms... (${retries - i} left)`);
+      if ((is503 || is429) && i < retries) {
+        // Longer base delay for 429 with exponential backoff
+        const delay = is429 ? (5000 * Math.pow(2, i) + Math.random() * 2000) : (2000 + Math.random() * 1000);
+        console.warn(`AI Service returned ${is429 ? '429 (Quota)' : '503 (Overloaded)'}. Retrying in ${Math.round(delay)}ms... (${retries - i} left)`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
 
       if (is503) {
-        throw new Error("The AI service is currently overloaded (503). We tried to reconnect 3 times but it's still busy. Please try again in a few moments.");
+        throw new Error("The AI service is currently overloaded (503). We tried to reconnect but it's still busy. Please try again in a few moments.");
       }
+      
+      if (is429) {
+        throw new Error("API Quota exceeded (429). We are retrying with backoff, but if this persists, please check your Gemini API plan or try again later.");
+      }
+
       throw error;
     }
   }
@@ -103,6 +115,31 @@ export const generateQuestionPaper = async (config: PaperConfig): Promise<Genera
 
   let structurePrompt = '';
 
+  // PART 7: HYBRID GENERATION LOGIC
+  // Compare extracted data with user-selected distribution.
+  const isCustomTest = config.testType !== 'CBSE Board Exam' && config.customSections && config.customSections.length > 0;
+  
+  let hybridPrompt = '';
+  if (manualQuestions.length > 0) {
+      hybridPrompt = `
+        HYBRID GENERATION STRATEGY:
+        1. RECOGNITION: The user has manually selected/extracted ${manualQuestions.length} questions.
+        2. FILL GAP: Your primary task is to FILL THE GAP to match the requested distribution.
+        
+        REQUIRED FINAL DISTRIBUTION:
+        ${isCustomTest ? JSON.stringify(config.customSections) : JSON.stringify(config.counts)}
+        
+        ACTION PLAN:
+        - For each question type:
+          - IF count(manual) >= required: Use only the manual questions for that type.
+          - IF count(manual) < required: USE THE MANUAL ONES AND GENERATE ${'required - count(manual)'} NEW ONES of the same type.
+        
+        - Maintain EXACT counts per type/section.
+        - NEVER duplicate a manual question with an AI generated one.
+        - Total Marks must be EXACTLY ${config.totalMarks}.
+      `;
+  }
+
   if (remainingMarks === 0 && manualQuestions.length > 0) {
      // If user selected full marks worth of questions manually
      structurePrompt = `GENERATE TITLE AND ANSWER KEY ONLY. The user has already provided all questions. Do not generate new questions. Just structure the provided ones.`;
@@ -113,16 +150,20 @@ export const generateQuestionPaper = async (config: PaperConfig): Promise<Genera
         structurePrompt = `STRICTLY FOLLOW CBSE PATTERN: ${JSON.stringify(pattern)}. 
         IMPORTANT: The user has already manually selected ${manualQuestions.length} questions worth ${manualMarks} marks. 
         You must GENERATE ONLY the remaining questions to reach Total Marks: ${config.totalMarks}.
-        INTEGRATE the manual questions into the correct sections seamlessly.`;
+        INTEGRATE the manual questions into the correct sections seamlessly.
+        ${hybridPrompt}`;
     } else {
-        structurePrompt = `Generate a standard CBSE Class 10 Board Exam paper. User provided ${manualQuestions.length} questions. Generate balance to reach ${config.totalMarks} marks.`;
+        structurePrompt = `Generate a standard CBSE Class 10 Board Exam paper. User provided ${manualQuestions.length} questions. Generate balance to reach ${config.totalMarks} marks.
+        ${hybridPrompt}`;
     }
-  } else if (config.customSections && config.customSections.length > 0) {
+  } else if (isCustomTest) {
     structurePrompt = `Follow these sections: ${JSON.stringify(config.customSections)}. 
-    The user has already selected ${manualQuestions.length} questions. Fill the remaining slots in these sections.`;
+    The user has already selected ${manualQuestions.length} questions. Fill the remaining slots in these sections.
+    ${hybridPrompt}`;
   } else {
     structurePrompt = `Use standard distribution: ${JSON.stringify(config.counts)}. 
-    Existing Manual Questions: ${manualQuestions.length}. Generate the rest to fit the total marks.`;
+    Existing Manual Questions: ${manualQuestions.length}. Generate the rest to fit the total marks.
+    ${hybridPrompt}`;
   }
 
   // FORCE FIGURES FOR MATH
@@ -332,49 +373,64 @@ export const generateDiagramImage = async (diagramPrompt: string): Promise<strin
 
 // --- ROBUST EXTRACTION & PARSING LOGIC ---
 
+// PART 2: QUESTION DETECTION & PART 3: CLEANING & FILTERING
+const isQuestionHeuristic = (line: string): boolean => {
+  const trimmed = line.trim();
+  if (trimmed.length < 15) return false;
+  return (
+    trimmed.endsWith("?") ||
+    /^(What|Why|How|Define|Explain|Calculate|Find|Prove|Compare|Discuss|Describe|State|Show|List|Distinguish|Evaluate|Justify)/i.test(trimmed)
+  );
+};
+
 export const parseQuestionsFromText = async (text: string, subjectContext: string = "General"): Promise<{ questions: Question[], metadata: { subject?: string, topic?: string, grade?: string } }> => {
     if (!apiKey) throw new Error("API Key is missing.");
     
+    // PART 4: AI RELEVANCE FILTER & PART 5: QUALITY IMPROVEMENT
     const prompt = `
-        Act as an expert CBSE curriculum analyst. Analyze the following educational content and generate high-quality, original CBSE-style questions.
+        Act as an expert CBSE curriculum analyst and Question Paper Designer. 
+        Analyze the following educational content and generate/extract high-quality educational questions.
         
         Content:
         """
-        ${text.substring(0, 40000)} 
+        ${text.substring(0, 15000)} 
         """
         
         TASKS:
-        1. UNDERSTAND CONTENT: Identify the primary Subject, Chapter/Topic, and intended Class Level (Grade 3-10).
-        2. GENERATE NEW QUESTIONS: Do NOT just copy existing questions from the text. Instead, create NEW, original questions based on the concepts explained in the text.
-        3. QUESTION TYPES (Generate a balanced mix):
-           - Multiple Choice Question (MCQ) -> 1 Mark
-           - Assertion-Reason -> 1 Mark
-           - Very Short Answer (VSAQ) -> 2 Marks
-           - Short Answer (SAQ) -> 3 Marks
-           - Case Study / Source Based -> 4 Marks
-           - Long Answer (LAQ) -> 5 Marks
-        4. FORMATTING:
-           - Convert ALL LaTeX or messy symbols to CLEAN UNICODE (√, ², ³, π, △, θ).
-           - Do NOT use backslashes or latex code.
-           - Ensure question text is standalone and clear.
+        1. UNDERSTAND CONTENT: Identify Subject, Chapter/Topic, and intended Class Level (Grade 3-12).
+        2. EXTRACT & ENHANCE: 
+           - Identify meaningful academic questions present in the text.
+           - Convert important factual statements into exam-style questions if they aren't already questions.
+           - Rephrase unclear or poorly worded questions for professional quality.
+        3. QUALITY FILTER: Ignore ads, navigation links, login buttons, and irrelevant promotional text. Keep only high-quality exam-style questions.
+        4. CLASSIFICATION (PART 6): Classify extracted questions into:
+           - MCQ (1 Mark)
+           - Assertion-Reason (1 Mark)
+           - Very Short Answer (VSAQ) (2 Marks)
+           - Short Answer (SAQ) (3 Marks)
+           - Case Study / Source Based (4 Marks)
+           - Long Answer (LAQ) (5 Marks)
+        
+        🚫 ABSOLUTE BAN ON LATEX:
+        - Use √, ², ³, π, △, θ etc. No backslashes.
         
         Output JSON:
         {
           "metadata": {
             "subject": "Detected Subject",
             "topic": "Detected Chapter/Topic",
-            "grade": "Detected Grade (e.g. Class 10)"
+            "grade": "Detected Grade"
           },
           "questions": [
             {
               "question_id": "gen_unique_id",
-              "section": "Generated from Content",
+              "section": "Academic Section",
               "question_text": "...",
-              "answer_type": "MCQ", 
-              "marks": 1, 
-              "difficulty": 3,
+              "answer_type": "MCQ | Assertion-Reason | Very Short Answer | Short Answer | Case Study | Long Answer", 
+              "marks": number, 
+              "difficulty": 1-5,
               "topic": "Detected Topic",
-              "options": ["Option A", "Option B", "Option C", "Option D"] // Required for MCQs
+              "options": ["Option A", "Option B", "Option C", "Option D"] // Only for MCQs
             }
           ]
         }
@@ -426,8 +482,7 @@ export const parseQuestionsFromText = async (text: string, subjectContext: strin
 
 export const extractQuestionsFromUrl = async (url: string, subjectContext: string): Promise<{ questions: Question[], metadata: { subject?: string, topic?: string, grade?: string } }> => {
     try {
-        console.log("Fetching URL via proxy:", url);
-        // Using allorigins as a public proxy. 
+        console.log("Fetching URL for Web Extract:", url);
         const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
         
         const response = await withRetry(() => fetch(proxyUrl));
@@ -440,31 +495,60 @@ export const extractQuestionsFromUrl = async (url: string, subjectContext: strin
             throw new Error("Invalid content received");
         }
 
-        // Parse HTML using browser's DOMParser
+        // PART 1: HTML EXTRACTION (CLEANING)
         const parser = new DOMParser();
         const doc = parser.parseFromString(rawHtml, 'text/html');
 
-        // Remove non-content elements to reduce noise and tokens
-        const junkTags = ['script', 'style', 'noscript', 'iframe', 'header', 'footer', 'nav', 'aside', 'form', 'button', 'svg', 'link', 'meta'];
-        junkTags.forEach(tag => {
-            doc.querySelectorAll(tag).forEach(el => el.remove());
+        // Aggressive Removal of junk
+        const junkSelectors = [
+            'script', 'style', 'noscript', 'iframe', 'header', 'footer', 'nav', 'aside', 
+            'form', 'button', 'svg', 'link', 'meta', '.ad', '.ads', '.sidebar', 
+            '#sidebar', '#footer', '.footer', '.navbar', '.nav', '.menu', '.social-share',
+            '.comments', '.related-posts', '.advertisement', 'ins.adsbygoogle', 
+            '[aria-hidden="true"]', '.breadcrumb', '.promo', '.banner'
+        ];
+        junkSelectors.forEach(selector => {
+            doc.querySelectorAll(selector).forEach(el => el.remove());
         });
 
-        // Heuristic: Try to find the main content container
-        const mainContent = doc.querySelector('main') || doc.querySelector('article') || doc.querySelector('#content') || doc.querySelector('.content') || doc.querySelector('#main') || doc.body;
+        // Content Extraction: p, li, h1, h2, h3
+        const semanticSelectors = ['p', 'li', 'h1', 'h2', 'h3', 'table', 'div[class*="content"]', '.entry-content'];
+        let extractedParts: string[] = [];
         
-        // Extract innerText which preserves line breaks (mostly) and ignores hidden text
-        const cleanText = mainContent.innerText.replace(/\s+/g, ' ').trim();
+        doc.querySelectorAll(semanticSelectors.join(',')).forEach(el => {
+            const text = el.textContent?.trim();
+            if (text && text.length > 10) {
+               extractedParts.push(text);
+            }
+        });
 
-        if (cleanText.length < 200) {
-            // Likely a bot check or empty page or highly dynamic JS app
-            console.warn("Content too short, likely blocked.");
+        // Normalizing and filtering lines
+        const allText = extractedParts.join('\n');
+        const lines = allText.split(/\n+/);
+        
+        // Intelligent Filtering (PART 3)
+        const filteredLines = lines
+            .map(l => l.trim())
+            .filter(l => l.length > 15) // PART 3: length > 15
+            .filter((l, idx, arr) => arr.indexOf(l) === idx); // UNIQUE
+
+        // Heuristic Pre-Filter: Only keep lines that look educational or like questions
+        const heuristicFilteredContent = filteredLines.filter(line => {
+             // Keep questions identified by manual heuristic or generally dense sentences
+             return isQuestionHeuristic(line) || line.split(' ').length > 8;
+        });
+
+        const finalCleanText = heuristicFilteredContent.join('\n');
+
+        if (finalCleanText.length < 150) {
+            console.warn("Extraction yielded too little quality content.");
             throw new Error("EXTRACTION_BLOCKED");
         }
 
-        console.log("Extracted text length:", cleanText.length);
+        console.log("Extracted high-quality text length:", finalCleanText.length);
         
-        return await parseQuestionsFromText(cleanText, subjectContext);
+        // Limit size to avoid huge payloads (15k characters)
+        return await parseQuestionsFromText(finalCleanText.substring(0, 15000), subjectContext);
 
     } catch (error) {
         console.error("URL Extraction failed:", error);

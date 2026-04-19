@@ -64,12 +64,13 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
   const [chapterError, setChapterError] = useState<string | null>(null);
 
   // Time Allowed State
-  const [timeAllowed, setTimeAllowed] = useState('2 Hours');
-  const [timePreset, setTimePreset] = useState('2 Hours');
+  const [timeAllowed, setTimeAllowed] = useState('');
+  const [timePreset, setTimePreset] = useState('');
   const [customTime, setCustomTime] = useState('');
   const [timeAllowedError, setTimeAllowedError] = useState<string | null>(null);
 
-  const [totalMarks, setTotalMarks] = useState(50);
+  const [totalMarks, setTotalMarks] = useState<number>(0);
+  const [totalMarksError, setTotalMarksError] = useState<string | null>(null);
   const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Medium');
   
   // Include Figures Toggle
@@ -136,17 +137,12 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
   useEffect(() => {
     if (isCustomTest || isCBSEPattern) return;
 
-    const allFieldsFilled = QUESTION_SPECS.every(spec => counts[spec.key] !== '');
-    
-    if (allFieldsFilled) {
-      const total = QUESTION_SPECS.reduce((acc, spec) => {
-        const val = parseInt(counts[spec.key]) || 0;
-        return acc + (val * spec.marks);
-      }, 0);
-      setCurrentCalculatedMarks(total);
-    } else {
-      setCurrentCalculatedMarks(null);
-    }
+    // PART 1 & 3: SANITIZE AND FIX TOTAL CALCULATION
+    const total = QUESTION_SPECS.reduce((acc, spec) => {
+      const val = counts[spec.key] === "" ? 0 : (parseInt(counts[spec.key]) || 0);
+      return acc + (val * spec.marks);
+    }, 0);
+    setCurrentCalculatedMarks(total);
   }, [counts, isCustomTest, isCBSEPattern]);
 
   useEffect(() => {
@@ -250,7 +246,7 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
   // ---------------------------
 
   const validateField = (key: keyof QuestionCounts, value: string) => {
-    if (value === '') return 'Required';
+    if (value === '') return null; // Empty counts are treated as 0
     const num = parseInt(value);
     if (isNaN(num) || num < 0) return 'Invalid';
     return null;
@@ -333,6 +329,10 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
   };
 
   const handleBlur = (key: keyof QuestionCounts) => {
+    // PART 5: UX IMPROVEMENT - Set empty to 0 on blur
+    if (counts[key] === '') {
+        setCounts(prev => ({ ...prev, [key]: '0' }));
+    }
     const error = validateField(key, counts[key]);
     setErrors(prev => ({ ...prev, [key]: error }));
   };
@@ -449,7 +449,13 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
     if (!branchName.trim()) { setBranchError("Please enter branch or location"); hasErrors = true; }
     const finalSchoolNameString = `${effectiveSchoolName}, ${branchName.trim()}`;
     if (hasErrors && schoolContainerRef.current) schoolContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    if (timeAllowed.trim() === '') { setTimeAllowedError('Required'); hasErrors = true; }
+    
+    if (!totalMarks || totalMarks === 0) {
+        setTotalMarksError('Please select marks');
+        hasErrors = true;
+    }
+
+    if (timeAllowed.trim() === '') { setTimeAllowedError('Please select time'); hasErrors = true; }
     else if (!/\d/.test(timeAllowed)) { setTimeAllowedError('Must contain number'); hasErrors = true; }
     if (selectedChapters.length === 0) { setChapterError("Please select at least one chapter."); hasErrors = true; }
 
@@ -470,7 +476,10 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
     
     let finalCounts: any = {};
     if (!isCustomTest && !isCBSEPattern) {
-        QUESTION_SPECS.forEach(spec => { finalCounts[spec.key] = parseInt(counts[spec.key]); });
+        QUESTION_SPECS.forEach(spec => { 
+            const val = counts[spec.key];
+            finalCounts[spec.key] = val === "" ? 0 : (parseInt(val) || 0); 
+        });
     }
     
     const chaptersString = selectedChapters.join(', ');
@@ -700,18 +709,34 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Total Marks</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Total Marks <span className="text-red-500">*</span></label>
                     <div className="flex gap-2">
-                        <input type="number" min="10" max="100" className={`w-full px-4 py-2.5 rounded-lg border border-gray-200 ${isCBSEPattern ? 'bg-gray-100' : ''}`} value={totalMarks} onChange={(e) => setTotalMarks(parseInt(e.target.value))} disabled={isCBSEPattern} />
+                        <select 
+                            className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown ${totalMarksError ? 'border-red-500 bg-red-50' : 'border-gray-200'} ${isCBSEPattern ? 'bg-gray-100' : ''}`}
+                            value={totalMarks || ''} 
+                            onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                setTotalMarks(val);
+                                if (val > 0) setTotalMarksError(null);
+                            }} 
+                            disabled={isCBSEPattern}
+                        >
+                            <option value="">Select Marks</option>
+                            {[10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100].map(m => (
+                                <option key={m} value={m}>{m} Marks</option>
+                            ))}
+                        </select>
                         {!isCustomTest && !isCBSEPattern && <button type="button" onClick={handleAutoDistribute} className="btn-glass btn-glass-secondary px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">Auto Distribute</button>}
                     </div>
+                    {totalMarksError && <p className="text-red-600 text-xs font-bold mt-1.5">{totalMarksError}</p>}
                 </div>
 
                 <div className="md:col-span-2">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Time Allowed <span className="text-red-500">*</span></label>
                     <div className="flex gap-4">
                          <div className="relative w-full md:w-1/2">
-                            <select value={timePreset} onChange={handlePresetChange} disabled={isCBSEPattern} className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown disabled:opacity-50 ${timeAllowedError && timePreset !== 'Custom' ? 'border-red-500' : ''}`}>
+                            <select value={timePreset} onChange={handlePresetChange} disabled={isCBSEPattern} className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown disabled:opacity-50 ${timeAllowedError && timePreset !== 'Custom' ? 'border-red-500' : 'border-gray-200'}`}>
+                                <option value="">Select Time</option>
                                 <option value="30 Minutes">30 Minutes</option><option value="40 Minutes">40 Minutes</option><option value="45 Minutes">45 Minutes</option><option value="1 Hour">1 Hour</option><option value="1.5 Hours">1.5 Hours</option><option value="2 Hours">2 Hours</option><option value="2.5 Hours">2.5 Hours</option><option value="3 Hours">3 Hours</option><option value="Custom">Custom</option>
                             </select>
                          </div>
