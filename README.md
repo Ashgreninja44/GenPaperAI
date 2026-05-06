@@ -12,7 +12,6 @@
 
 *2.Customise the App to you liking.*
 
-=====================================================
+
 New Features Comming Soon, Contributions Appriciated.
-=====================================================
-                                        
+
