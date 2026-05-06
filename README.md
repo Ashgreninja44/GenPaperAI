@@ -5,10 +5,10 @@
 # An Question Paper Generator Mage using Google AI Studio
 
 
-Key Features:
+**Key Features:
 *Generate Question Papers with Ease.
-*Customise the App that you like.
-
-                                          ======================================================
-                                           New Features Comming Soon, Contributions Appriciated
-                                          ======================================================
+*Customise the App that you like.******
+ ======================================================
+  New Features Comming Soon, Contributions Appriciated.
+ ======================================================
+                                        
