@@ -10,9 +10,9 @@
 **1.Generate Question Papers with Ease.**
 
 
-*2.Customise the App that you like.*
+*2.Customise the App to you liking.*
 
- ======================================================
-  New Features Comming Soon, Contributions Appriciated.
- ======================================================
+=====================================================
+New Features Comming Soon, Contributions Appriciated.
+=====================================================
                                         
