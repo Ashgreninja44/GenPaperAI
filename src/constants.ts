@@ -1,11 +1,13 @@
 
 export const BOARDS = [
-  "CBSE / NCERT",
-  "AP SCERT"
+  "CBSE / NCERT (New)",
+  "CBSE / NCERT (Old)",
+  "AP SCERT",
+  "Telangana SCERT"
 ];
 
 export const GRADES = [
-  "Class 3", "Class 4", "Class 5", "Class 6", "Class 7", "Class 8", "Class 9", "Class 10"
+  "Class 6", "Class 7", "Class 8", "Class 9", "Class 10"
 ];
 
 export const PRESET_SCHOOLS = [
@@ -481,115 +483,1022 @@ export const CBSE_EXAM_PATTERNS: Record<string, any> = {
         "internal_choice": "Internal choice in each question"
       }
     ]
+  },
+  "Sanskrit": {
+    "subject": "Sanskrit",
+    "total_marks": 80,
+    "duration": 180,
+    "sections": [
+      {
+        "section": "क",
+        "title": "अपठित-अवबोधनम् (Unseen Passage)",
+        "num_questions": 1,
+        "question_types": "One-word and full-sentence comprehension, title selection (10 marks)",
+        "marks_each": 10,
+        "total_marks": 10,
+        "internal_choice": "No choice"
+      },
+      {
+        "section": "ख",
+        "title": "रचनात्मक-कार्यम् (Creative Writing)",
+        "num_questions": 3,
+        "question_types": "Letter writing, Picture description, Sentence composition (15 marks)",
+        "marks_each": 5,
+        "total_marks": 15,
+        "internal_choice": "Internal choices provided in each task"
+      },
+      {
+        "section": "ग",
+        "title": "अनुप्रयुक्त-व्याकरणम् (Applied Grammar)",
+        "num_questions": 7,
+        "question_types": "Sandhi, Samasa, Pratyaya, Avyaya, Vachana, Samaya, etc. (25 marks)",
+        "marks_each": ["varies"],
+        "total_marks": 25,
+        "internal_choice": "Answer any 4 out of 5 in each sub-part"
+      },
+      {
+        "section": "घ",
+        "title": "पठित-अवबोधनम् (Reading Comprehension)",
+        "num_questions": 6,
+        "question_types": "Prose/poetry/drama comprehension, Shloka matching, word-meaning (30 marks)",
+        "marks_each": ["varies"],
+        "total_marks": 30,
+        "internal_choice": "Internal choice in comprehension and matching"
+      }
+    ]
   }
 };
 
-
-// ------------------------------------------------------------------
-// SYLLABUS DEFINITIONS (2024-25)
-// ------------------------------------------------------------------
-
-// CBSE Hindi Chapters (Corrected to Devanagari Script)
-const CBSE_HINDI_A_10 = [
-  "सूरदास के पद", 
-  "राम-लक्ष्मण-परशुराम संवाद", 
-  "सवैया / कवित्त (देव)", 
-  "आत्मकथ्य (जयशंकर प्रसाद)", 
-  "उत्साह / अट नहीं रही है (निराला)", 
-  "यह दंतुरित मुस्कान / फसल (नागार्जुन)", 
-  "संगतकार (मंगलेश डबराल)", 
-  "नेताजी का चश्मा", 
-  "बालगोबिन भगत", 
-  "लखनवी अंदाज़", 
-  "मानवीय करुणा की दिव्य चमक", 
-  "एक कहानी यह भी", 
-  "स्त्री शिक्षा के विरोधी कुतर्कों का खंडन", 
-  "नौबतखाने में इबादत", 
-  "संस्कृति", 
-  "माता का अंचल", 
-  "साना-साना हाथ जोड़ि", 
-  "मैं क्यों लिखता हूँ?"
-];
-
-const CBSE_HINDI_B_10 = [
-  "साखी (कबीर)", 
-  "पद (मीरा)", 
-  "बड़े भाई साहब", 
-  "डायरी का एक पन्ना", 
-  "ततांरा-वामीरो कथा", 
-  "तीसरी कसम के शिल्पकार शैलेंद्र", 
-  "अब कहाँ दूसरे के दुख से दुखी होने वाले", 
-  "पतझड़ में टूटी पत्तियाँ", 
-  "कारतूस", 
-  "मनुष्यता", 
-  "पर्वत प्रदेश में पावस", 
-  "तोप", 
-  "कर चले हम फ़िदा", 
-  "आत्मत्राण", 
-  "हरिहर काका", 
-  "सपनों के-से दिन", 
-  "टोपी शुक्ला"
-];
-
-// Common Math Chapters (Used for both Basic and Standard)
-const CBSE_MATH_10 = ["Real Numbers", "Polynomials", "Pair of Linear Equations in Two Variables", "Quadratic Equations", "Arithmetic Progressions", "Triangles", "Coordinate Geometry", "Introduction to Trigonometry", "Some Applications of Trigonometry", "Circles", "Constructions", "Areas Related to Circles", "Surface Areas and Volumes", "Statistics", "Probability"];
-
-// Common English Chapters
-const CBSE_ENGLISH_10 = ["A Letter to God", "Dust of Snow", "Fire and Ice", "Nelson Mandela: Long Walk to Freedom", "A Tiger in the Zoo", "Two Stories about Flying", "How to Tell Wild Animals", "The Ball Poem", "From the Diary of Anne Frank", "Amanda!", "The Hundred Dresses - I", "The Hundred Dresses - II", "Animals", "Glimpses of India", "The Trees", "Mijbil the Otter", "Fog", "Madam Rides the Bus", "The Tale of Custard the Dragon", "The Sermon at Benares", "For Anne Gregory", "The Proposal"];
-
-
-// Structure: Board -> Grade -> Subject -> Topics[]
-// This holds the CURRENT Syllabus (2024-25)
-// STRICTLY FILTERED: Core Academic Subjects Only (Math, Science, Social Science, EVS)
-export const CURRICULUM_DATA: Record<string, Record<string, Record<string, string[]>>> = {
-  "CBSE / NCERT": {
-    "Class 3": {
-      "Mathematics": ["Where to Look From", "Fun with Numbers", "Give and Take", "Long and Short", "Shapes and Designs", "Fun with Give and Take", "Time Goes On", "Who is Heavier?", "How Many Times?", "Play with Patterns", "Jugs and Mugs", "Can We Share?", "Smart Charts", "Rupees and Paise"],
-      "EVS": ["Poonam's Day out", "The Plant Fairy", "Water O' Water!", "Our First School", "Chhotu's House", "Foods We Eat", "Saying without Speaking", "Flying High", "It's Raining", "What is Cooking", "From Here to There", "Work We Do", "Sharing Our Feelings", "The Story of Food", "Making Pots", "Games We Play", "Here comes a Letter", "A House Like This", "Our Friends-Animals", "Drop by Drop", "Families can be Different", "Left-Right", "A Beautiful Cloth", "Web of Life"]
+const NEW_NCERT_SYLLABUS: Record<string, Record<string, any>> = {
+  "Class 6": {
+    "Mathematics": {
+      "book": "Ganit Prakash",
+      "chapters": [
+        "Patterns in Mathematics",
+        "Lines and Angles",
+        "Number Play",
+        "Data Handling and Presentation",
+        "Prime Time",
+        "Perimeter and Area",
+        "Fractions",
+        "Playing with Constructions",
+        "Symmetry",
+        "The Other Side of Zero"
+      ]
     },
-    "Class 4": {
-      "Mathematics": ["Building with Bricks", "Long and Short", "A Trip to Bhopal", "Tick-Tick-Tick", "The Way The World Looks", "The Junk Seller", "Jugs and Mugs", "Carts and Wheels", "Halves and Quarters", "Play with Patterns", "Tables and Shares", "How Heavy? How Light?", "Fields and Fences", "Smart Charts"],
-      "EVS": ["Going to School", "Ear to Ear", "A Day with Nandu", "The Story of Amrita", "Anita and the Honeybees", "Omana's Journey", "From the Window", "Reaching Grandmother's House", "Changing Families", "Hu Tu Tu, Hu Tu Tu", "The Valley of Flowers", "Changing Times", "A River's Tale", "Basva's Farm", "From Market to Home", "A Busy Month", "Nandita in Mumbai", "Too Much Water, Too Little Water", "Abdul in the Garden", "Eating Together", "Food and Fun", "The World in my Home", "Pochampalli", "Home and Abroad", "Spicy Riddles", "Defence Officer: Wahida", "Chuskit Goes to School"]
+    "Science": {
+      "book": "Curiosity",
+      "chapters": [
+        "The Wonderful World of Science",
+        "Diversity in the Living World",
+        "Mindful Eating: A Path to a Healthy Body",
+        "Exploring Magnets",
+        "Measurement of Length and Motion",
+        "Materials Around Us",
+        "Temperature and its Measurement",
+        "A Journey through States of Water",
+        "Methods of Separation in Everyday Life",
+        "Living Creatures: Exploring their Characteristics",
+        "Nature's Treasures",
+        "Beyond Earth"
+      ]
     },
-    "Class 5": {
-      "Mathematics": ["The Fish Tale", "Shapes and Angles", "How Many Squares?", "Parts and Wholes", "Does it Look the Same?", "Be My Multiple, I'll be Your Factor", "Can You See the Pattern?", "Mapping Your Way", "Boxes and Sketches", "Tenths and Hundredths", "Area and its Boundary", "Smart Charts", "Ways to Multiply and Divide", "How Big? How Heavy?"],
-      "EVS": ["Super Senses", "A Snake Charmer’s Story", "From Tasting to Digesting", "Mangoes Round the Year", "Seeds and Seeds", "Every Drop Counts", "Experiments with Water", "A Treat for Mosquitoes", "Up You Go!", "Walls Tell Stories", "Sunita in Space", "What if it Finishes...?", "A Shelter so High!", "When the Earth Shook!", "Blow Hot, Blow Cold", "Who will do this Work?", "Across the Wall", "No Place for Us?", "A Seed tells a Farmer’s Story", "Whose Forests?", "Like Father, Like Daughter", "On the Move Again"]
+    "English": {
+      "book": "Poorvi",
+      "chapters": [
+        "A Bottle of Dew",
+        "The Raven and the Fox",
+        "Rama to the Rescue",
+        "The Unlikely Best Friends",
+        "A Friend's Prayer",
+        "The Chair",
+        "Neem Baba",
+        "What a Bird Thought",
+        "Spices that Heal Us",
+        "Change of Heart",
+        "The Winner",
+        "Yoga—A Way of Life",
+        "Hamara Bharat—Incredible India!",
+        "The Kites",
+        "Ila Sachani: Embroidering Dreams with her Feet",
+        "National War Memorial"
+      ]
     },
-    "Class 6": {
-      "Mathematics": ["Knowing Our Numbers", "Whole Numbers", "Playing with Numbers", "Basic Geometrical Ideas", "Understanding Elementary Shapes", "Integers", "Fractions", "Decimals", "Data Handling", "Mensuration", "Algebra", "Ratio and Proportion", "Symmetry", "Practical Geometry"],
-      "Science": ["Food: Where Does It Come From?", "Components of Food", "Fibre to Fabric", "Sorting Materials into Groups", "Separation of Substances", "Changes Around Us", "Getting to Know Plants", "Body Movements", "The Living Organisms and Their Surroundings", "Motion and Measurement of Distances", "Light, Shadows and Reflections", "Electricity and Circuits", "Fun with Magnets", "Water", "Air Around Us", "Garbage In, Garbage Out"],
-      "Social Science": ["What, Where, How and When?", "From Hunting–Gathering to Growing Food", "In the Earliest Cities", "What Books and Burials Tell Us", "Kingdoms, Kings and an Early Republic", "New Questions and Ideas", "Ashoka, The Emperor Who Gave Up War", "Vital Villages, Thriving Towns", "Traders, Kings and Pilgrims", "New Empires and Kingdoms", "Buildings, Paintings and Books", "The Earth in the Solar System", "Globe: Latitudes and Longitudes", "Motions of the Earth", "Maps", "Major Domains of the Earth", "Major Landforms of the Earth", "Our Country – India", "India: Climate, Vegetation and Wildlife", "Understanding Diversity", "Diversity and Discrimination", "What is Government?", "Key Elements of a Democratic Government", "Panchayati Raj", "Rural Administration", "Urban Administration", "Rural Livelihoods", "Urban Livelihoods"]
+    "Hindi": {
+      "book": "Malhar",
+      "chapters": [
+        "मातृभूमि",
+        "गोल",
+        "पहली बूँद",
+        "हार की जीत",
+        "रहीम के दोहे",
+        "मेरी माँ",
+        "जलाते चलो",
+        "सत्रिया और बिहू नृत्य",
+        "मैया मैं नहीं माखन खायो",
+        "परीक्षा",
+        "चेतक की वीरता",
+        "हिंद महासागर में छोटा-सा हिंदुस्तान",
+        "पेड़ की बात"
+      ]
     },
-    "Class 7": {
-      "Mathematics": ["Integers", "Fractions and Decimals", "Data Handling", "Simple Equations", "Lines and Angles", "The Triangle and its Properties", "Congruence of Triangles", "Comparing Quantities", "Rational Numbers", "Practical Geometry", "Perimeter and Area", "Algebraic Expressions", "Exponents and Powers", "Symmetry", "Visualising Solid Shapes"],
-      "Science": ["Nutrition in Plants", "Nutrition in Animals", "Fibre to Fabric", "Heat", "Acids, Bases and Salts", "Physical and Chemical Changes", "Weather, Climate and Adaptations of Animals to Climate", "Winds, Storms and Cyclones", "Soil", "Respiration in Organisms", "Transportation in Animals and Plants", "Reproduction in Plants", "Motion and Time", "Electric Current and its Effects", "Light", "Water: A Precious Resource", "Forests: Our Lifeline", "Wastewater Story"],
-      "Social Science": ["Tracing Changes Through a Thousand Years", "New Kings and Kingdoms", "The Delhi Sultans", "The Mughal Empire", "Rulers and Buildings", "Towns, Traders and Craftspersons", "Tribes, Nomads and Settled Communities", "Devotional Paths to the Divine", "The Making of Regional Cultures", "Eighteenth-Century Political Formations", "Environment", "Inside Our Earth", "Our Changing Earth", "Air", "Water", "Natural Vegetation and Wildlife", "Human Environment – Settlement, Transport and Communication", "Human Environment Interactions", "Life in the Deserts", "On Equality", "Role of the Government in Health", "How the State Government Works", "Growing up as Boys and Girls", "Women Change the World", "Understanding Media", "Markets Around Us", "A Shirt in the Market", "Struggles for Equality"]
-    },
-    "Class 8": {
-      "Mathematics": ["Rational Numbers", "Linear Equations in One Variable", "Understanding Quadrilaterals", "Practical Geometry", "Data Handling", "Squares and Square Roots", "Cubes and Cube Roots", "Comparing Quantities", "Algebraic Expressions and Identities", "Visualising Solid Shapes", "Mensuration", "Exponents and Powers", "Direct and Inverse Proportions", "Factorisation", "Introduction to Graphs", "Playing with Numbers"],
-      "Science": ["Crop Production and Management", "Microorganisms: Friend and Foe", "Synthetic Fibres and Plastics", "Materials: Metals and Non-Metals", "Coal and Petroleum", "Combustion and Flame", "Conservation of Plants and Animals", "Cell - Structure and Functions", "Reproduction in Animals", "Reaching the Age of Adolescence", "Force and Pressure", "Friction", "Sound", "Chemical Effects of Electric Current", "Some Natural Phenomena", "Light", "Stars and The Solar System", "Pollution of Air and Water"],
-      "Social Science": ["How, When and Where", "From Trade to Territory", "Ruling the Countryside", "Tribals, Dikus and the Vision of a Golden Age", "When People Rebel", "Colonialism and the City", "Weavers, Iron Smelters and Factory Owners", "Civilising the “Native”, Educating the Nation", "Women, Caste and Reform", "The Changing World of Visual Arts", "The Making of the National Movement", "India After Independence", "Resources", "Land, Soil, Water, Natural Vegetation and Wildlife Resources", "Mineral and Power Resources", "Agriculture", "Industries", "Human Resources", "The Indian Constitution", "Understanding Secularism", "Why Do We Need a Parliament?", "Understanding Laws", "Judiciary", "Understanding Our Criminal Justice System", "Understanding Marginalisation", "Confronting Marginalisation", "Public Facilities", "Law and Social Justice"]
-    },
-    "Class 9": {
-      "Mathematics": ["Number Systems", "Polynomials", "Coordinate Geometry", "Linear Equations in Two Variables", "Introduction to Euclid's Geometry", "Lines and Angles", "Triangles", "Quadrilaterals", "Areas of Parallelograms and Triangles", "Circles", "Constructions", "Heron's Formula", "Surface Areas and Volumes", "Statistics", "Probability"],
-      "Science": ["Matter in Our Surroundings", "Is Matter Around Us Pure", "Atoms and Molecules", "Structure of the Atom", "The Fundamental Unit of Life", "Tissues", "Diversity in Living Organisms", "Motion", "Force and Laws of Motion", "Gravitation", "Work and Energy", "Sound", "Why Do We Fall Ill", "Natural Resources", "Improvement in Food Resources"],
-      "Social Science": ["The French Revolution", "Socialism in Europe and the Russian Revolution", "Nazism and the Rise of Hitler", "Forest Society and Colonialism", "Pastoralists in the Modern World", "India - Size and Location", "Physical Features of India", "Drainage", "Climate", "Natural Vegetation and Wildlife", "Population", "What is Democracy? Why Democracy?", "Constitutional Design", "Electoral Politics", "Working of Institutions", "Democratic Rights", "The Story of Village Palampur", "People as Resource", "Poverty as a Challenge", "Food Security in India"]
-    },
-    "Class 10": {
-      "Mathematics (Standard)": CBSE_MATH_10,
-      "Mathematics (Basic)": CBSE_MATH_10,
-      "Science": ["Chemical Reactions and Equations", "Acids, Bases and Salts", "Metals and Non-metals", "Carbon and its Compounds", "Periodic Classification of Elements", "Life Processes", "Control and Coordination", "How do Organisms Reproduce?", "Heredity and Evolution", "Light – Reflection and Refraction", "The Human Eye and the Colourful World", "Electricity", "Magnetic Effects of Electric Current", "Sources of Energy", "Our Environment", "Sustainable Management of Natural Resources"],
-      "Social Science": ["The Rise of Nationalism in Europe", "Nationalism in India", "The Making of a Global World", "The Age of Industrialisation", "Print Culture and the Modern World", "Resources and Development", "Forest and Wildlife Resources", "Water Resources", "Agriculture", "Minerals and Energy Resources", "Manufacturing Industries", "Lifelines of National Economy", "Power Sharing", "Federalism", "Democracy and Diversity", "Gender, Religion and Caste", "Popular Struggles and Movements", "Political Parties", "Outcomes of Democracy", "Challenges to Democracy", "Development", "Sectors of the Indian Economy", "Money and Credit", "Globalisation and the Indian Economy", "Consumer Rights"]
+    "Social Science": {
+      "book": "Exploring Society: India and Beyond",
+      "chapters": [
+        "Locating Places on the Earth",
+        "Oceans and Continents",
+        "Landforms and Life",
+        "Timeline and Sources of History",
+        "India, That Is Bharat",
+        "The Beginnings of Indian Civilisation",
+        "India's Cultural Roots",
+        "Unity in Diversity, or 'Many in the One'",
+        "Family and Community",
+        "Grassroots Democracy – Part 1: Governance",
+        "Grassroots Democracy – Part 2: Local Government in Rural Areas",
+        "Grassroots Democracy – Part 3: Local Government in Urban Areas",
+        "The Value of Work",
+        "Economic Activities Around Us"
+      ]
     }
   },
-  "AP SCERT": {
-    "Class 3": {},
-    "Class 4": {},
-    "Class 5": {},
-    "Class 6": {},
-    "Class 7": {},
-    "Class 8": {},
-    "Class 9": {},
-    "Class 10": {}
+  "Class 7": {
+    "Mathematics": {
+      "book": "Ganit Prakash",
+      "chapters": [
+        "Large Numbers Around Us",
+        "Arithmetic Expressions",
+        "A Peek Beyond the Point",
+        "Expressions using Letter-Numbers",
+        "Parallel and Intersecting Lines",
+        "Number Play",
+        "A Tale of Three Intersecting Lines",
+        "Working with Fractions",
+        "Geometric Twins",
+        "Operations with Integers",
+        "Finding Common Ground",
+        "Another Peek Beyond the Point",
+        "Connecting the Dots...",
+        "Constructions and Tilings",
+        "Finding the Unknown"
+      ]
+    },
+    "Science": {
+      "book": "Curiosity",
+      "chapters": [
+        "The Ever-Evolving World of Science",
+        "Exploring Substances: Acidic, Basic, and Neutral",
+        "Electricity: Circuits and their Components",
+        "The World of Metals and Non-metals",
+        "Changes Around Us: Physical and Chemical",
+        "Adolescence: A Stage of Growth and Change",
+        "Heat Transfer in Nature",
+        "Measurement of Time and Motion",
+        "Life Processes in Animals",
+        "Life Processes in Plants",
+        "Light: Shadows and Reflections",
+        "Earth, Moon, and the Sun"
+      ]
+    },
+    "English": {
+      "book": "Poorvi",
+      "chapters": [
+        "The Day the River Spoke",
+        "Try Again",
+        "Three Days to See",
+        "Animals, Birds, and Dr. Dolittle",
+        "A Funny Man",
+        "Say the Right Thing",
+        "My Brother's Great Invention",
+        "Paper Boats",
+        "North, South, East, West",
+        "The Tunnel",
+        "Travel",
+        "Conquering the Summit",
+        "A Homage to Our Brave Soldiers",
+        "My Dear Soldiers",
+        "Rani Abbakka"
+      ]
+    },
+    "Hindi": {
+      "book": "Malhar",
+      "chapters": [
+        "माँ, कह एक कहानी",
+        "तीन बुद्धिमान",
+        "फूल और काँटा",
+        "पानी रे पानी",
+        "नहीं होना बीमार",
+        "गिरिधर कविराय की कुंडलियाँ",
+        "वर्षा-बहार",
+        "बिरजू महाराज से साक्षात्कार",
+        "चिड़िया",
+        "मीरा के पद"
+      ]
+    },
+    "Social Science": {
+      "book": "Exploring Society: India and Beyond",
+      "chapters": [
+        "Geographical Diversity of India",
+        "Understanding the Weather",
+        "Climates of India",
+        "New Beginnings: Cities and States",
+        "The Rise of Empires",
+        "The Age of Reorganisation",
+        "The Gupta Era: An Age of Tireless Creativity",
+        "How the Land Becomes Sacred",
+        "From the Rulers to the Ruled: Types of Governments",
+        "The Constitution of India — An Introduction",
+        "From Barter to Money",
+        "Understanding Markets"
+      ]
+    }
+  },
+  "Class 8": {
+    "Mathematics": {
+      "book": "Ganit Prakash",
+      "chapters": [
+        "A Square and A Cube",
+        "Power Play",
+        "A Story of Numbers",
+        "Quadrilaterals",
+        "Number Play",
+        "We Distribute, Yet Things Multiply",
+        "Proportional Reasoning-1",
+        "Fractions in Disguise",
+        "The Baudhayana-Pythagoras Theorem",
+        "Proportional Reasoning-2",
+        "Exploring Some Geometric Themes",
+        "Tales by Dots and Lines",
+        "Algebra Play",
+        "Area"
+      ]
+    },
+    "Science": {
+      "book": "Curiosity",
+      "chapters": [
+        "Exploring the Investigative World of Science",
+        "The Invisible Living World: Beyond Our Naked Eye",
+        "Health: The Ultimate Treasure",
+        "Electricity: Magnetic and Heating Effects",
+        "Exploring Forces",
+        "Pressure, Winds, Storms, and Cyclones",
+        "Particulate Nature of Matter",
+        "Nature of Matter: Elements, Compounds, and Mixtures",
+        "The Amazing World of Solutes, Solvents, and Solutions",
+        "Light: Mirrors and Lenses",
+        "Keeping Time with the Skies",
+        "How Nature Works in Harmony",
+        "Our Home: Earth, a Unique Life Sustaining Planet"
+      ]
+    },
+    "English": {
+      "book": "Poorvi",
+      "chapters": [
+        "The Wit that Won Hearts",
+        "A Concrete Example",
+        "Wisdom Paves the Way",
+        "A Tale of Valour: Major Somnath Sharma",
+        "Somebody's Mother",
+        "Verghese Kurien - I Too Had A Dream",
+        "The Case of the Fifth Word",
+        "The Magic Brush of Dreams",
+        "Spectacular Wonders",
+        "The Cherry Tree",
+        "Harvest Hymn",
+        "Waiting for the Rain",
+        "Feathered Friend",
+        "Magnifying Glass",
+        "Bibha Chowdhuri: The Beam of Light"
+      ]
+    },
+    "Hindi": {
+      "book": "Malhar",
+      "chapters": [
+        "स्वदेश",
+        "दो गौरैैया",
+        "एक आशीर्वाद",
+        "हरिद्वार",
+        "कबीर के दोहे",
+        "एक टोकरी भर मिट्टी",
+        "मत बाँधो",
+        "नए मेहमान",
+        "आदमी का अनुपात",
+        "तरुण के स्वप्न"
+      ]
+    },
+    "Social Science": {
+      "book": "Exploring Society: India and Beyond",
+      "chapters": [
+        "Natural Resources and Their Use",
+        "Reshaping India's Political Map",
+        "The Rise of the Marathas",
+        "The Colonial Era in India",
+        "Universal Franchise and India's Electoral System",
+        "The Parliamentary System: Legislature and Executive",
+        "Factors of Production"
+      ]
+    },
+    "Sanskrit": {
+      "book": "Deepakam",
+      "chapters": [
+        "संगच्छध्वं संवदध्वम्",
+        "अल्पानामपि वस्तूनां संहतिः कार्यसाधिका",
+        "सुभाषितरसं पीत्वा जीवनं सफलं कुरु",
+        "प्रणम्यो देशभक्तोऽयं गोपबन्धुर्महामनाः",
+        "गीता सुगीता कर्तव्या",
+        "डिजिभारतम् युगपरिवर्तनम्",
+        "मञ्जुलमञ्जूषा सुन्दरसुरभाषा",
+        "पश्यत कोणमैशान्यं भारतस्य मनोहरम्",
+        "कोऽरुक्? कोऽरुक्? कोऽरुक्?",
+        "सन्निमित्ते वरं त्यागः (क-भागः)",
+        "सन्निमित्ते वरं त्यागः (ख-भागः)",
+        "सम्यग्वर्णप्रयोगेण ब्रह्मलोके महीयते",
+        "वर्णोच्चारण-शिक्षा १"
+      ]
+    },
+    "Telugu (Andhra Pradesh)": {
+      "book": "Telugu Parimalam",
+      "chapters": [
+        "Dharma Deeksha",
+        "Pratigna",
+        "Srujana",
+        "Telugu Velugu",
+        "Desha Bhakthi",
+        "Matti Manushulu"
+      ]
+    },
+    "Telugu (Telangana)": {
+      "book": "Singidi",
+      "chapters": [
+        "Thyagam",
+        "Sankranthi mela",
+        "Telangana Vaibhavam",
+        "Charithra",
+        "Veerulu",
+        "Samskruthi"
+      ]
+    }
+  },
+  "Class 9": {
+    "Mathematics": {
+      "book": "Ganita Manjari Part 1",
+      "chapters": [
+        "Orienting Yourself: The Use of Coordinates",
+        "Introduction to Linear Polynomials",
+        "The World of Numbers",
+        "Exploring Algebraic Identities",
+        "I'm Up and Down, and Round and Round",
+        "Measuring Space: Perimeter and Area",
+        "The Mathematics of Maybe: Introduction to Probability",
+        "Predicting What Comes Next?: Exploring Sequences and Progressions"
+      ]
+    },
+    "Science": {
+      "book": "Exploration",
+      "chapters": [
+        "Cell",
+        "Tissues",
+        "Reproduction",
+        "Diversity",
+        "Exploring Mixtures and Their Separation",
+        "Atoms and Molecules",
+        "Structure of an Atom",
+        "Earth as a System: Energy, Matter and Life",
+        "Motion",
+        "Force and Laws of Motion",
+        "Work, Energy and Simple Machines",
+        "Sound"
+      ]
+    },
+    "English": {
+      "book": "Kaveri",
+      "chapters": [
+        "How I Taught My Grandmother to Read",
+        "The Pot Maker",
+        "Winds of Change",
+        "Vitamin-M",
+        "The World of Limitless Possibilities",
+        "Twin Melodies",
+        "Carrier of Words",
+        "Follow That Dream",
+        "Bharat Our Land",
+        "Gifts of Grace: Honouring Our Vocations",
+        "Canvas of Soil",
+        "I Cannot Remember My Mother",
+        "Nine Gold Medals",
+        "A Friend Found in Music",
+        "Words",
+        "Believe in Yourself"
+      ]
+    },
+    "Hindi": {
+      "book": "Ganga",
+      "chapters": [
+        "दो बैलों की कथा",
+        "क्या लिखूँ?",
+        "संवादहीन",
+        "ऐसी भी बातें होती हैं",
+        "आखिरी चट्टान तक",
+        "रीढ़ की हड्डी",
+        "मैं और मेरा देश",
+        "पद",
+        "राम-लक्ष्मण-परशुराम संवाद",
+        "भारति, जय, विजयकरे!",
+        "झाँसी की रानी",
+        "घर की याद"
+      ]
+    },
+    "Social Science": {
+      "book": "Understanding Society: India and Beyond",
+      "chapters": [
+        "Understanding Social Science",
+        "Shaping of the Earth's Surface",
+        "Atmosphere and Climate",
+        "Early Humans and Beginning of Civilisation",
+        "State and Society (up to 1000 CE)",
+        "Democracy",
+        "Elections",
+        "Building Blocks in Economics",
+        "The Price Puzzle: What Drives the Market",
+        "Oceans and Life",
+        "Life on Earth",
+        "Resistance and Resilience (1000 CE–1700 CE)",
+        "India and the World-I (1900 BCE–1200 CE)",
+        "Authority",
+        "Entrepreneurship and Financial Literacy",
+        "Personal Finance and Start-up Ecosystems"
+      ]
+    },
+    "Sanskrit": {
+      "book": "Sharda",
+      "chapters": [
+        "सत्यं शिवं सुन्दरं संस्कृतम्",
+        "सुखस्य मूलं धर्मः धर्मस्य मूलम् अर्थः",
+        "आत्मवत्सर्वभूतेषु यः पश्यति सः पण्डितः",
+        "न खलु वयस्तेजसो हेतुः",
+        "एषा सा कृतकबुद्धिः मानवबुद्धेः सहकरी",
+        "मनःपूतं समाचरेत्",
+        "उपायं चिन्तयेत् प्राज्ञस्तथापायं च चिन्तयेत्",
+        "अन्नाद् आनन्दं प्रति",
+        "कृतं प्रतिकृतं भूयादेष धर्मः सनातनः",
+        "णमो अरिहन्ताणम्",
+        "वर्णोच्चारण - शिक्षा २"
+      ]
+    },
+    "Telugu (Andhra Pradesh)": {
+      "books": [
+        {
+          "name": "Telugu Parimalam",
+          "part": "First Language",
+          "chapters": [
+            "Dharmabodha",
+            "Chaitanyam",
+            "Harivillu",
+            "Aatmakatha",
+            "Sneham",
+            "Teerpu",
+            "Maatamahima",
+            "Illalakagane",
+            "Ashavadi"
+          ]
+        },
+        {
+          "name": "Telugu Parimalam Upavachakam",
+          "part": "Supplementary Reader",
+          "chapters": [
+            "Nyapathi Subbarao",
+            "Kasinaathuni Nageshwar Rao",
+            "Ponaka Kanakamma"
+          ]
+        },
+        {
+          "name": "Telugu Sudha-1",
+          "part": "Second Language",
+          "chapters": [
+            "Desamante...",
+            "Lakumuki Pitta",
+            "Uduta Saayam",
+            "Prakruti",
+            "Metlu",
+            "Jaabilli, Asadrushudu",
+            "Mutyala Moote",
+            "Pattana Samasyalu",
+            "Telugu Nela - Telugu Velugulu",
+            "Nenu... Chindulu Ellammanu",
+            "Gaalib Geethalu",
+            "Iddaru Mitrulu",
+            "Koti-Mosali Katha",
+            "Sheethakaalam"
+          ]
+        }
+      ]
+    },
+    "Telugu (Telangana)": {
+      "books": [
+        {
+          "name": "Singidi 1",
+          "part": "Prose & Poetry",
+          "chapters": [
+            "జీవితం – విలువలు",
+            "దారి చూపే మాటలు",
+            "సాహసమే సాఫల్యం",
+            "మనసు – మనిషి ప్రతిబింబం",
+            "ప్రపంచంలో తెలుగు",
+            "భారతీయ సంస్కృతి – సాంప్రదాయాలు",
+            "నా భాష – నా గర్వం",
+            "ప్రకృతి – మన గురువు",
+            "తెలుగు తల్లి ప్రపంచం",
+            "దేశభక్తి కవిత్వం"
+          ]
+        },
+        {
+          "name": "Singidi 1",
+          "part": "Supplementary",
+          "chapters": [
+            "ఔదార్యం",
+            "సేవ భావన",
+            "విజ్ఞాన ప్రపంచం",
+            "శ్రమ – విజయం"
+          ]
+        }
+      ]
+    }
+  },
+  "Class 10": {
+    "Mathematics (Basic)": {
+      "book": "Mathematics",
+      "chapters": [
+        "Real Numbers",
+        "Polynomials",
+        "Pair of Linear Equations in Two Variables",
+        "Quadratic Equations",
+        "Arithmetic Progressions",
+        "Coordinate Geometry",
+        "Triangles",
+        "Circles",
+        "Introduction to Trigonometry",
+        "Trigonometric Identities",
+        "Some Applications of Trigonometry",
+        "Areas Related to Circles",
+        "Surface Areas and Volumes",
+        "Statistics",
+        "Probability"
+      ]
+    },
+    "Mathematics (Standard)": {
+      "book": "Mathematics",
+      "chapters": [
+        "Real Numbers",
+        "Polynomials",
+        "Pair of Linear Equations in Two Variables",
+        "Quadratic Equations",
+        "Arithmetic Progressions",
+        "Coordinate Geometry",
+        "Triangles",
+        "Circles",
+        "Introduction to Trigonometry",
+        "Trigonometric Identities",
+        "Some Applications of Trigonometry",
+        "Areas Related to Circles",
+        "Surface Areas and Volumes",
+        "Statistics",
+        "Probability"
+      ]
+    },
+    "Mathematics": {
+      "book": "Mathematics",
+      "chapters": [
+        "Real Numbers",
+        "Polynomials",
+        "Pair of Linear Equations in Two Variables",
+        "Quadratic Equations",
+        "Arithmetic Progressions",
+        "Coordinate Geometry",
+        "Triangles",
+        "Circles",
+        "Introduction to Trigonometry",
+        "Trigonometric Identities",
+        "Some Applications of Trigonometry",
+        "Areas Related to Circles",
+        "Surface Areas and Volumes",
+        "Statistics",
+        "Probability"
+      ]
+    },
+    "Science": {
+      "book": "Science",
+      "chapters": [
+        "Chemical Reactions and Equations",
+        "Acids, Bases and Salts",
+        "Metals and Non-Metals",
+        "Carbon and Its Compounds",
+        "Life Processes",
+        "Control and Coordination",
+        "How Do Organisms Reproduce?",
+        "Heredity",
+        "Light – Reflection and Refraction",
+        "The Human Eye and the Colourful World",
+        "Electricity",
+        "Magnetic Effects of Electric Current",
+        "Our Environment"
+      ]
+    },
+    "English Language & Literature": {
+      "books": [
+        {
+          "name": "First Flight",
+          "part": "Prose",
+          "chapters": [
+            "A Letter to God",
+            "Nelson Mandela: Long Walk to Freedom",
+            "Two Stories About Flying",
+            "From the Diary of Anne Frank",
+            "Glimpses of India",
+            "Mijbil the Otter",
+            "Madam Rides the Bus",
+            "The Sermon at Benares",
+            "The Proposal"
+          ]
+        },
+        {
+          "name": "First Flight",
+          "part": "Poetry",
+          "chapters": [
+            "Dust of Snow",
+            "Fire and Ice",
+            "A Tiger in the Zoo",
+            "How to Tell Wild Animals",
+            "The Ball Poem",
+            "Amanda!",
+            "The Trees",
+            "Fog",
+            "The Tale of Custard the Dragon",
+            "For Anne Gregory"
+          ]
+        },
+        {
+          "name": "Footprints Without Feet",
+          "part": "Supplementary Reader",
+          "chapters": [
+            "A Triumph of Surgery",
+            "The Thief's Story",
+            "The Midnight Visitor",
+            "A Question of Trust",
+            "Footprints Without Feet",
+            "The Making of a Scientist",
+            "The Necklace",
+            "Bholi",
+            "The Book That Saved the Earth"
+          ]
+        }
+      ]
+    },
+    "English": {
+      "books": [
+        {
+          "name": "First Flight",
+          "part": "Prose",
+          "chapters": [
+            "A Letter to God",
+            "Nelson Mandela: Long Walk to Freedom",
+            "Two Stories About Flying",
+            "From the Diary of Anne Frank",
+            "Glimpses of India",
+            "Mijbil the Otter",
+            "Madam Rides the Bus",
+            "The Sermon at Benares",
+            "The Proposal"
+          ]
+        },
+        {
+          "name": "First Flight",
+          "part": "Poetry",
+          "chapters": [
+            "Dust of Snow",
+            "Fire and Ice",
+            "A Tiger in the Zoo",
+            "How to Tell Wild Animals",
+            "The Ball Poem",
+            "Amanda!",
+            "The Trees",
+            "Fog",
+            "The Tale of Custard the Dragon",
+            "For Anne Gregory"
+          ]
+        },
+        {
+          "name": "Footprints Without Feet",
+          "part": "Supplementary Reader",
+          "chapters": [
+            "A Triumph of Surgery",
+            "The Thief's Story",
+            "The Midnight Visitor",
+            "A Question of Trust",
+            "Footprints Without Feet",
+            "The Making of a Scientist",
+            "The Necklace",
+            "Bholi",
+            "The Book That Saved the Earth"
+          ]
+        }
+      ]
+    },
+    "Hindi Course A": {
+      "books": [
+        {
+          "name": "Kshitij Part 2",
+          "part": "Poetry (काव्य खंड)",
+          "chapters": [
+            "सूरदास - पद",
+            "तुलसीदास - राम-लक्ष्मण-परशुराम संवाद",
+            "जयशंकर प्रसाद - आत्मकथ्य",
+            "सूर्यकांत त्रिपाठी 'निराला' - उत्साह, अट नहीं रही है",
+            "नागार्जुन - यह दंतुरित मुसकान, फसल",
+            "मंगलेश डबराल - संगतकार"
+          ]
+        },
+        {
+          "name": "Kshitij Part 2",
+          "part": "Prose (गद्य खंड)",
+          "chapters": [
+            "स्वयं प्रकाश - नेताजी का चश्मा",
+            "रामवृक्ष बेनीपुरी - बालगोबिन भगत",
+            "यशपाल - लखनवी अंदाज़",
+            "मन्नू भंडारी - एक कहानी यह भी",
+            "यतींद्र मिश्र - नौबतखाने में इबादत",
+            "भदंत आनंद कौसल्यायन - संस्कृति"
+          ]
+        },
+        {
+          "name": "Kritika Part 2",
+          "part": "Supplementary Reader (पूरक पाठ्यपुस्तक)",
+          "chapters": [
+            "शिवपूजन सहाय - माता का अंचल",
+            "मधु कांकरिया - साना-साना हाथ जोड़ि...",
+            "अज्ञेय - मैं क्यों लिखता हूँ?"
+          ]
+        }
+      ]
+    },
+    "Hindi Course B": {
+      "books": [
+        {
+          "name": "Sparsh Part 2",
+          "part": "Poetry (काव्य खंड)",
+          "chapters": [
+            "कबीर - साखी",
+            "मीरा - पद",
+            "मैथिलीशरण गुप्त - मनुष्यता",
+            "सुमित्रानंदन पंत - पर्वत प्रदेश में पावस",
+            "वीरेन डंगवाल - तोप",
+            "कैफ़ी आज़मी - कर चले हम फ़िदा",
+            "रवीन्द्रनाथ ठाकुर - आत्मत्राण"
+          ]
+        },
+        {
+          "name": "Sparsh Part 2",
+          "part": "Prose (गद्य खंड)",
+          "chapters": [
+            "प्रेमचंद - बड़े भाई साहब",
+            "लीलाधर मंडलोई - ततँरा-वामीरो कथा",
+            "निदा फ़ाज़ली - अब कहाँ दूसरे के दुख से दुखी होने वाले",
+            "रवीन्द्र केलेकर - पतझड़ में टूटी पत्तियाँ (गिन्नौर का सोना)",
+            "हबीब तनवीर - कारतूस"
+          ]
+        },
+        {
+          "name": "Sanchayan Part 2",
+          "part": "Supplementary Reader (पूरक पाठ्यपुस्तक)",
+          "chapters": [
+            "मिथिलेश्वर - हरिहर काका",
+            "गुरदयाल सिंह - सपनों के-से दिन",
+            "राही मासूम रज़ा - टोपी शुक्ला"
+          ]
+        }
+      ]
+    },
+    "Hindi": {
+      "books": [
+        {
+          "name": "Kshitij Part 2",
+          "part": "Poetry (काव्य खंड)",
+          "chapters": [
+            "सूरदास - पद",
+            "तुलसीदास - राम-लक्ष्मण-परशुराम संवाद",
+            "जयशंकर प्रसाद - आत्मकथ्य",
+            "सूर्यकांत त्रिपाठी 'निराला' - उत्साह, अट नहीं रही है",
+            "नागार्जुन - यह दंतुरित मुसकान, फसल",
+            "मंगलेश डबराल - संगतकार"
+          ]
+        },
+        {
+          "name": "Kshitij Part 2",
+          "part": "Prose (गद्य खंड)",
+          "chapters": [
+            "स्वयं प्रकाश - नेताजी का चश्मा",
+            "रामवृक्ष बेनीपुरी - बालगोबिन भगत",
+            "यशपाल - लखनवी अंदाज़",
+            "मन्नू भंडारी - एक कहानी यह भी",
+            "यतींद्र मिश्र - नौबतखाने में इबादत",
+            "भदंत आनंद कौसल्यायन - संस्कृति"
+          ]
+        },
+        {
+          "name": "Kritika Part 2",
+          "part": "Supplementary Reader (पूरक पाठ्यपुस्तक)",
+          "chapters": [
+            "शिवपूजन सहाय - माता का अंचल",
+            "मधु कांकरिया - साना-साना हाथ जोड़ि...",
+            "अज्ञेय - मैं क्यों लिखता हूँ?"
+          ]
+        }
+      ]
+    },
+    "Social Science": {
+      "book": "Social Science",
+      "chapters": [
+        "The Rise of Nationalism in Europe",
+        "Nationalism in India",
+        "The Making of a Global World",
+        "The Age of Industrialisation",
+        "Print Culture and the Modern World",
+        "Resources and Development",
+        "Forest and Wildlife Resources",
+        "Water Resources",
+        "Agriculture",
+        "Minerals and Energy Resources",
+        "Manufacturing Industries",
+        "Lifelines of National Economy",
+        "Power Sharing",
+        "Federalism",
+        "Gender, Religion and Caste",
+        "Political Parties",
+        "Outcomes of Democracy",
+        "Development",
+        "Sectors of the Indian Economy",
+        "Money and Credit",
+        "Globalisation and the Indian Economy",
+        "Consumer Rights"
+      ]
+    },
+    "Sanskrit": {
+      "book": "Shemushi Part 2",
+      "chapters": [
+        "शुचिपर्यावरणम् (Shuchiparyavaranam)",
+        "बुद्धिर्बलवती सदा (Buddhibalavatee Sada)",
+        "शिशुलालनम् (Shishulaalanam)",
+        "जननी तुल्यवत्सला (Jananee Tulya Vatsalaa)",
+        "सुभाषितानि (Subhaashitaani)",
+        "सौहार्दं प्रकृतेः शोभा (Sauhaardam Praakriteh Shobhaa)",
+        "विचित्रः साक्षी (Vichitrah Saakshee)",
+        "सूक्तयः (Sooktah)",
+        "भूकम्पविभीषिका (Bhookampavibheeshikaa)",
+        "अन्योक्तयः (Anyoktah)"
+      ]
+    },
+    "Telugu (Andhra Pradesh)": {
+      "books": [
+        {
+          "name": "Sahithi Parimalam",
+          "part": "Poetry (పద్య భాగం)",
+          "chapters": [
+            "ధర్మబోధ (Dharmabodha)",
+            "చైతన్యం (Chaitanyam)",
+            "హరివిల్లు (Harivillu)",
+            "స్నేహం (Sneham)",
+            "తీర్పు (Teerpu)",
+            "మాతృమహిమ (Matamahima)"
+          ]
+        },
+        {
+          "name": "Sahithi Parimalam",
+          "part": "Prose (గద్య భాగం)",
+          "chapters": [
+            "ఇల్లకాలుగె (Illakaluge)",
+            "రంగస్థలం (Rangasthalam)",
+            "ప్రియమైన నాన్నకు (Priyamaina Nannaku)",
+            "ఏ దేశమేగినా (E Desamegina)",
+            "నా చదువు (Na Chaduvu)",
+            "ఆకుపచ్చ తోరణం (Akupacha Toranam)"
+          ]
+        },
+        {
+          "name": "Sahithi Parimalam",
+          "part": "Non-Detail (ఉపవాచకం)",
+          "chapters": [
+            "న్యాయపతి సుబ్బారావు (Nyayapati Subbarao)",
+            "కొండా వెంకటప్పయ్య (Konda Venkatappayah)",
+            "కాశీనాథुని నాగేశ్వరరావు (Kasinathuni Nageswararao)",
+            "ఉన్నవ దంపతులు (Unnava Danpathulu)",
+            "దువ్వూరి సుబ్బమ్మ (Duvvuri Subbamma)",
+            "అయ్యదేవర కాళేశ్వరరావు (Ayyadevara Kaleswararao)"
+          ]
+        }
+      ]
+    },
+    "Telugu (Telangana)": {
+      "books": [
+        {
+          "name": "Singidi 2",
+          "part": "Poetry (పద్య భాగం)",
+          "chapters": [
+            "దానశీలము (Daana Sheelam)",
+            "వీర తెలంగాణ (Veera Telangana)",
+            "నగర గీతం (Nagara Geetham)",
+            "శతక మధురిమ (Shathaka Madhurima)",
+            "జీవన భాష్యం (Jeevana Bhashyam)",
+            "భిక్ష (Bhiksha)"
+          ]
+        },
+        {
+          "name": "Singidi 2",
+          "part": "Prose (గద్య భాగం)",
+          "chapters": [
+            "ఎవరి భాష వారికి వినసొంపు (Evari Bhasha Variki Vinasompu)",
+            "కొత్తబాట (Kothabata)",
+            "లక్ష్యసిద్ధి (Lakshya Siddhi)",
+            "గోల్కొండ పట్టణం (Golkonda Pattanam)"
+          ]
+        },
+        {
+          "name": "Singidi 2",
+          "part": "Non-Detail (మన ఇతిహాసం - రామాయణం)",
+          "chapters": [
+            "బాలకాండ (Balakanda)",
+            "అయోధ్యకాండ (Ayodhyakanda)",
+            "అరణ్యకాండ (Aranyakanda)",
+            "కిష్కింధకాండ (Kishkindhakanda)",
+            "సుందరకాండ (Sundarakanda)",
+            "యుద్ధకాండ (Yuddhakanda)"
+          ]
+        }
+      ]
+    }
   }
 };
+
+// Create Old NCERT Syllabus as a clone of New NCERT Syllabus
+const OLD_NCERT_SYLLABUS: Record<string, Record<string, any>> = JSON.parse(JSON.stringify(NEW_NCERT_SYLLABUS));
+
+// Adjust Old NCERT Syllabus specific additions
+if (OLD_NCERT_SYLLABUS["Class 10"]) {
+  if (OLD_NCERT_SYLLABUS["Class 10"]["Mathematics"]) {
+    const chapters = OLD_NCERT_SYLLABUS["Class 10"]["Mathematics"].chapters;
+    if (Array.isArray(chapters) && !chapters.includes("Constructions")) {
+      // Insert "Constructions" at Chapter 11
+      chapters.splice(10, 0, "Constructions");
+    }
+  }
+  if (OLD_NCERT_SYLLABUS["Class 10"]["Science"]) {
+    const chapters = OLD_NCERT_SYLLABUS["Class 10"]["Science"].chapters;
+    if (Array.isArray(chapters)) {
+      if (!chapters.includes("Periodic Classification of Elements")) {
+        chapters.splice(4, 0, "Periodic Classification of Elements");
+      }
+      if (!chapters.includes("Sources of Energy")) {
+        chapters.push("Sources of Energy");
+      }
+      if (!chapters.includes("Sustainable Management of Natural Resources")) {
+        chapters.push("Sustainable Management of Natural Resources");
+      }
+    }
+  }
+}
+
+if (OLD_NCERT_SYLLABUS["Class 9"]) {
+  if (OLD_NCERT_SYLLABUS["Class 9"]["Mathematics"]) {
+    const chapters = OLD_NCERT_SYLLABUS["Class 9"]["Mathematics"].chapters;
+    if (Array.isArray(chapters)) {
+      if (!chapters.includes("Introduction to Euclid's Geometry")) {
+        chapters.splice(4, 0, "Introduction to Euclid's Geometry");
+      }
+      if (!chapters.includes("Constructions")) {
+        chapters.splice(10, 0, "Constructions");
+      }
+    }
+  }
+  if (OLD_NCERT_SYLLABUS["Class 9"]["Science"]) {
+    const chapters = OLD_NCERT_SYLLABUS["Class 9"]["Science"].chapters;
+    if (Array.isArray(chapters)) {
+      if (!chapters.includes("Diversity in Living Organisms")) {
+        chapters.splice(3, 0, "Diversity in Living Organisms");
+      }
+      if (!chapters.includes("Why Do We Fall Ill")) {
+        chapters.push("Why Do We Fall Ill");
+      }
+      if (!chapters.includes("Natural Resources")) {
+        chapters.push("Natural Resources");
+      }
+    }
+  }
+}
+
+export const SYLLABUS_DATA: Record<string, any> = {
+  "CBSE / NCERT (New)": { ...NEW_NCERT_SYLLABUS },
+  "CBSE / NCERT (Old)": { ...OLD_NCERT_SYLLABUS },
+  "AP SCERT": { ...NEW_NCERT_SYLLABUS },
+  "Telangana SCERT": { ...NEW_NCERT_SYLLABUS }
+};
+
+export const CURRICULUM_DATA = SYLLABUS_DATA;
+

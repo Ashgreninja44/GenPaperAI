@@ -3,9 +3,6 @@ import { createServer as createViteServer } from 'vite';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
@@ -16,6 +13,33 @@ async function startServer() {
   // Serve static files from public/assets
   app.use('/assets', express.static(path.join(process.cwd(), 'public', 'assets')));
 
+  // API Route for Gemini Proxy (Server-side model generation)
+  app.post('/api/ai/generateContent', async (req: any, res: any) => {
+    try {
+      const { model, contents, config } = req.body;
+      const key = process.env.GEMINI_API_KEY;
+      if (!key) {
+        return res.status(400).json({ error: "GEMINI_API_KEY environment variable is not configured on the backend server." });
+      }
+      
+      const { GoogleGenAI } = await import("@google/genai");
+      const ai = new GoogleGenAI({ apiKey: key });
+      const response = await ai.models.generateContent({
+        model,
+        contents,
+        config
+      });
+      
+      res.json({
+        text: response.text,
+        candidates: response.candidates || null
+      });
+    } catch (err: any) {
+      console.error("[Backend Gemini Proxy Error]:", err);
+      res.status(500).json({ error: err.message || String(err) });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
@@ -24,9 +48,10 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static(path.join(__dirname, 'dist')));
+    const distPath = path.join(process.cwd(), 'dist');
+    app.use(express.static(distPath));
     app.get('*all', (req, res) => {
-      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+      res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 

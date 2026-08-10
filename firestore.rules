@@ -1,8 +1,100 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Global Deny
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
+    }
+
+    // --- Primitives ---
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+    function isAdmin() { 
+      // check if user email is the developer OR check firestore role
+      return isSignedIn() && (
+        request.auth.token.email == 'pendyaladarshit4@gmail.com' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+    function isValidId(id) { 
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // --- Users ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'name', 'email', 'selectedTheme', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.email is string && data.email.size() <= 200 &&
+             data.name is string && data.name.size() <= 200 &&
+             data.role in ['user', 'admin'];
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(incoming()) && (incoming().role == 'user' || request.auth.token.email == 'pendyaladarshit4@gmail.com');
+      allow update: if isOwner(userId) && (
+        (incoming().diff(existing()).affectedKeys().hasOnly(['name', 'profilePhoto', 'selectedTheme', 'preferences', 'defaultPaperSettings'])) ||
+        (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['role']))
+      );
+      allow list, delete: if isAdmin();
+    }
+
+    // --- Papers ---
+    function isValidPaper(data) {
+      return data.keys().hasAll(['id', 'timestamp', 'config', 'title', 'answerKey', 'uid']) &&
+             data.uid == request.auth.uid &&
+             data.title is string && data.title.size() <= 300 &&
+             isValidId(data.id);
+    }
+
+    match /papers/{paperId} {
+      allow get: if isSignedIn() && (existing() == null || isOwner(existing().uid) || isAdmin());
+      allow list: if isSignedIn() && (existing().uid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidPaper(incoming()) && isValidId(paperId);
+      allow update: if isSignedIn() && isOwner(existing().uid) && incoming().uid == existing().uid;
+      allow delete: if isSignedIn() && (isOwner(existing().uid) || isAdmin());
+    }
+
+    match /paperDetails/{detailId} {
+      allow get: if isSignedIn() && (existing() == null || isOwner(existing().uid) || isAdmin());
+      allow create: if isSignedIn() && isOwner(incoming().uid);
+      allow update: if isSignedIn() && isOwner(existing().uid) && incoming().uid == existing().uid;
+      allow delete: if isSignedIn() && (isOwner(existing().uid) || isAdmin());
+
+      match /questions/{questionId} {
+        allow read, write: if isSignedIn();
+      }
+    }
+
+    // --- Question Banks ---
+    function isValidBank(data) {
+      return data.keys().hasAll(['id', 'subject', 'grade', 'lastUpdated', 'content', 'uid']) &&
+             data.uid == request.auth.uid &&
+             data.subject is string && data.subject.size() <= 100 &&
+             isValidId(data.id);
+    }
+
+    match /banks/{bankId} {
+      allow get: if isSignedIn() && (isOwner(existing().uid) || isAdmin());
+      allow list: if isSignedIn() && (existing().uid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidBank(incoming()) && isValidId(bankId);
+      allow update: if isSignedIn() && isOwner(existing().uid) && incoming().uid == existing().uid;
+      allow delete: if isSignedIn() && (isOwner(existing().uid) || isAdmin());
+    }
+
+    // --- Curriculum (Syllabus) ---
+    match /curriculum/{updateId} {
+      // FIX: Publicly readable so app works instantly on mount
+      allow read: if true; 
+      allow write: if isAdmin();
+    }
+    
+    // --- Legacy Support ---
+    match /paperQuestions/{paperId}/questions/{questionId} {
+      allow read, write: if isSignedIn(); 
     }
   }
 }

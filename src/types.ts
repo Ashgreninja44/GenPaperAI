@@ -104,3 +104,12 @@ export interface UserProfile {
     schoolName?: string;
   };
 }
+
+export interface CurriculumUpdate {
+  id: string;
+  board: string;
+  version: string;
+  data: any; // Grade -> Subject -> Chapters[]
+  lastUpdated: number;
+  source: string;
+}

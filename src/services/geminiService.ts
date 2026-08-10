@@ -9,6 +9,43 @@ console.log("API KEY EXISTS:", !!apiKey);
 const ai = new GoogleGenAI({ apiKey: apiKey || 'API_KEY_NOT_SET' });
 
 /**
+ * Proxies the generateContent request to the backend server to secure the API key.
+ * Falls back to client-side SDK if running locally without a proxy.
+ */
+export const generateContentProxy = async (params: {
+  model: string;
+  contents: any;
+  config?: any;
+}): Promise<{ text: string | null; candidates?: any[] }> => {
+  try {
+    const response = await fetch('/api/ai/generateContent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+
+    if (response.ok) {
+      return await response.json();
+    }
+    
+    const errorData = await response.json();
+    throw new Error(errorData.error || `Server responded with status ${response.status}`);
+  } catch (err) {
+    console.warn("[Gemini Proxy] Failed server-side call, checking client-side fallback:", err);
+    if (apiKey) {
+      const sdkResponse = await ai.models.generateContent(params);
+      return {
+        text: sdkResponse.text,
+        candidates: sdkResponse.candidates
+      };
+    }
+    throw err;
+  }
+};
+
+/**
  * Helper to retry a function if it fails with a 503 error.
  * Retries up to 3 times with a 2-3 second delay.
  */
@@ -104,10 +141,6 @@ const paperResponseSchema: Schema = {
 };
 
 export const generateQuestionPaper = async (config: PaperConfig): Promise<GeneratedPaper> => {
-  if (!apiKey) {
-    throw new Error("API Key is missing. Please check your environment configuration.");
-  }
-
   // Calculate Remaining Marks if manual questions exist
   const manualQuestions = config.manualQuestions || [];
   const manualMarks = manualQuestions.reduce((sum, q) => sum + q.marks, 0);
@@ -170,10 +203,18 @@ export const generateQuestionPaper = async (config: PaperConfig): Promise<Genera
   const isMath = config.subject.toLowerCase().includes('math');
   const shouldIncludeFigures = config.includeFigures || isMath;
 
+  // SYLLABUS CONTEXT
+  const syllabusContext = `SYLLABUS VERSION: NCERT (2026-27 / NEP 2020 pattern). 
+       Focus on COMPETENCY-BASED questions.
+       Include real-life applications.
+       Prioritize Case-based, source-based, and assertion-reason questions.
+       REDUCE rote learning; emphasize understanding.`;
+
   const prompt = `
     Act as a CBSE Question Paper Generator.
     
     Details: Subject: ${config.subject}, Grade: ${config.grade}, Total Marks: ${config.totalMarks}.
+    ${syllabusContext}
     ${structurePrompt}
 
     EXISTING MANUAL QUESTIONS (Do NOT duplicate these, but include them in the final JSON output exactly as provided, preserving their IDs):
@@ -217,7 +258,7 @@ export const generateQuestionPaper = async (config: PaperConfig): Promise<Genera
   `;
 
   try {
-    const response = await withRetry(() => ai.models.generateContent({
+    const response = await withRetry(() => generateContentProxy({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
@@ -251,10 +292,6 @@ export const regenerateSingleQuestion = async (
   userInstruction: string,
   subjectContext: string
 ): Promise<Partial<Question>> => {
-  if (!apiKey) {
-    throw new Error("API Key is missing. Please check your environment configuration.");
-  }
-  
   const prompt = `
     REGENERATE this specific question.
     
@@ -285,7 +322,7 @@ export const regenerateSingleQuestion = async (
   `;
 
   try {
-    const response = await withRetry(() => ai.models.generateContent({
+    const response = await withRetry(() => generateContentProxy({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
@@ -312,7 +349,6 @@ export const regenerateSingleQuestion = async (
 };
 
 export const generateQuestionBankUpdate = async (subject: string, grade: string, board: string = 'CBSE / NCERT'): Promise<string> => {
-    if (!apiKey) throw new Error("API Key is missing.");
     const prompt = `Generate a comprehensive Question Bank for ${subject} (${grade}, ${board}). 
     Include:
     - 5 MCQs
@@ -325,7 +361,7 @@ export const generateQuestionBankUpdate = async (subject: string, grade: string,
     Use strictly UNICODE Math. No LaTeX.
     Format as clear Markdown with headers.`;
 
-    const response = await withRetry(() => ai.models.generateContent({
+    const response = await withRetry(() => generateContentProxy({
       model: 'gemini-3-flash-preview',
       contents: prompt
     }));
@@ -333,8 +369,6 @@ export const generateQuestionBankUpdate = async (subject: string, grade: string,
 };
 
 export const generateDiagramImage = async (diagramPrompt: string): Promise<string> => {
-  if (!apiKey) throw new Error("API Key is missing.");
-
   const imagePrompt = `
     Generate a Nano-Banana style academic diagram.
     Subject: School Exam (Math/Science).
@@ -345,7 +379,7 @@ export const generateDiagramImage = async (diagramPrompt: string): Promise<strin
   `;
 
   try {
-    const response = await withRetry(() => ai.models.generateContent({
+    const response = await withRetry(() => generateContentProxy({
         model: 'gemini-2.5-flash-image', // Nano Banana model
         contents: {
             parts: [{ text: imagePrompt }]
@@ -384,8 +418,6 @@ const isQuestionHeuristic = (line: string): boolean => {
 };
 
 export const parseQuestionsFromText = async (text: string, subjectContext: string = "General"): Promise<{ questions: Question[], metadata: { subject?: string, topic?: string, grade?: string } }> => {
-    if (!apiKey) throw new Error("API Key is missing.");
-    
     // PART 4: AI RELEVANCE FILTER & PART 5: QUALITY IMPROVEMENT
     const prompt = `
         Act as an expert CBSE curriculum analyst and Question Paper Designer. 
@@ -437,7 +469,7 @@ export const parseQuestionsFromText = async (text: string, subjectContext: strin
     `;
 
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry(() => generateContentProxy({
             model: 'gemini-3-flash-preview',
             contents: prompt,
             config: {
@@ -561,15 +593,13 @@ export const extractQuestionsFromUrl = async (url: string, subjectContext: strin
 };
 
 export const fetchSchoolLogoUrl = async (schoolName: string, branchName: string): Promise<string | null> => {
-    if (!apiKey) return null;
-
     const query = `Find the official logo image URL for ${schoolName} ${branchName}. 
     Search for the official school website or trusted educational directories. 
     Return ONLY the direct image URL (ending in .png, .jpg, or .jpeg) if found. 
     If you cannot find a direct official logo URL, return "NOT_FOUND".`;
 
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry(() => generateContentProxy({
             model: "gemini-3-flash-preview",
             contents: query,
             config: {
@@ -597,8 +627,6 @@ export const fetchSchoolLogoUrl = async (schoolName: string, branchName: string)
 };
 
 export const improveSelectedText = async (selectedText: string, context: string): Promise<string> => {
-    if (!apiKey) throw new Error("API Key is missing.");
-
     const prompt = `
         IMPROVE the following text from an educational question paper.
         
@@ -619,7 +647,7 @@ export const improveSelectedText = async (selectedText: string, context: string)
     `;
 
     try {
-        const response = await withRetry(() => ai.models.generateContent({
+        const response = await withRetry(() => generateContentProxy({
             model: 'gemini-3-flash-preview',
             contents: prompt,
             config: {

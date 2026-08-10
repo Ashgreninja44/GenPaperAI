@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { PaperConfig, QuestionCounts, CustomSection, QuestionBank, Question } from '../types';
-import { CURRICULUM_DATA, GRADES, FONT_OPTIONS, BOARDS, TEST_TYPES, QUESTION_TYPES_DROPDOWN, CBSE_EXAM_PATTERNS, PRESET_SCHOOLS } from '../constants';
+import { SYLLABUS_DATA, GRADES, FONT_OPTIONS, BOARDS, TEST_TYPES, QUESTION_TYPES_DROPDOWN, CBSE_EXAM_PATTERNS, PRESET_SCHOOLS } from '../constants';
+import { SyllabusData } from '../services/syllabusService';
 import { parseQuestionsFromText, extractQuestionsFromUrl } from '../services/geminiService';
 import MarkdownRenderer from './MarkdownRenderer';
 
@@ -20,9 +21,10 @@ interface PaperFormProps {
   onCancel: () => void;
   isGenerating: boolean;
   questionBanks?: QuestionBank[]; // Injected from App
+  dynamicSyllabus?: SyllabusData | null;
 }
 
-const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGenerating, questionBanks = [] }) => {
+const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGenerating, questionBanks = [], dynamicSyllabus = null }) => {
   // --- Smart School Selector State ---
   const [selectedSchool, setSelectedSchool] = useState(''); 
   const [customSchoolName, setCustomSchoolName] = useState(''); 
@@ -109,14 +111,68 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
   // ----------------------------------------
 
   // Logic to fetch available subjects/topics based on Board -> Class
-  const boardData = CURRICULUM_DATA[selectedBoard];
-  const classData = boardData ? boardData[selectedClass] : null;
+  const getBoardData = () => {
+    // TRACE DATA SOURCE (MANDATORY)
+    console.log("SYLLABUS SOURCE: constants.ts (SYLLABUS_DATA)");
+    
+    // FORCE OVERRIDE: Use only the hardcoded verified syllabus data
+    // to ensure 2026 NCERT chapters are always reflected correctly.
+    // We ignore dynamicSyllabus to prevent stale/incorrect data from Firestore.
+    return SYLLABUS_DATA[selectedBoard] || {};
+  };
+
+  const boardData = getBoardData();
+  const classData = boardData ? boardData[selectedClass] as any : null;
   const availableSubjects = classData ? Object.keys(classData) : [];
+
+  const getAvailableChapters = () => {
+    if (!classData || !selectedSubject) return [];
+    
+    // Support both dynamic (SubjectData object) and static (string[]) formats
+    const subjectContent = classData[selectedSubject];
+    let chapters: string[] = [];
+    
+    if (Array.isArray(subjectContent)) {
+        chapters = subjectContent;
+    } else if (subjectContent && typeof subjectContent === 'object') {
+        if (subjectContent.chapters) {
+            chapters = subjectContent.chapters;
+        } else if (subjectContent.books) {
+            subjectContent.books.forEach((book: any) => {
+                const prefix = book.part ? `${book.name} (${book.part})` : book.name;
+                book.chapters.forEach((ch: string) => {
+                    chapters.push(`[${prefix}] ${ch}`);
+                });
+            });
+        }
+    }
+    
+    console.log("CHAPTERS USED:", chapters);
+    return chapters;
+  };
+
+  const availableChapters = getAvailableChapters();
   
-  // Available Chapters based on selection
-  const availableChapters = (classData && selectedSubject) 
-    ? classData[selectedSubject] || [] 
-    : [];
+  // --- Effect: Reset Selection when Curriculum Context Changes ---
+  useEffect(() => {
+    // Reset subject if not in current available list
+    if (selectedSubject && !availableSubjects.includes(selectedSubject)) {
+      setSelectedSubject('');
+    }
+  }, [selectedClass, selectedBoard, availableSubjects]);
+
+  useEffect(() => {
+    // Reset chapters when subject changes
+    setSelectedChapters([]);
+  }, [selectedSubject, selectedClass]);
+
+  // --- DEBUG LOGS ---
+  useEffect(() => {
+    console.log("Available Subjects for Class:", selectedClass, "=>", availableSubjects);
+    console.log("Available Chapters for Subject:", selectedSubject, "=>", availableChapters);
+  }, [selectedClass, selectedSubject, availableChapters, availableSubjects]);
+
+  const finalDisplayChapters = availableChapters;
 
   const isCustomTest = testType === 'Custom Test';
   const isCBSEPattern = testType === 'CBSE Board Exam';
@@ -372,7 +428,7 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-        setSelectedChapters([...availableChapters]);
+        setSelectedChapters([...finalDisplayChapters]);
         setChapterError(null);
     } else {
         setSelectedChapters([]);
@@ -389,8 +445,8 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
     });
   };
 
-  const isAllSelected = availableChapters.length > 0 && selectedChapters.length === availableChapters.length;
-  const isIndeterminate = selectedChapters.length > 0 && selectedChapters.length < availableChapters.length;
+  const isAllSelected = finalDisplayChapters.length > 0 && selectedChapters.length === finalDisplayChapters.length;
+  const isIndeterminate = selectedChapters.length > 0 && selectedChapters.length < finalDisplayChapters.length;
 
   const handleAutoDistribute = () => {
     let newCounts: Record<keyof QuestionCounts, number> = { mcq: 0, ar: 0, vsaq: 0, saq: 0, laq: 0, caseStudy: 0 };
@@ -668,7 +724,7 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
 
                 {/* Chapter Selection */}
                 {selectedSubject && availableChapters.length > 0 && (
-                   <div className="md:col-span-2 bg-white/50 p-6 rounded-xl border border-white/60">
+                   <div className="md:col-span-2 bg-white/50 p-6 rounded-xl border border-white/60 text-center">
                       <div className="flex justify-between items-center mb-3">
                           <label className="block text-sm font-bold text-gray-700">Chapter Selection <span className="text-red-500">*</span></label>
                           <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -677,7 +733,7 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
                           </label>
                       </div>
                       <div className="max-h-64 overflow-y-auto pr-2 border border-gray-200 rounded-lg bg-white">
-                          {availableChapters.map((chapter, index) => (
+                          {finalDisplayChapters.map((chapter, index) => (
                               <label key={index} className="flex items-start gap-3 p-3 hover:bg-gray-50 border-b last:border-0 border-gray-100 cursor-pointer">
                                   <input type="checkbox" checked={selectedChapters.includes(chapter)} onChange={() => handleChapterToggle(chapter)} className="mt-1 w-4 h-4 text-[#8A2CB0]" />
                                   <span className="text-sm text-gray-700">{chapter}</span>
@@ -686,6 +742,13 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
                       </div>
                       {chapterError && <p className="text-red-600 text-sm font-bold mt-2">{chapterError}</p>}
                    </div>
+                )}
+
+                {selectedSubject && availableChapters.length === 0 && (
+                  <div className="md:col-span-2 bg-red-50 p-6 rounded-xl border border-red-200 text-center">
+                    <p className="text-red-600 font-bold italic">⚠️ No syllabus loaded for this subject.</p>
+                    <p className="text-red-400 text-xs mt-1">Please wait for update or contact admin.</p>
+                  </div>
                 )}
                 
                 <div>

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { QuestionBank } from '../types';
-import { CURRICULUM_DATA, GRADES, BOARDS } from '../constants';
+import { SYLLABUS_DATA, GRADES, BOARDS } from '../constants';
 import MarkdownRenderer from './MarkdownRenderer';
 import { generateQuestionBankUpdate } from '../services/geminiService';
 
@@ -87,8 +87,8 @@ const QuestionBankView: React.FC<QuestionBankProps> = ({ banks, onUpdateBank, on
   };
 
   // Get subjects based on selected class and board
-  const boardData = CURRICULUM_DATA[selectedBoard];
-  const classData = boardData ? boardData[selectedClass] : null;
+  const boardData = SYLLABUS_DATA[selectedBoard];
+  const classData = boardData ? boardData[selectedClass] as any : null;
   const availableSubjects = classData ? Object.keys(classData) : [];
 
   return (
@@ -240,7 +240,7 @@ const QuestionBankView: React.FC<QuestionBankProps> = ({ banks, onUpdateBank, on
                     </svg>
                 </div>
                 <h3 className="text-lg font-semibold text-gray-600">Question Bank Empty</h3>
-                <p className="max-w-md mt-2 text-sm">Select a Class, Subject, and Syllabus Version from the sidebar to create or view a repository.</p>
+                <p className="max-w-md mt-2 text-sm">Select a Class and Subject from the sidebar to create or view a repository.</p>
               </div>
             )}
           </div>

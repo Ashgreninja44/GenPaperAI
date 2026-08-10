@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { GeneratedPaper, HistoryStats } from '../types';
+import { Search, X, ArrowUpDown } from 'lucide-react';
 
 interface DashboardProps {
   history: GeneratedPaper[];
@@ -9,11 +10,94 @@ interface DashboardProps {
   onDeletePaper: (id: string) => void;
 }
 
+const getClassNumber = (grade: string): number => {
+  if (!grade) return 0;
+  const match = grade.match(/\d+/);
+  return match ? parseInt(match[0], 10) : 0;
+};
+
+const normalizeClass = (str: string): string => {
+  return str.toLowerCase()
+    .replace(/\b(\d+)th\b/g, '$1') // 10th -> 10
+    .replace(/\bclass\s+(\d+)\b/g, '$1') // class 10 -> 10
+    .replace(/\b(\d+)\s+class\b/g, '$1'); // 10 class -> 10
+};
+
 const Dashboard: React.FC<DashboardProps> = ({ history, onCreateNew, onViewPaper, onViewBank, onDeletePaper }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<string>('newest');
+
   const stats: HistoryStats = {
     totalGenerated: history.length,
     topics: Array.from(new Set(history.map(p => p.config.subject))),
   };
+
+  const filteredAndSortedHistory = useMemo(() => {
+    const queryLower = searchQuery.toLowerCase().trim();
+    const queryNorm = normalizeClass(queryLower);
+
+    let result = history;
+
+    // 1. Filter
+    if (queryLower) {
+      result = history.filter((paper) => {
+        const title = (paper.title || '').toLowerCase();
+        const subject = (paper.config?.subject || '').toLowerCase();
+        const grade = (paper.config?.grade || '').toLowerCase();
+        const gradeNorm = normalizeClass(grade);
+        const testType = (paper.config?.testType || '').toLowerCase();
+
+        // Check if any question topic matches (in case questions exist)
+        const questionTopicMatch = paper.questions?.some(q => 
+          (q.topic || '').toLowerCase().includes(queryLower)
+        ) || false;
+
+        return title.includes(queryLower) ||
+               subject.includes(queryLower) ||
+               grade.includes(queryLower) ||
+               gradeNorm.includes(queryNorm) ||
+               testType.includes(queryLower) ||
+               questionTopicMatch;
+      });
+    }
+
+    // 2. Sort
+    return result.slice().sort((a, b) => {
+      switch (sortBy) {
+        case 'oldest':
+          return a.timestamp - b.timestamp;
+        case 'classAsc': {
+          const aClass = getClassNumber(a.config?.grade || '');
+          const bClass = getClassNumber(b.config?.grade || '');
+          if (aClass !== bClass) return aClass - bClass;
+          return b.timestamp - a.timestamp; // Sub-sort by newest first
+        }
+        case 'classDesc': {
+          const aClass = getClassNumber(a.config?.grade || '');
+          const bClass = getClassNumber(b.config?.grade || '');
+          if (aClass !== bClass) return bClass - aClass;
+          return b.timestamp - a.timestamp; // Sub-sort by newest first
+        }
+        case 'subjectAsc': {
+          const aSub = (a.config?.subject || '').toLowerCase();
+          const bSub = (b.config?.subject || '').toLowerCase();
+          const comp = aSub.localeCompare(bSub);
+          if (comp !== 0) return comp;
+          return b.timestamp - a.timestamp; // Sub-sort by newest first
+        }
+        case 'subjectDesc': {
+          const aSub = (a.config?.subject || '').toLowerCase();
+          const bSub = (b.config?.subject || '').toLowerCase();
+          const comp = bSub.localeCompare(aSub);
+          if (comp !== 0) return comp;
+          return b.timestamp - a.timestamp; // Sub-sort by newest first
+        }
+        case 'newest':
+        default:
+          return b.timestamp - a.timestamp;
+      }
+    });
+  }, [history, searchQuery, sortBy]);
 
   return (
     <div className="max-w-6xl mx-auto animate-fade-in">
@@ -68,9 +152,59 @@ const Dashboard: React.FC<DashboardProps> = ({ history, onCreateNew, onViewPaper
 
       {/* History Table */}
       <div className="glass-panel rounded-2xl overflow-hidden shadow-2xl shadow-[#3C128D]/10">
-        <div className="p-6 border-b border-gray-100 bg-white/50 backdrop-blur-sm">
-            <h2 className="text-xl font-bold text-gray-800">Generation History</h2>
+        <div className="p-6 border-b border-gray-100 bg-white/50 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h2 className="text-xl font-bold text-gray-800">
+                Your Papers
+            </h2>
         </div>
+
+        {history.length > 0 && (
+          <div className="p-6 border-b border-gray-100 bg-white/30 backdrop-blur-sm flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
+            {/* Search Input Container */}
+            <div className="relative flex-1">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                className="w-full pl-11 pr-10 py-2.5 rounded-xl border border-gray-200 bg-white/80 focus:ring-2 focus:ring-[#8A2CB0]/20 focus:border-[#8A2CB0] outline-none transition-all text-gray-900 placeholder:text-gray-400 text-sm font-medium"
+                placeholder="Search your papers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Clear search"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+
+            {/* Sort Control Container */}
+            <div className="relative w-full sm:w-64 flex items-center gap-2">
+              <div className="relative w-full">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-gray-200 bg-white/80 text-gray-700 font-bold text-sm focus:ring-2 focus:ring-[#8A2CB0]/20 focus:border-[#8A2CB0] outline-none transition-all cursor-pointer appearance-none"
+                >
+                  <option value="newest">Newest → Oldest</option>
+                  <option value="oldest">Oldest → Newest</option>
+                  <option value="classAsc">Class: Low → High</option>
+                  <option value="classDesc">Class: High → Low</option>
+                  <option value="subjectAsc">Subject: A → Z</option>
+                  <option value="subjectDesc">Subject: Z → A</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-400">
+                  <ArrowUpDown className="h-4 w-4" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         {history.length === 0 ? (
             <div className="p-16 text-center text-gray-500 bg-white/40">
@@ -82,9 +216,25 @@ const Dashboard: React.FC<DashboardProps> = ({ history, onCreateNew, onViewPaper
                 <p className="text-lg font-medium text-gray-600">No papers generated yet</p>
                 <p className="text-sm mt-1 text-gray-400">Click "Create New Paper" to get started.</p>
             </div>
+        ) : filteredAndSortedHistory.length === 0 ? (
+            <div className="p-16 text-center text-gray-500 bg-white/40 border-t border-gray-100 flex flex-col items-center">
+                <div className="w-16 h-16 bg-[#f3e8ff] rounded-full flex items-center justify-center mb-4 text-[#8A2CB0]">
+                    <Search className="w-8 h-8" />
+                </div>
+                <p className="text-xl font-extrabold text-gray-800">No papers found</p>
+                <p className="text-sm mt-2 text-gray-500 max-w-sm">
+                    Try searching with a different title, subject, chapter, or class.
+                </p>
+                <button
+                    onClick={() => setSearchQuery('')}
+                    className="mt-6 px-5 py-2.5 bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg hover:from-[#3C128D]/90 hover:to-[#8A2CB0]/90 transition-all transform hover:-translate-y-0.5"
+                >
+                    Clear Search
+                </button>
+            </div>
         ) : (
             <div className="bg-white/40 divide-y divide-gray-100">
-                {history.slice().reverse().map((paper) => (
+                {filteredAndSortedHistory.map((paper) => (
                     <div key={paper.id} className="p-6 hover:bg-white/60 transition-all group flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                         {/* Title + Subtitle */}
                         <div className="flex-1 min-w-0">

@@ -12,8 +12,14 @@ import ResetPassword from './components/ResetPassword';
 import BackgroundAnimation from './components/BackgroundAnimation';
 import ThemeBackdrop from './components/ThemeBackdrop';
 import Logo from './components/Logo';
+import { SyllabusData, getLatestCurriculum, updateSyllabusFromSources } from './services/syllabusService';
 import { PaperConfig, GeneratedPaper, QuestionBank, UserProfile } from './types';
 import { generateQuestionPaper } from './services/geminiService';
+import { 
+  savePaperToFirestore, 
+  loadPaperFromFirestore, 
+  deletePaperFromFirestore 
+} from './services/paperStorageService';
 import { 
   auth, 
   db, 
@@ -83,6 +89,8 @@ const App: React.FC = () => {
   const [questionBanks, setQuestionBanks] = useState<QuestionBank[]>([]);
 
   const [currentPaper, setCurrentPaper] = useState<GeneratedPaper | null>(null);
+  const [dynamicSyllabus, setDynamicSyllabus] = useState<SyllabusData | null>(null);
+  const [isSyncingSyllabus, setIsSyncingSyllabus] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -122,11 +130,18 @@ const App: React.FC = () => {
             return;
           }
           
-          if (userDoc.exists()) {
-            console.log("User profile found in Firestore");
-            const data = userDoc.data() as UserProfile;
-            
-            // Migration: Ensure preferences exists for existing users
+            if (userDoc.exists()) {
+              console.log("User profile found in Firestore");
+              let data = userDoc.data() as UserProfile;
+              
+              // Bootstrap Admin for Dev
+              if (currentUser.email === 'pendyaladarshit4@gmail.com' && data.role !== 'admin') {
+                console.log("Elevating user to admin...");
+                data.role = 'admin';
+                await updateDoc(userDocRef, { role: 'admin' });
+              }
+              
+              // Migration: Ensure preferences exists for existing users
             if (!data.preferences) {
               console.log("Migrating user: adding default preferences");
               data.preferences = { 
@@ -164,7 +179,7 @@ const App: React.FC = () => {
               },
               provider,
               createdAt: Date.now(),
-              role: 'user',
+              role: currentUser.email === 'pendyaladarshit4@gmail.com' ? 'admin' : 'user',
               defaultPaperSettings: {
                 board: 'CBSE',
                 grade: '10th',
@@ -222,6 +237,39 @@ const App: React.FC = () => {
     });
     return () => unsubscribe();
   }, [user]);
+
+  // Sync Syllabus from Firestore
+  useEffect(() => {
+    const fetchSyllabus = async () => {
+        const latest = await getLatestCurriculum();
+        if (latest) {
+            console.log("Dynamic syllabus loaded from Firestore");
+            setDynamicSyllabus(latest);
+        }
+    };
+    fetchSyllabus();
+  }, []);
+
+  const handleSyncSyllabus = async () => {
+    if (!userProfile || userProfile.role !== 'admin') return;
+    
+    setIsSyncingSyllabus(true);
+    showToast("Starting Automated Syllabus Sync...", "success");
+    
+    try {
+        const result = await updateSyllabusFromSources("CBSE");
+        if (result.success && result.data) {
+            setDynamicSyllabus(result.data);
+            showToast(result.message, "success");
+        } else {
+            showToast(result.message, "error");
+        }
+    } catch (err: any) {
+        showToast("Sync Failed: " + err.message, "error");
+    } finally {
+        setIsSyncingSyllabus(false);
+    }
+  };
 
   // Apply Theme
   useEffect(() => {
@@ -487,33 +535,20 @@ const App: React.FC = () => {
       setGenerationProgress(100);
       newPaper.uid = user.uid;
       
-      // Sanitize the object to remove any undefined values before saving to Firestore
-      const sanitizedPaper = sanitizeForFirestore(newPaper);
-      
-      // Save metadata to 'papers'
-      const { questions, ...metadata } = sanitizedPaper;
-      await setDoc(doc(db, 'papers', metadata.id), metadata);
-      
-      // QUOTA OPTIMIZATION: Store all questions in a single document (paperDetails)
-      // instead of separate docs to reduce writes from N+1 to 2.
-      // This is critical for staying within the free tier write limits.
-      await setDoc(doc(db, 'paperDetails', metadata.id), { 
-        questions,
-        uid: user.uid,
-        lastUpdated: Date.now()
-      });
+      // Save paper using modular storage architecture (prevents 1 MiB document size limit errors)
+      await savePaperToFirestore(db, newPaper, user.uid);
       
       setTimeout(() => {
-        setCurrentPaper(sanitizedPaper);
+        setCurrentPaper(newPaper);
         setView('preview');
         setIsGenerating(false);
         showToast("Question paper generated successfully!", "success");
       }, 500);
     } catch (err: any) {
-      if (err.message.includes('permission-denied')) {
+      if (err.message?.includes('permission-denied')) {
         handleFirestoreError(err, OperationType.WRITE, 'papers/' + config.subject);
       }
-      const displayError = formatErrorMessage(err.message);
+      const displayError = formatErrorMessage(err.message || String(err));
       setError(displayError || "Failed to generate paper. Please try again.");
       showToast(displayError || "Failed to generate paper. Please try again.", "error");
       setIsGenerating(false);
@@ -540,28 +575,14 @@ const App: React.FC = () => {
   const handleUpdatePaper = async (updatedPaper: GeneratedPaper) => {
     if (!user) return;
     try {
-        const sanitizedPaper = sanitizeForFirestore(updatedPaper);
-        
-        // Split metadata and questions
-        const { questions, ...metadata } = sanitizedPaper;
-        
-        // Update metadata
-        await setDoc(doc(db, 'papers', metadata.id), metadata);
-        
-        // QUOTA OPTIMIZATION: Update all questions in a single document write
-        await setDoc(doc(db, 'paperDetails', metadata.id), { 
-          questions,
-          uid: user.uid,
-          lastUpdated: Date.now()
-        });
-        
-        setCurrentPaper(sanitizedPaper);
+        await savePaperToFirestore(db, updatedPaper, user.uid);
+        setCurrentPaper(updatedPaper);
         showToast("Paper updated successfully!", "success");
     } catch (err: any) {
-        if (err.message.includes('permission-denied')) {
+        if (err.message?.includes('permission-denied')) {
             handleFirestoreError(err, OperationType.WRITE, 'papers/' + updatedPaper.id);
         }
-        const displayError = formatErrorMessage(err.message);
+        const displayError = formatErrorMessage(err.message || String(err));
         setError("Update Failed: " + displayError);
         showToast(displayError, "error");
     }
@@ -570,14 +591,10 @@ const App: React.FC = () => {
   const handleDeletePaper = async (id: string) => {
     if (!user) return;
     try {
-        const batch = writeBatch(db);
-        batch.delete(doc(db, 'papers', id));
-        batch.delete(doc(db, 'paperDetails', id));
-        await batch.commit();
-        
+        await deletePaperFromFirestore(db, id);
         showToast("Paper deleted successfully!", "success");
     } catch (err: any) {
-        if (err.message.includes('permission-denied')) {
+        if (err.message?.includes('permission-denied')) {
             handleFirestoreError(err, OperationType.DELETE, 'papers/' + id);
         }
         setError("Failed to delete paper: " + err.message);
@@ -601,19 +618,7 @@ const App: React.FC = () => {
 
   const handleViewPaper = async (paperMetadata: GeneratedPaper) => {
     try {
-      // 1. Try fetching from the optimized paperDetails document (saves read quota and is much faster)
-      const detailSnap = await getDoc(doc(db, 'paperDetails', paperMetadata.id));
-      let questions = [];
-
-      if (detailSnap.exists()) {
-        questions = detailSnap.data().questions || [];
-      } else {
-        // 2. Fallback for legacy papers stored in subcollections
-        const qSnap = await getDocs(collection(db, 'paperQuestions', paperMetadata.id, 'questions'));
-        questions = qSnap.docs.map(doc => doc.data() as any);
-      }
-      
-      const fullPaper = { ...paperMetadata, questions };
+      const fullPaper = await loadPaperFromFirestore(db, paperMetadata);
       setCurrentPaper(fullPaper);
       setView('preview');
     } catch (err: any) {
@@ -741,9 +746,25 @@ const App: React.FC = () => {
                                           <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
                                               <SettingsIcon className="w-4 h-4 text-[#8A2CB0]" />
                                           </div>
-                                          Settings
-                                      </button>
-                                      <div className="border-t border-gray-100 mt-1 pt-1">
+                                        Settings
+                                    </button>
+                                    
+                                    {userProfile?.role === 'admin' && (
+                                        <div className="border-t border-gray-100 mt-1 pt-1">
+                                            <button 
+                                                onClick={() => { handleSyncSyllabus(); setIsOpen(false); }}
+                                                disabled={isSyncingSyllabus}
+                                                className="w-full text-left px-4 py-3 text-sm font-bold text-amber-600 hover:bg-amber-50 flex items-center gap-3 transition-colors disabled:opacity-50"
+                                            >
+                                                <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                                                    {isSyncingSyllabus ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
+                                                </div>
+                                                Sync Syllabus (AI)
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    <div className="border-t border-gray-100 mt-1 pt-1">
                                           <button 
                                               onClick={() => { handleLogout(); setIsOpen(false); }}
                                               className="w-full text-left px-4 py-3 text-sm font-bold text-rose-500 hover:bg-rose-50 flex items-center gap-3 transition-colors"
@@ -900,6 +921,7 @@ const App: React.FC = () => {
                         onCancel={handleCancelCreate} 
                         isGenerating={isGenerating}
                         questionBanks={questionBanks}
+                        dynamicSyllabus={dynamicSyllabus}
                       />
                     )}
 

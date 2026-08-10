@@ -61,6 +61,20 @@
         "role": { "type": "string", "enum": ["user", "admin"] }
       },
       "required": ["uid", "name", "email", "selectedTheme", "createdAt"]
+    },
+    "CurriculumUpdate": {
+      "title": "CurriculumUpdate",
+      "description": "Dynamic syllabus updates fetched via AI.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "board": { "type": "string" },
+        "version": { "type": "string" },
+        "data": { "type": "object", "description": "The structured syllabus data (Grade -> Subject -> Chapters[])" },
+        "lastUpdated": { "type": "number" },
+        "source": { "type": "string" }
+      },
+      "required": ["id", "board", "version", "data", "lastUpdated"]
     }
   },
   "firestore": {
@@ -75,6 +89,10 @@
     "/users/{userId}": {
       "schema": "UserProfile",
       "description": "User profile data."
+    },
+    "/curriculum/{updateId}": {
+      "schema": "CurriculumUpdate",
+      "description": "Dynamic syllabus updates fetched via AI."
     }
   }
 }
