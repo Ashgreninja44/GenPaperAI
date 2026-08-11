@@ -12,6 +12,7 @@ import ResetPassword from './components/ResetPassword';
 import BackgroundAnimation from './components/BackgroundAnimation';
 import ThemeBackdrop from './components/ThemeBackdrop';
 import Logo from './components/Logo';
+import { GoogleIcon, MicrosoftIcon, EmailIcon } from './components/BrandIcons';
 import { SyllabusData, getLatestCurriculum, updateSyllabusFromSources } from './services/syllabusService';
 import { PaperConfig, GeneratedPaper, QuestionBank, UserProfile } from './types';
 import { generateQuestionPaper } from './services/geminiService';
@@ -787,7 +788,7 @@ const App: React.FC = () => {
                           disabled={!!isLoggingIn}
                           className="px-5 py-2 rounded-xl text-sm font-bold bg-white text-[#3C128D] shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2 disabled:opacity-70 disabled:scale-100"
                       >
-                          {isLoggingIn === 'google' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4 text-blue-500" />}
+                          {isLoggingIn === 'google' ? <Loader2 className="w-4 h-4 animate-spin" /> : <GoogleIcon className="w-4 h-4" />}
                           Google
                       </button>
                       <button 
@@ -795,7 +796,7 @@ const App: React.FC = () => {
                           disabled={!!isLoggingIn}
                           className="px-5 py-2 rounded-xl text-sm font-bold bg-white text-[#3C128D] shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2 disabled:opacity-70 disabled:scale-100"
                       >
-                          {isLoggingIn === 'microsoft' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4 text-blue-600" />}
+                          {isLoggingIn === 'microsoft' ? <Loader2 className="w-4 h-4 animate-spin" /> : <MicrosoftIcon className="w-4 h-4" />}
                           Microsoft
                       </button>
                       <button 
@@ -803,8 +804,8 @@ const App: React.FC = () => {
                           disabled={!!isLoggingIn}
                           className="px-5 py-2 rounded-xl text-sm font-bold bg-white text-[#3C128D] shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2 disabled:opacity-70 disabled:scale-100"
                       >
-                          <Mail className="w-4 h-4 text-rose-500" />
-                          Email
+                          <EmailIcon className="w-4 h-4" />
+                          E-mail
                       </button>
                   </div>
                )}
@@ -861,7 +862,7 @@ const App: React.FC = () => {
                             disabled={!!isLoggingIn}
                             className="w-full py-4 rounded-xl text-base font-black bg-white text-[#3C128D] shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:scale-100"
                         >
-                            {isLoggingIn === 'google' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Globe className="w-5 h-5 text-blue-500" />}
+                            {isLoggingIn === 'google' ? <Loader2 className="w-5 h-5 animate-spin" /> : <GoogleIcon className="w-5 h-5" />}
                             Google
                         </button>
                         <button 
@@ -869,7 +870,7 @@ const App: React.FC = () => {
                             disabled={!!isLoggingIn}
                             className="w-full py-4 rounded-xl text-base font-black bg-white text-[#3C128D] shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:scale-100"
                         >
-                            {isLoggingIn === 'microsoft' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5 text-blue-600" />}
+                            {isLoggingIn === 'microsoft' ? <Loader2 className="w-5 h-5 animate-spin" /> : <MicrosoftIcon className="w-5 h-5" />}
                             Microsoft
                         </button>
                         <button 
@@ -877,8 +878,8 @@ const App: React.FC = () => {
                             disabled={!!isLoggingIn}
                             className="w-full py-4 rounded-xl text-base font-black bg-white text-[#3C128D] shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:scale-100"
                         >
-                            <Mail className="w-5 h-5 text-rose-500" />
-                            Email
+                            <EmailIcon className="w-5 h-5" />
+                            E-mail
                         </button>
                     </div>
                 </div>

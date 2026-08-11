@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { Globe, Shield, Mail } from 'lucide-react';
+import { GoogleIcon, MicrosoftIcon, EmailIcon } from './BrandIcons';
 
 interface SettingsProps {
   profile: UserProfile;
@@ -88,10 +89,10 @@ const Settings: React.FC<SettingsProps> = ({ profile, onUpdateProfile, onBack })
                 profile.provider === 'microsoft' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' :
                 'bg-rose-50 text-rose-600 border border-rose-100'
               }`}>
-                {profile.provider === 'google' && <Globe className="w-3 h-3" />}
-                {profile.provider === 'microsoft' && <Shield className="w-3 h-3" />}
-                {profile.provider === 'email' && <Mail className="w-3 h-3" />}
-                {profile.provider} Account
+                {profile.provider === 'google' && <GoogleIcon className="w-3 h-3" />}
+                {profile.provider === 'microsoft' && <MicrosoftIcon className="w-3 h-3" />}
+                {profile.provider === 'email' && <EmailIcon className="w-3 h-3" />}
+                {profile.provider === 'email' ? 'e-mail' : profile.provider} Account
               </span>
             </div>
             <div className="text-xs text-gray-400 uppercase tracking-widest font-bold">
