@@ -1,4 +1,16 @@
 
+import { SubjectPaperPattern } from './data/subjectPatterns';
+
+export interface SourceMetadata {
+  class: string;
+  subject: string;
+  course?: string;
+  textbook: string;
+  sourceUrl: string;
+  sourceType: 'Official NCERT' | 'Official CBSE' | 'Official SCERT';
+  verifiedDate: string;
+}
+
 export interface QuestionCounts {
   mcq: number;
   ar: number; // Assertion-Reason
@@ -18,6 +30,7 @@ export interface CustomSection {
 }
 
 export interface PaperConfig {
+  academicSession?: string; // e.g. "2026-27"
   board: string;
   schoolName: string;
   schoolLogo?: string;
@@ -32,13 +45,17 @@ export interface PaperConfig {
   difficulty: 'Easy' | 'Medium' | 'Hard';
   includeFigures: boolean;
   
-  testType: string; // e.g., "Periodic Test 1", "Custom"
+  testType: string; // e.g., "Periodic Test 1", "Custom", "Official Pattern"
   customSections?: CustomSection[]; // Only used if testType is "Custom"
   
-  // Legacy/Standard counts (used if testType is NOT Custom)
+  // Subject-specific dynamic pattern & counts
+  subjectPattern?: SubjectPaperPattern;
+  patternCounts?: Record<string, number>;
+
+  // Legacy/Standard counts (used if testType is NOT Custom or for backward compatibility)
   counts: QuestionCounts; 
   
-  // New: Manually selected or extracted questions to include
+  // Manually selected or extracted questions to include
   manualQuestions?: Question[];
 }
 

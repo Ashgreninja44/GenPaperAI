@@ -2,6 +2,7 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { PaperConfig, GeneratedPaper, Question } from "../types";
 import { CBSE_EXAM_PATTERNS } from "../constants";
+import { getSubjectPattern, buildPatternGenerationPrompt } from "../data/subjectPatterns";
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 console.log("API KEY EXISTS:", !!apiKey);
@@ -146,11 +147,19 @@ export const generateQuestionPaper = async (config: PaperConfig): Promise<Genera
   const manualMarks = manualQuestions.reduce((sum, q) => sum + q.marks, 0);
   const remainingMarks = Math.max(0, config.totalMarks - manualMarks);
 
+  // Resolve the subject pattern dynamically
+  const activePattern = config.subjectPattern || getSubjectPattern(
+    config.board,
+    config.grade,
+    config.subject,
+    config.academicSession || "2026-27"
+  );
+
   let structurePrompt = '';
 
   // PART 7: HYBRID GENERATION LOGIC
   // Compare extracted data with user-selected distribution.
-  const isCustomTest = config.testType !== 'CBSE Board Exam' && config.customSections && config.customSections.length > 0;
+  const isCustomTest = config.testType === 'Custom' && config.customSections && config.customSections.length > 0;
   
   let hybridPrompt = '';
   if (manualQuestions.length > 0) {
@@ -160,7 +169,7 @@ export const generateQuestionPaper = async (config: PaperConfig): Promise<Genera
         2. FILL GAP: Your primary task is to FILL THE GAP to match the requested distribution.
         
         REQUIRED FINAL DISTRIBUTION:
-        ${isCustomTest ? JSON.stringify(config.customSections) : JSON.stringify(config.counts)}
+        ${isCustomTest ? JSON.stringify(config.customSections) : JSON.stringify(config.patternCounts || config.counts)}
         
         ACTION PLAN:
         - For each question type:
@@ -176,39 +185,47 @@ export const generateQuestionPaper = async (config: PaperConfig): Promise<Genera
   if (remainingMarks === 0 && manualQuestions.length > 0) {
      // If user selected full marks worth of questions manually
      structurePrompt = `GENERATE TITLE AND ANSWER KEY ONLY. The user has already provided all questions. Do not generate new questions. Just structure the provided ones.`;
-  } else if (config.testType === 'CBSE Board Exam') {
-    const pureSubject = config.subject.split(' (Chapters:')[0].trim();
-    const pattern = CBSE_EXAM_PATTERNS[pureSubject];
-    if (pattern) {
-        structurePrompt = `STRICTLY FOLLOW CBSE PATTERN: ${JSON.stringify(pattern)}. 
-        IMPORTANT: The user has already manually selected ${manualQuestions.length} questions worth ${manualMarks} marks. 
-        You must GENERATE ONLY the remaining questions to reach Total Marks: ${config.totalMarks}.
-        INTEGRATE the manual questions into the correct sections seamlessly.
-        ${hybridPrompt}`;
-    } else {
-        structurePrompt = `Generate a standard CBSE Class 10 Board Exam paper. User provided ${manualQuestions.length} questions. Generate balance to reach ${config.totalMarks} marks.
-        ${hybridPrompt}`;
-    }
   } else if (isCustomTest) {
-    structurePrompt = `Follow these sections: ${JSON.stringify(config.customSections)}. 
+    structurePrompt = `Follow these custom user-defined sections: ${JSON.stringify(config.customSections)}. 
     The user has already selected ${manualQuestions.length} questions. Fill the remaining slots in these sections.
     ${hybridPrompt}`;
   } else {
-    structurePrompt = `Use standard distribution: ${JSON.stringify(config.counts)}. 
-    Existing Manual Questions: ${manualQuestions.length}. Generate the rest to fit the total marks.
+    // Priority: Use the subject-specific blueprint
+    const patternPrompt = buildPatternGenerationPrompt(activePattern, config.patternCounts);
+    structurePrompt = `${patternPrompt}
+    User Manual Questions Provided: ${manualQuestions.length} (totaling ${manualMarks} marks).
+    Generate remaining questions to strictly satisfy all sections and reach Total Marks: ${config.totalMarks}.
     ${hybridPrompt}`;
   }
 
   // FORCE FIGURES FOR MATH
   const isMath = config.subject.toLowerCase().includes('math');
+  const isTelugu = config.subject.toLowerCase().includes('telugu');
+  const isHindi = config.subject.toLowerCase().includes('hindi');
+  const isSanskrit = config.subject.toLowerCase().includes('sanskrit');
   const shouldIncludeFigures = config.includeFigures || isMath;
 
   // SYLLABUS CONTEXT
-  const syllabusContext = `SYLLABUS VERSION: NCERT (2026-27 / NEP 2020 pattern). 
-       Focus on COMPETENCY-BASED questions.
-       Include real-life applications.
-       Prioritize Case-based, source-based, and assertion-reason questions.
-       REDUCE rote learning; emphasize understanding.`;
+  const syllabusContext = `ACADEMIC SESSION: ${config.academicSession || '2026-27'} (NCERT / SCERT / NEP 2020 curriculum). 
+       Subject: ${config.subject}
+       Grade/Class: ${config.grade}
+       Board: ${config.board}
+       Focus on COMPETENCY-BASED and analytical questions according to the official blueprint.
+       Include real-life applications where appropriate.
+       REDUCE rote learning; emphasize conceptual depth.
+       ${isTelugu ? `
+       TELUGU LANGUAGE INSTRUCTIONS (ఆంధ్రప్రదేశ్ & తెలంగాణ తెలుగు పాఠ్యప్రణాళిక):
+       - All question text, options, section names, and answer keys MUST be written in authentic, fluent Telugu script (తెలుగు లిపి).
+       - Maintain official question formats: విభాగం-1 (అవగాహన-ప్రతిస్పందన: అపరిచిత/పరిచిత గద్య, పద్య అంశాలు), విభాగం-2 (వ్యక్తీకరణ-సృజనాత్మకత: లఘు, వ్యాసరూప, రామాయణ ఉపవాచక ప్రశ్నలు, లేఖ/కరపత్రం), విభాగం-3 (భాషాంశాలు-వ్యాకరణం: సంధులు, సమాసాలు, ఛందస్సు, అలంకారాలు, పదజాలం, జాతీయాలు).
+       - DO NOT include Science assertion-reason or math case studies in Telugu.` : ''}
+       ${isHindi ? `
+       HINDI LANGUAGE INSTRUCTIONS (सीबीएसई हिंदी पाठ्यक्रम):
+       - All questions, sections, and answers MUST be written in correct Devanagari script (देवनागरी लिपि).
+       - Strictly follow खंड 'क' (अपठित बोध), खंड 'ख' (व्यावहारिक व्याकरण), खंड 'ग' (पाठ्यपुस्तक व पूरक पुस्तक), खंड 'घ' (रचनात्मक लेखन).` : ''}
+       ${isSanskrit ? `
+       SANSKRIT LANGUAGE INSTRUCTIONS (सीबीएसई संस्कृत पाठ्यक्रम):
+       - All questions and answers MUST be in fluent Sanskrit in Devanagari script.
+       - Strictly follow खण्डः 'क' (अपठित-अवबोधनम्), खण्डः 'ख' (रचनात्मक-कार्यम्), खण्डः 'ग' (अनुप्रयुक्त-व्याकरणम्), खण्डः 'घ' (पठित-अवबोधनम्).` : ''}`;
 
   const prompt = `
     Act as a CBSE Question Paper Generator.

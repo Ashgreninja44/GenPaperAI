@@ -4,9 +4,10 @@ import { PaperConfig, QuestionCounts, CustomSection, QuestionBank, Question } fr
 import { SYLLABUS_DATA, GRADES, FONT_OPTIONS, BOARDS, TEST_TYPES, QUESTION_TYPES_DROPDOWN, CBSE_EXAM_PATTERNS, PRESET_SCHOOLS } from '../constants';
 import { SyllabusData } from '../services/syllabusService';
 import { parseQuestionsFromText, extractQuestionsFromUrl } from '../services/geminiService';
+import { getSubjectPattern, SubjectPaperPattern, ACADEMIC_SESSIONS } from '../data/subjectPatterns';
 import MarkdownRenderer from './MarkdownRenderer';
 
-// Defined Weights and Specs (Legacy/Standard Mode)
+// Defined Weights and Specs (Legacy/Standard Mode Fallback)
 const QUESTION_SPECS: { label: string; key: keyof QuestionCounts; marks: number }[] = [
   { label: "MCQs", key: "mcq", marks: 1 },
   { label: "Assertion-Reason", key: "ar", marks: 1 },
@@ -49,13 +50,18 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
 
   // General Instructions State
   const [generalInstructions, setGeneralInstructions] = useState('');
-  const MAX_INSTRUCTION_CHARS = 500;
+  const MAX_INSTRUCTION_CHARS = 1000;
 
-  // Curriculum State
+  // Academic Session & Curriculum State
+  const [academicSession, setAcademicSession] = useState(ACADEMIC_SESSIONS[0].split(' ')[0]);
   const [selectedBoard, setSelectedBoard] = useState(BOARDS[0]);
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [testType, setTestType] = useState(TEST_TYPES[0]);
+  
+  // Subject Pattern Blueprint State
+  const [activePattern, setActivePattern] = useState<SubjectPaperPattern | null>(null);
+  const [patternCounts, setPatternCounts] = useState<Record<string, number>>({});
   
   // Custom Test Name State
   const [customTestName, setCustomTestName] = useState('');
@@ -112,12 +118,6 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
 
   // Logic to fetch available subjects/topics based on Board -> Class
   const getBoardData = () => {
-    // TRACE DATA SOURCE (MANDATORY)
-    console.log("SYLLABUS SOURCE: constants.ts (SYLLABUS_DATA)");
-    
-    // FORCE OVERRIDE: Use only the hardcoded verified syllabus data
-    // to ensure 2026 NCERT chapters are always reflected correctly.
-    // We ignore dynamicSyllabus to prevent stale/incorrect data from Firestore.
     return SYLLABUS_DATA[selectedBoard] || {};
   };
 
@@ -146,8 +146,6 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
             });
         }
     }
-    
-    console.log("CHAPTERS USED:", chapters);
     return chapters;
   };
 
@@ -166,49 +164,68 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
     setSelectedChapters([]);
   }, [selectedSubject, selectedClass]);
 
-  // --- DEBUG LOGS ---
+  // --- Dynamic Subject Pattern Synchronization ---
   useEffect(() => {
-    console.log("Available Subjects for Class:", selectedClass, "=>", availableSubjects);
-    console.log("Available Chapters for Subject:", selectedSubject, "=>", availableChapters);
-  }, [selectedClass, selectedSubject, availableChapters, availableSubjects]);
+    if (selectedSubject && selectedClass) {
+      const pattern = getSubjectPattern(selectedBoard, selectedClass, selectedSubject, academicSession);
+      setActivePattern(pattern);
+      
+      // Initialize counts from verified pattern
+      const initialCounts: Record<string, number> = {};
+      pattern.sections.forEach(sec => {
+        sec.questionTypes.forEach(qt => {
+          initialCounts[qt.id] = qt.defaultCount;
+        });
+      });
+      setPatternCounts(initialCounts);
+      
+      // Set defaults for marks, time, instructions
+      setTotalMarks(pattern.totalMarks);
+      setTimePreset(pattern.duration);
+      setTimeAllowed(pattern.duration);
+      setGeneralInstructions(pattern.generalInstructions.join('\n'));
+      setTotalMarksError(null);
+    } else {
+      setActivePattern(null);
+      setPatternCounts({});
+    }
+  }, [selectedBoard, selectedClass, selectedSubject, academicSession]);
 
   const finalDisplayChapters = availableChapters;
-
   const isCustomTest = testType === 'Custom Test';
-  const isCBSEPattern = testType === 'CBSE Board Exam';
-
-  // Effect to auto-select "CBSE Board Exam" logic override
-  useEffect(() => {
-    if (isCBSEPattern) {
-        setTotalMarks(80);
-        setTimePreset('3 Hours');
-        setTimeAllowed('3 Hours');
-        setGeneralInstructions("General Instructions:\n1. This Question Paper contains multiple sections.\n2. All questions are compulsory.\n3. Marks are indicated against each question.\n4. Internal choices have been provided as per CBSE 2024-25 pattern.");
-    }
-  }, [isCBSEPattern]);
 
   const effectiveLogo = customLogo;
 
-  // --- Mark Calculation Effects ---
+  // --- Real-time Marks Calculation Effects ---
   useEffect(() => {
-    if (isCustomTest || isCBSEPattern) return;
+    if (isCustomTest) {
+      const totalM = customSections.reduce((acc, sec) => acc + (sec.count * sec.marksPerQuestion), 0);
+      const totalQ = customSections.reduce((acc, sec) => acc + sec.count, 0);
+      setCustomTotalMarks(totalM);
+      setCustomTotalQuestions(totalQ);
+      setCurrentCalculatedMarks(totalM);
+      return;
+    }
 
-    // PART 1 & 3: SANITIZE AND FIX TOTAL CALCULATION
+    if (activePattern) {
+      let total = 0;
+      activePattern.sections.forEach(sec => {
+        sec.questionTypes.forEach(qt => {
+          const count = patternCounts[qt.id] !== undefined ? patternCounts[qt.id] : qt.defaultCount;
+          total += count * qt.defaultMarksPerQuestion;
+        });
+      });
+      setCurrentCalculatedMarks(total);
+      return;
+    }
+
+    // Fallback standard calculation
     const total = QUESTION_SPECS.reduce((acc, spec) => {
       const val = counts[spec.key] === "" ? 0 : (parseInt(counts[spec.key]) || 0);
       return acc + (val * spec.marks);
     }, 0);
     setCurrentCalculatedMarks(total);
-  }, [counts, isCustomTest, isCBSEPattern]);
-
-  useEffect(() => {
-    if (!isCustomTest) return;
-    const totalM = customSections.reduce((acc, sec) => acc + (sec.count * sec.marksPerQuestion), 0);
-    const totalQ = customSections.reduce((acc, sec) => acc + sec.count, 0);
-    setCustomTotalMarks(totalM);
-    setCustomTotalQuestions(totalQ);
-    setCurrentCalculatedMarks(totalM);
-  }, [customSections, isCustomTest]);
+  }, [counts, customSections, isCustomTest, activePattern, patternCounts]);
 
 
   // --- EXTRACTION HANDLERS ---
@@ -384,8 +401,65 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
     if (value !== '') setErrors(prev => ({ ...prev, [key]: null }));
   };
 
+  const handlePatternCountChange = (qtId: string, value: string) => {
+    const num = parseInt(value);
+    const validCount = isNaN(num) || num < 0 ? 0 : num;
+    setPatternCounts(prev => ({
+      ...prev,
+      [qtId]: validCount
+    }));
+  };
+
+  const handleResetToOfficialPattern = () => {
+    if (!activePattern) return;
+    const initialCounts: Record<string, number> = {};
+    activePattern.sections.forEach(sec => {
+      sec.questionTypes.forEach(qt => {
+        initialCounts[qt.id] = qt.defaultCount;
+      });
+    });
+    setPatternCounts(initialCounts);
+    setTotalMarks(activePattern.totalMarks);
+    setTimePreset(activePattern.duration);
+    setTimeAllowed(activePattern.duration);
+    setGeneralInstructions(activePattern.generalInstructions.join('\n'));
+    setTotalMarksError(null);
+  };
+
+  const handleAutoDistributePattern = () => {
+    if (!activePattern || totalMarks <= 0) return;
+    const allTypes: { id: string; marks: number }[] = [];
+    activePattern.sections.forEach(sec => {
+      sec.questionTypes.forEach(qt => {
+        allTypes.push({ id: qt.id, marks: qt.defaultMarksPerQuestion });
+      });
+    });
+    if (allTypes.length === 0) return;
+
+    const newCounts: Record<string, number> = {};
+    allTypes.forEach(t => { newCounts[t.id] = 0; });
+    let currentSum = 0;
+
+    for (const t of allTypes) {
+      if (currentSum + t.marks <= totalMarks) {
+        newCounts[t.id]++;
+        currentSum += t.marks;
+      }
+    }
+
+    while (currentSum < totalMarks) {
+      const candidates = allTypes.filter(t => currentSum + t.marks <= totalMarks);
+      if (candidates.length === 0) break;
+      candidates.sort((a, b) => newCounts[a.id] - newCounts[b.id]);
+      const best = candidates[0];
+      newCounts[best.id]++;
+      currentSum += best.marks;
+    }
+
+    setPatternCounts(newCounts);
+  };
+
   const handleBlur = (key: keyof QuestionCounts) => {
-    // PART 5: UX IMPROVEMENT - Set empty to 0 on blur
     if (counts[key] === '') {
         setCounts(prev => ({ ...prev, [key]: '0' }));
     }
@@ -410,7 +484,6 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
     setSelectedSubject(e.target.value);
     setSelectedChapters([]);
     setChapterError(null);
-    // Reset bank selection on subject change
     setSelectedBankId('');
     setPreviewQuestions([]);
     setManualQuestions([]);
@@ -449,6 +522,10 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
   const isIndeterminate = selectedChapters.length > 0 && selectedChapters.length < finalDisplayChapters.length;
 
   const handleAutoDistribute = () => {
+    if (activePattern) {
+      handleAutoDistributePattern();
+      return;
+    }
     let newCounts: Record<keyof QuestionCounts, number> = { mcq: 0, ar: 0, vsaq: 0, saq: 0, laq: 0, caseStudy: 0 };
     let currentSum = 0;
     for (const spec of QUESTION_SPECS) {
@@ -516,22 +593,27 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
     if (selectedChapters.length === 0) { setChapterError("Please select at least one chapter."); hasErrors = true; }
 
     const newErrors: any = {};
-    if (!isCustomTest && !isCBSEPattern) {
-        QUESTION_SPECS.forEach(spec => {
-            const error = validateField(spec.key, counts[spec.key]);
-            if (error) { hasErrors = true; newErrors[spec.key] = error; }
-        });
-    } else if (isCustomTest) {
+    if (isCustomTest) {
         if (!customTestName.trim()) { setCustomTestNameError("Please enter a name."); hasErrors = true; }
         else if (customTestName.trim().length < 3) { setCustomTestNameError("Test name must be at least 3 characters."); hasErrors = true; }
         if (customSections.length === 0) { hasErrors = true; alert("Please add at least one section."); }
         if (currentCalculatedMarks !== totalMarks) hasErrors = true;
+    } else if (!activePattern) {
+        QUESTION_SPECS.forEach(spec => {
+            const error = validateField(spec.key, counts[spec.key]);
+            if (error) { hasErrors = true; newErrors[spec.key] = error; }
+        });
+    }
+
+    if (currentCalculatedMarks !== null && currentCalculatedMarks !== totalMarks) {
+      setTotalMarksError(`Allocated marks (${currentCalculatedMarks}) do not match Total Marks (${totalMarks}). Please click Auto Distribute or adjust question counts.`);
+      hasErrors = true;
     }
 
     if (hasErrors) { setErrors(newErrors); return; }
     
     let finalCounts: any = {};
-    if (!isCustomTest && !isCBSEPattern) {
+    if (!isCustomTest && !activePattern) {
         QUESTION_SPECS.forEach(spec => { 
             const val = counts[spec.key];
             finalCounts[spec.key] = val === "" ? 0 : (parseInt(val) || 0); 
@@ -559,7 +641,10 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
       customSections: isCustomTest ? customSections : [],
       counts: finalCounts as QuestionCounts,
       includeFigures,
-      manualQuestions: manualQuestions || []
+      manualQuestions: manualQuestions || [],
+      academicSession,
+      subjectPattern: activePattern || undefined,
+      patternCounts
     });
   };
 
@@ -702,6 +787,20 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
              
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Academic Session</label>
+                  <select 
+                    required 
+                    className="w-full px-4 py-2.5 rounded-lg border dark-dropdown" 
+                    value={academicSession} 
+                    onChange={(e) => setAcademicSession(e.target.value)}
+                  >
+                    {ACADEMIC_SESSIONS.map((session) => {
+                      const val = session.split(' ')[0];
+                      return <option key={val} value={val}>{session}</option>;
+                    })}
+                  </select>
+                </div>
+                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Board / Curriculum</label>
                   <select required className="w-full px-4 py-2.5 rounded-lg border dark-dropdown" value={selectedBoard} onChange={handleBoardChange}>
                     {BOARDS.map((board) => (<option key={board} value={board}>{board}</option>))}
@@ -714,8 +813,8 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
                     {GRADES.map((grade) => (<option key={grade} value={grade}>{grade}</option>))}
                   </select>
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Subject</label>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Subject / Language</label>
                   <select required disabled={!selectedClass} className="w-full px-4 py-2.5 rounded-lg border dark-dropdown disabled:opacity-50" value={selectedSubject} onChange={handleSubjectChange}>
                     <option value="" disabled>{!selectedClass ? 'Select Class first' : 'Select Subject'}</option>
                     {availableSubjects.map((subj) => (<option key={subj} value={subj}>{subj}</option>))}
@@ -775,21 +874,20 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Total Marks <span className="text-red-500">*</span></label>
                     <div className="flex gap-2">
                         <select 
-                            className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown ${totalMarksError ? 'border-red-500 bg-red-50' : 'border-gray-200'} ${isCBSEPattern ? 'bg-gray-100' : ''}`}
+                            className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown ${totalMarksError ? 'border-red-500 bg-red-50' : 'border-gray-200'}`}
                             value={totalMarks || ''} 
                             onChange={(e) => {
                                 const val = parseInt(e.target.value);
                                 setTotalMarks(val);
                                 if (val > 0) setTotalMarksError(null);
                             }} 
-                            disabled={isCBSEPattern}
                         >
                             <option value="">Select Marks</option>
                             {[10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100].map(m => (
                                 <option key={m} value={m}>{m} Marks</option>
                             ))}
                         </select>
-                        {!isCustomTest && !isCBSEPattern && <button type="button" onClick={handleAutoDistribute} className="btn-glass btn-glass-secondary px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">Auto Distribute</button>}
+                        {!isCustomTest && <button type="button" onClick={handleAutoDistribute} className="btn-glass btn-glass-secondary px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">Auto Distribute</button>}
                     </div>
                     {totalMarksError && <p className="text-red-600 text-xs font-bold mt-1.5">{totalMarksError}</p>}
                 </div>
@@ -798,7 +896,7 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Time Allowed <span className="text-red-500">*</span></label>
                     <div className="flex gap-4">
                          <div className="relative w-full md:w-1/2">
-                            <select value={timePreset} onChange={handlePresetChange} disabled={isCBSEPattern} className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown disabled:opacity-50 ${timeAllowedError && timePreset !== 'Custom' ? 'border-red-500' : 'border-gray-200'}`}>
+                            <select value={timePreset} onChange={handlePresetChange} className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown disabled:opacity-50 ${timeAllowedError && timePreset !== 'Custom' ? 'border-red-500' : 'border-gray-200'}`}>
                                 <option value="">Select Time</option>
                                 <option value="30 Minutes">30 Minutes</option><option value="40 Minutes">40 Minutes</option><option value="45 Minutes">45 Minutes</option><option value="1 Hour">1 Hour</option><option value="1.5 Hours">1.5 Hours</option><option value="2 Hours">2 Hours</option><option value="2.5 Hours">2.5 Hours</option><option value="3 Hours">3 Hours</option><option value="Custom">Custom</option>
                             </select>
@@ -1083,25 +1181,22 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
 
           <hr className="border-gray-200/50" />
 
-          {/* Table / Custom Builder / CBSE Info */}
+          {/* Table / Custom Builder / Dynamic Subject Pattern */}
           <div>
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">{isCustomTest ? 'Custom Format Builder' : isCBSEPattern ? 'Exam Structure' : 'Question Distribution'}</h3>
-                {currentCalculatedMarks !== null && !isCBSEPattern && <span className={`text-sm font-bold px-3 py-1 rounded-full ${currentCalculatedMarks === totalMarks ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>Total: {currentCalculatedMarks} / {totalMarks}</span>}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  {isCustomTest ? 'Custom Format Builder' : activePattern ? `${selectedSubject} Blueprint & Distribution` : 'Question Distribution'}
+                </h3>
+                {currentCalculatedMarks !== null && (
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs sm:text-sm font-bold px-3 py-1 rounded-full ${currentCalculatedMarks === totalMarks ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-orange-100 text-orange-700 border border-orange-200'}`}>
+                      Allocated: {currentCalculatedMarks} / {totalMarks} Marks
+                    </span>
+                  </div>
+                )}
             </div>
             
-            {isCBSEPattern ? (
-                <div className="bg-[#f3e8ff] border border-[#d8b4fe] p-6 rounded-xl animate-fade-in">
-                    <div className="flex items-start gap-4">
-                        <div className="bg-[#8A2CB0] text-white p-3 rounded-lg shadow-sm"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
-                        <div>
-                            <h4 className="font-bold text-[#3C128D] text-lg mb-1">Official CBSE Pattern Locked</h4>
-                            <p className="text-sm text-[#3C128D]/80 mb-2">The question paper will be generated strictly according to the official CBSE Sample Paper (2024-25) format for <strong>{selectedSubject}</strong>.</p>
-                            <ul className="text-xs text-[#3C128D]/70 space-y-1 list-disc ml-4"><li>Total Marks: <strong>80</strong></li><li>Duration: <strong>3 Hours</strong></li><li>Section-wise weightage and internal choices applied automatically.</li></ul>
-                        </div>
-                    </div>
-                </div>
-            ) : isCustomTest ? (
+            {isCustomTest ? (
                 <div className="space-y-4 animate-fade-in">
                     {customSections.length === 0 && <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-xl bg-white/30 text-gray-500"><p>No sections added yet. Click "Add Section" to design your test.</p></div>}
                     {customSections.map((section, index) => (
@@ -1119,6 +1214,140 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
                     <button type="button" onClick={handleAddSection} className="w-full py-3 border-2 border-dashed border-[#8A2CB0]/30 text-[#8A2CB0] rounded-xl hover:bg-[#8A2CB0]/5 hover:border-[#8A2CB0] transition-all font-bold text-sm flex items-center justify-center gap-2"><span>+ Add Section</span></button>
                     <div className="flex justify-between items-center text-sm font-medium text-gray-600 px-2"><span>Total Questions: <strong className="text-gray-900">{customTotalQuestions}</strong></span><span className={customTotalMarks !== totalMarks ? "text-orange-600 font-bold" : "text-green-600 font-bold"}>Total Calculated: {customTotalMarks} / {totalMarks}</span></div>
                     {customTotalMarks !== totalMarks && <p className="text-xs text-orange-600 text-right px-2">Marks distribution does not match total marks.</p>}
+                </div>
+            ) : activePattern ? (
+                <div className="space-y-6 animate-fade-in">
+                    {/* Pattern Header Card */}
+                    <div className="bg-gradient-to-r from-[#f3e8ff] to-[#faf5ff] border border-[#d8b4fe] p-5 rounded-2xl shadow-sm">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div>
+                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${activePattern.isVerified ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'}`}>
+                                        {activePattern.isVerified ? '✓ Verified Pattern' : '⚠️ Pattern Verification Notice'}
+                                    </span>
+                                    <span className="text-xs font-semibold text-[#8A2CB0] bg-white px-2 py-0.5 rounded border border-[#8A2CB0]/20">
+                                        Session {activePattern.academicSession}
+                                    </span>
+                                    <span className="text-xs text-gray-500 font-medium">
+                                        {activePattern.totalMarks} Marks • {activePattern.duration}
+                                    </span>
+                                </div>
+                                <h4 className="font-bold text-[#3C128D] text-base md:text-lg">
+                                    {activePattern.displayName}
+                                </h4>
+                                {activePattern.sourceReference && (
+                                    <p className="text-[11px] text-gray-500 italic mt-1">
+                                        Source: {activePattern.sourceReference}
+                                    </p>
+                                )}
+                            </div>
+                            
+                            <div className="flex gap-2 w-full md:w-auto justify-end">
+                                <button
+                                    type="button"
+                                    onClick={handleResetToOfficialPattern}
+                                    className="px-3 py-1.5 bg-white border border-[#8A2CB0]/30 hover:bg-[#8A2CB0]/5 text-[#8A2CB0] rounded-lg text-xs font-bold transition-all whitespace-nowrap shadow-sm"
+                                    title="Reset question distribution to official standard counts"
+                                >
+                                    Reset to Official
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleAutoDistributePattern}
+                                    className="px-3 py-1.5 bg-[#8A2CB0] hover:bg-[#732494] text-white rounded-lg text-xs font-bold transition-all whitespace-nowrap shadow-sm"
+                                    title="Scale distribution to fit current total marks"
+                                >
+                                    Auto Distribute
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Section Breakdown Tables */}
+                    <div className="space-y-4">
+                        {activePattern.sections.map((section) => {
+                            const sectionMarks = section.questionTypes.reduce((acc, qt) => {
+                                const count = patternCounts[qt.id] !== undefined ? patternCounts[qt.id] : qt.defaultCount;
+                                return acc + (count * qt.defaultMarksPerQuestion);
+                            }, 0);
+
+                            return (
+                                <div key={section.id} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                                    {/* Section Header */}
+                                    <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 flex flex-col sm:flex-row justify-between sm:items-center gap-1">
+                                        <div>
+                                            <span className="font-bold text-gray-900 text-sm">
+                                                {section.title}
+                                            </span>
+                                            {section.instructions && (
+                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                    {section.instructions}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="text-xs font-bold text-[#8A2CB0] bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200 self-start sm:self-auto">
+                                            Section Total: {sectionMarks} Marks
+                                        </div>
+                                    </div>
+
+                                    {/* Question Types Table */}
+                                    <div className="overflow-x-auto">
+                                        <table className="min-w-full text-xs sm:text-sm">
+                                            <thead className="bg-gray-50/50 text-gray-500 font-semibold border-b border-gray-100">
+                                                <tr>
+                                                    <th className="px-4 py-2 text-left">Question Type & Scope</th>
+                                                    <th className="px-3 py-2 text-center w-24">Marks/Q</th>
+                                                    <th className="px-3 py-2 text-center w-28">Count</th>
+                                                    <th className="px-4 py-2 text-right w-24">Subtotal</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {section.questionTypes.map((qt) => {
+                                                    const currentCount = patternCounts[qt.id] !== undefined ? patternCounts[qt.id] : qt.defaultCount;
+                                                    const rowTotal = currentCount * qt.defaultMarksPerQuestion;
+
+                                                    return (
+                                                        <tr key={qt.id} className="hover:bg-purple-50/30 transition-colors">
+                                                            <td className="px-4 py-2.5 text-gray-800">
+                                                                <div className="font-semibold text-gray-900">
+                                                                    {qt.name}
+                                                                </div>
+                                                                {qt.description && (
+                                                                    <div className="text-xs text-gray-500 mt-0.5">
+                                                                        {qt.description}
+                                                                    </div>
+                                                                )}
+                                                                {qt.internalChoiceNote && (
+                                                                    <div className="text-[10px] text-[#8A2CB0] font-medium mt-0.5">
+                                                                        ℹ️ {qt.internalChoiceNote}
+                                                                    </div>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-center text-gray-600 font-medium">
+                                                                {qt.defaultMarksPerQuestion}M
+                                                            </td>
+                                                            <td className="px-3 py-2 text-center">
+                                                                <input 
+                                                                    type="number" 
+                                                                    min="0" 
+                                                                    className="w-16 text-center px-2 py-1 rounded border border-gray-300 outline-none focus:ring-2 focus:ring-[#8A2CB0] focus:border-[#8A2CB0] bg-white font-semibold text-gray-800" 
+                                                                    value={currentCount} 
+                                                                    onChange={(e) => handlePatternCountChange(qt.id, e.target.value)} 
+                                                                />
+                                                            </td>
+                                                            <td className="px-4 py-2.5 text-right font-bold text-gray-800">
+                                                                {rowTotal}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             ) : (
                 <div className="overflow-hidden border border-gray-200 rounded-xl shadow-sm bg-white animate-fade-in">

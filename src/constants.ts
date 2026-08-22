@@ -404,40 +404,31 @@ export const CBSE_EXAM_PATTERNS: Record<string, any> = {
     "duration": 180,
     "sections": [
       {
-        "section": "A",
-        "title": "Reading Section (అపరిచిత గద్యం)",
-        "num_questions": 1,
-        "question_types": "Passage comprehension",
-        "marks_each": 10,
-        "total_marks": 10,
-        "internal_choice": "Internal choice (attempt one of two)"
+        "section": "విభాగం - అ",
+        "title": "అవగాహన - ప్రతిస్పందన (Reading & Comprehension)",
+        "num_questions": 4,
+        "question_types": "అపరిచిత గద్యం, అపరిచిత పద్యం, పరిచిత గద్యం/పద్యం ఆధారిత ప్రశ్నలు (16 మార్కులు)",
+        "marks_each": 4,
+        "total_marks": 16,
+        "internal_choice": "అన్ని ప్రశ్నలలో అంతర్గత ఎంపిక కలదు"
       },
       {
-        "section": "B",
-        "title": "Writing Section",
-        "num_questions": 2,
-        "question_types": "Letter, application, etc.",
-        "marks_each": [5, 5],
-        "total_marks": 13,
-        "internal_choice": "Internal choice in each question"
+        "section": "విభాగం - ఆ",
+        "title": "వ్యక్తీకరణ - సృజనాత్మకత (Writing & Creative Expression)",
+        "num_questions": 4,
+        "question_types": "స్వీయ రచన (లఘు & దీర్ఘ సమాధానాలు), లేఖా రచన / కరపత్రం / ప్రకటన / సంభాషణ రచన (32 మార్కులు)",
+        "marks_each": 8,
+        "total_marks": 32,
+        "internal_choice": "ప్రతి ప్రశ్నకు అంతర్గత ఎంపిక (ఈ క్రింది వానిలో ఒకదానికి సమాధానం రాయండి)"
       },
       {
-        "section": "C",
-        "title": "Grammar Section",
-        "num_questions": 7,
-        "question_types": "Poetry & prose-based MCQs/short answers",
-        "marks_each": 20/7,
-        "total_marks": 20,
-        "internal_choice": "Internal choice in many questions"
-      },
-      {
-        "section": "D",
-        "title": "Literature Textbook Section",
-        "num_questions": 7,
-        "question_types": "Prose/poetry interpretation and paragraph writing",
-        "marks_each": [4, 4, 4, 4, 4, 4, 13],
-        "total_marks": 37,
-        "internal_choice": "Internal choice in each question"
+        "section": "విభాగం - ఇ",
+        "title": "భాషాంశాలు & వ్యాకరణం (Grammar & Vocabulary)",
+        "num_questions": 16,
+        "question_types": "సంధులు, సమాసాలు, అలంకారాలు, ఛందస్సు, పర్యాయపదాలు, నానార్థాలు, జాతీయాలు, సామెతలు, ప్రకృతి-వికృతులు (32 మార్కులు)",
+        "marks_each": 2,
+        "total_marks": 32,
+        "internal_choice": "లక్ష్యాత్మక & సంక్షిప్త వ్యాకరణ ప్రశ్నలు"
       }
     ]
   },
@@ -841,108 +832,386 @@ const NEW_NCERT_SYLLABUS: Record<string, Record<string, any>> = {
   },
   "Class 9": {
     "Mathematics": {
-      "book": "Ganita Manjari Part 1",
-      "chapters": [
-        "Orienting Yourself: The Use of Coordinates",
-        "Introduction to Linear Polynomials",
-        "The World of Numbers",
-        "Exploring Algebraic Identities",
-        "I'm Up and Down, and Round and Round",
-        "Measuring Space: Perimeter and Area",
-        "The Mathematics of Maybe: Introduction to Probability",
-        "Predicting What Comes Next?: Exploring Sequences and Progressions"
+      "books": [
+        {
+          "name": "Mathematics (NCERT Standard)",
+          "part": "Standard Course",
+          "chapters": [
+            "Number Systems",
+            "Polynomials",
+            "Coordinate Geometry",
+            "Linear Equations in Two Variables",
+            "Introduction to Euclid's Geometry",
+            "Lines and Angles",
+            "Triangles",
+            "Quadrilaterals",
+            "Circles",
+            "Heron's Formula",
+            "Surface Areas and Volumes",
+            "Statistics"
+          ]
+        },
+        {
+          "name": "Ganita Manjari Part 1",
+          "part": "NCF 2026-27 Reform",
+          "chapters": [
+            "Orienting Yourself: The Use of Coordinates",
+            "Introduction to Linear Polynomials",
+            "The World of Numbers",
+            "Exploring Algebraic Identities",
+            "I'm Up and Down, and Round and Round",
+            "Measuring Space: Perimeter and Area",
+            "The Mathematics of Maybe: Introduction to Probability",
+            "Predicting What Comes Next?: Exploring Sequences and Progressions"
+          ]
+        }
       ]
     },
     "Science": {
-      "book": "Exploration",
-      "chapters": [
-        "Cell",
-        "Tissues",
-        "Reproduction",
-        "Diversity",
-        "Exploring Mixtures and Their Separation",
-        "Atoms and Molecules",
-        "Structure of an Atom",
-        "Earth as a System: Energy, Matter and Life",
-        "Motion",
-        "Force and Laws of Motion",
-        "Work, Energy and Simple Machines",
-        "Sound"
+      "books": [
+        {
+          "name": "Science (NCERT Standard)",
+          "part": "Standard Course",
+          "chapters": [
+            "Matter in Our Surroundings",
+            "Is Matter Around Us Pure",
+            "Atoms and Molecules",
+            "Structure of the Atom",
+            "The Fundamental Unit of Life",
+            "Tissues",
+            "Motion",
+            "Force and Laws of Motion",
+            "Gravitation",
+            "Work and Energy",
+            "Sound",
+            "Improvement in Food Resources"
+          ]
+        },
+        {
+          "name": "Exploration",
+          "part": "NCF 2026-27 Reform",
+          "chapters": [
+            "Cell",
+            "Tissues",
+            "Reproduction",
+            "Diversity",
+            "Exploring Mixtures and Their Separation",
+            "Atoms and Molecules",
+            "Structure of an Atom",
+            "Earth as a System: Energy, Matter and Life",
+            "Motion",
+            "Force and Laws of Motion",
+            "Work, Energy and Simple Machines",
+            "Sound"
+          ]
+        }
       ]
     },
     "English": {
-      "book": "Kaveri",
-      "chapters": [
-        "How I Taught My Grandmother to Read",
-        "The Pot Maker",
-        "Winds of Change",
-        "Vitamin-M",
-        "The World of Limitless Possibilities",
-        "Twin Melodies",
-        "Carrier of Words",
-        "Follow That Dream",
-        "Bharat Our Land",
-        "Gifts of Grace: Honouring Our Vocations",
-        "Canvas of Soil",
-        "I Cannot Remember My Mother",
-        "Nine Gold Medals",
-        "A Friend Found in Music",
-        "Words",
-        "Believe in Yourself"
+      "books": [
+        {
+          "name": "Beehive",
+          "part": "Prose",
+          "chapters": [
+            "The Fun They Had",
+            "The Sound of Music",
+            "The Little Girl",
+            "A Truly Beautiful Mind",
+            "The Snake and the Mirror",
+            "My Childhood",
+            "Reach for the Top",
+            "Kathmandu",
+            "If I Were You"
+          ]
+        },
+        {
+          "name": "Beehive",
+          "part": "Poetry",
+          "chapters": [
+            "The Road Not Taken",
+            "Wind",
+            "Rain on the Roof",
+            "The Lake Isle of Innisfree",
+            "A Legend of the Northland",
+            "No Men Are Foreign",
+            "On Killing a Tree",
+            "A Slumber Did My Spirit Seal"
+          ]
+        },
+        {
+          "name": "Moments",
+          "part": "Supplementary Reader",
+          "chapters": [
+            "The Lost Child",
+            "The Adventures of Toto",
+            "Iswaran the Storyteller",
+            "In the Kingdom of Fools",
+            "The Happy Prince",
+            "The Last Leaf",
+            "A House Is Not a Home",
+            "The Beggar"
+          ]
+        },
+        {
+          "name": "Kaveri",
+          "part": "NCF 2026-27 Reform Reader",
+          "chapters": [
+            "How I Taught My Grandmother to Read",
+            "The Pot Maker",
+            "Winds of Change",
+            "Vitamin-M",
+            "The World of Limitless Possibilities",
+            "Twin Melodies",
+            "Carrier of Words",
+            "Follow That Dream",
+            "Bharat Our Land",
+            "Gifts of Grace: Honouring Our Vocations",
+            "Canvas of Soil",
+            "I Cannot Remember My Mother",
+            "Nine Gold Medals",
+            "A Friend Found in Music",
+            "Words",
+            "Believe in Yourself"
+          ]
+        }
+      ]
+    },
+    "Hindi Course A": {
+      "books": [
+        {
+          "name": "Kshitij Part 1",
+          "part": "Poetry (काव्य खंड)",
+          "chapters": [
+            "कबीर - साखियाँ एवं सबद",
+            "ललद्यद - वाख",
+            "रसखान - सवैये",
+            "माखनलाल चतुर्वेदी - कैदी और कोकिला",
+            "सुमित्रानंदन पंत - ग्राम श्री",
+            "सर्वेश्वर दयाल सक्सेना - मेघ आए",
+            "राजेश जोशी - बच्चे काम पर जा रहे हैं"
+          ]
+        },
+        {
+          "name": "Kshitij Part 1",
+          "part": "Prose (गद्य खंड)",
+          "chapters": [
+            "प्रेमचंद - दो बैलों की कथा",
+            "राहुल सांकृत्यायन - ल्हासा की ओर",
+            "श्यामाचरण दुबे - उपभोक्तावाद की संस्कृति",
+            "जाबिर हुसैन - साँवले सपनों की याद",
+            "हरिशंकर परसाई - प्रेमचंद के फटे जूते",
+            "महादेवी वर्मा - मेरे बचपन के दिन"
+          ]
+        },
+        {
+          "name": "Kritika Part 1",
+          "part": "Supplementary Reader (पूरक पाठ्यपुस्तक)",
+          "chapters": [
+            "फणीश्वरनाथ 'रेणु' - इस जल प्रलय में",
+            "मृदुला गर्ग - मेरे संग की औरतें",
+            "जगदीश चंद्र माथुर - रीढ़ की हड्डी"
+          ]
+        },
+        {
+          "name": "Ganga",
+          "part": "NCF 2026-27 Reform Reader",
+          "chapters": [
+            "दो बैलों की कथा",
+            "क्या लिखूँ?",
+            "संवादहीन",
+            "ऐसी भी बातें होती हैं",
+            "आखिरी चट्टान तक",
+            "रीढ़ की हड्डी",
+            "मैं और मेरा देश",
+            "पद",
+            "राम-लक्ष्मण-परशुराम संवाद",
+            "भारति, जय, विजयकरे!",
+            "झाँसी की रानी",
+            "घर की याद"
+          ]
+        }
+      ]
+    },
+    "Hindi Course B": {
+      "books": [
+        {
+          "name": "Sparsh Part 1",
+          "part": "Poetry (काव्य खंड)",
+          "chapters": [
+            "रैदास - पद",
+            "रहीम - दोहे",
+            "नज़ीर अकबराबादी - आदमी नामा",
+            "सियारामशरण गुप्त - एक फूल की चाह",
+            "रामधारी सिंह 'दिनकर' - गीत-अगीत",
+            "हरिवंश राय बच्चन - अग्नि पथ",
+            "अरुण कमल - नए इलाके में..., खुशबू रचते हैं हाथ"
+          ]
+        },
+        {
+          "name": "Sparsh Part 1",
+          "part": "Prose (गद्य खंड)",
+          "chapters": [
+            "यशपाल - दुःख का अधिकार",
+            "बचेंद्री पाल - एवरेस्ट : मेरी शिखर यात्रा",
+            "शरद जोशी - तुम कब जाओगे, अतिथि",
+            "धीरंजन मालवे - वैज्ञानिक चेतना के वाहक : चन्द्र शेखर वेंकट रामन्",
+            "स्वामी आनंद - शुक्रतारे के समान"
+          ]
+        },
+        {
+          "name": "Sanchayan Part 1",
+          "part": "Supplementary Reader (पूरक पाठ्यपुस्तक)",
+          "chapters": [
+            "गिल्लू",
+            "स्मृति",
+            "कल्लू कुम्हार की उनाकोटी",
+            "मेरा छोटा-सा निजी पुस्तकालय"
+          ]
+        }
       ]
     },
     "Hindi": {
-      "book": "Ganga",
-      "chapters": [
-        "दो बैलों की कथा",
-        "क्या लिखूँ?",
-        "संवादहीन",
-        "ऐसी भी बातें होती हैं",
-        "आखिरी चट्टान तक",
-        "रीढ़ की हड्डी",
-        "मैं और मेरा देश",
-        "पद",
-        "राम-लक्ष्मण-परशुराम संवाद",
-        "भारति, जय, विजयकरे!",
-        "झाँसी की रानी",
-        "घर की याद"
+      "books": [
+        {
+          "name": "Kshitij Part 1",
+          "part": "Poetry (काव्य खंड)",
+          "chapters": [
+            "कबीर - साखियाँ एवं सबद",
+            "ललद्यद - वाख",
+            "रसखान - सवैये",
+            "माखनलाल चतुर्वेदी - कैदी और कोकिला",
+            "सुमित्रानंदन पंत - ग्राम श्री",
+            "सर्वेश्वर दयाल सक्सेना - मेघ आए",
+            "राजेश जोशी - बच्चे काम पर जा रहे हैं"
+          ]
+        },
+        {
+          "name": "Kshitij Part 1",
+          "part": "Prose (गद्य खंड)",
+          "chapters": [
+            "प्रेमचंद - दो बैलों की कथा",
+            "राहुल सांकृत्यायन - ल्हासा की ओर",
+            "श्यामाचरण दुबे - उपभोक्तावाद की संस्कृति",
+            "जाबिर हुसैन - साँवले सपनों की याद",
+            "हरिशंकर परसाई - प्रेमचंद के फटे जूते",
+            "महादेवी वर्मा - मेरे बचपन के दिन"
+          ]
+        },
+        {
+          "name": "Kritika Part 1",
+          "part": "Supplementary Reader (पूरक पाठ्यपुस्तक)",
+          "chapters": [
+            "फणीश्वरनाथ 'रेणु' - इस जल प्रलय में",
+            "मृदुला गर्ग - मेरे संग की औरतें",
+            "जगदीश चंद्र माथुर - रीढ़ की हड्डी"
+          ]
+        }
       ]
     },
     "Social Science": {
-      "book": "Understanding Society: India and Beyond",
-      "chapters": [
-        "Understanding Social Science",
-        "Shaping of the Earth's Surface",
-        "Atmosphere and Climate",
-        "Early Humans and Beginning of Civilisation",
-        "State and Society (up to 1000 CE)",
-        "Democracy",
-        "Elections",
-        "Building Blocks in Economics",
-        "The Price Puzzle: What Drives the Market",
-        "Oceans and Life",
-        "Life on Earth",
-        "Resistance and Resilience (1000 CE–1700 CE)",
-        "India and the World-I (1900 BCE–1200 CE)",
-        "Authority",
-        "Entrepreneurship and Financial Literacy",
-        "Personal Finance and Start-up Ecosystems"
+      "books": [
+        {
+          "name": "India and the Contemporary World - I",
+          "part": "History",
+          "chapters": [
+            "The French Revolution",
+            "Socialism in Europe and the Russian Revolution",
+            "Nazism and the Rise of Hitler",
+            "Forest Society and Colonialism",
+            "Pastoralists in the Modern World"
+          ]
+        },
+        {
+          "name": "Contemporary India - I",
+          "part": "Geography",
+          "chapters": [
+            "India – Size and Location",
+            "Physical Features of India",
+            "Drainage",
+            "Climate",
+            "Natural Vegetation and Wildlife",
+            "Population"
+          ]
+        },
+        {
+          "name": "Democratic Politics - I",
+          "part": "Political Science",
+          "chapters": [
+            "What is Democracy? Why Democracy?",
+            "Constitutional Design",
+            "Electoral Politics",
+            "Working of Institutions",
+            "Democratic Rights"
+          ]
+        },
+        {
+          "name": "Economics",
+          "part": "Economics",
+          "chapters": [
+            "The Story of Village Palampur",
+            "People as Resource",
+            "Poverty as a Challenge",
+            "Food Security in India"
+          ]
+        },
+        {
+          "name": "Understanding Society: India and Beyond",
+          "part": "NCF 2026-27 Integrated Social Science",
+          "chapters": [
+            "Understanding Social Science",
+            "Shaping of the Earth's Surface",
+            "Atmosphere and Climate",
+            "Early Humans and Beginning of Civilisation",
+            "State and Society (up to 1000 CE)",
+            "Democracy",
+            "Elections",
+            "Building Blocks in Economics",
+            "The Price Puzzle: What Drives the Market",
+            "Oceans and Life",
+            "Life on Earth",
+            "Resistance and Resilience (1000 CE–1700 CE)",
+            "India and the World-I (1900 BCE–1200 CE)",
+            "Authority",
+            "Entrepreneurship and Financial Literacy",
+            "Personal Finance and Start-up Ecosystems"
+          ]
+        }
       ]
     },
     "Sanskrit": {
-      "book": "Sharda",
-      "chapters": [
-        "सत्यं शिवं सुन्दरं संस्कृतम्",
-        "सुखस्य मूलं धर्मः धर्मस्य मूलम् अर्थः",
-        "आत्मवत्सर्वभूतेषु यः पश्यति सः पण्डितः",
-        "न खलु वयस्तेजसो हेतुः",
-        "एषा सा कृतकबुद्धिः मानवबुद्धेः सहकरी",
-        "मनःपूतं समाचरेत्",
-        "उपायं चिन्तयेत् प्राज्ञस्तथापायं च चिन्तयेत्",
-        "अन्नाद् आनन्दं प्रति",
-        "कृतं प्रतिकृतं भूयादेष धर्मः सनातनः",
-        "णमो अरिहन्ताणम्",
-        "वर्णोच्चारण - शिक्षा २"
+      "books": [
+        {
+          "name": "Shemushi Part 1",
+          "part": "NCERT Standard",
+          "chapters": [
+            "भारतीवसन्तगीतिः",
+            "स्वर्णकाकः",
+            "गोदोहनम्",
+            "सूक्तिमौक्तिकम्",
+            "भ्रान्तो बालः",
+            "सिकतासेतुः",
+            "जटायोः शौर्यम्",
+            "पर्यावरणम्",
+            "वाङ्मनःप्राणस्वरूपम्"
+          ]
+        },
+        {
+          "name": "Sharda",
+          "part": "NCF 2026-27 Reform",
+          "chapters": [
+            "सत्यं शिवं सुन्दरं संस्कृतम्",
+            "सुखस्य मूलं धर्मः धर्मस्य मूलम् अर्थः",
+            "आत्मवत्सर्वभूतेषु यः पश्यति सः पण्डितः",
+            "न खलु वयस्तेजसो हेतुः",
+            "एषा सा कृतकबुद्धिः मानवबुद्धेः सहकरी",
+            "मनःपूतं समाचरेत्",
+            "उपायं चिन्तयेत् प्राज्ञस्तथापायं च चिन्तयेत्",
+            "अन्नाद् आनन्दं प्रति",
+            "कृतं प्रतिकृतं भूयादेष धर्मः सनातनः",
+            "णमो अरिहन्ताणम्",
+            "वर्णोच्चारण - शिक्षा २"
+          ]
+        }
       ]
     },
     "Telugu (Andhra Pradesh)": {
@@ -999,26 +1268,26 @@ const NEW_NCERT_SYLLABUS: Record<string, Record<string, any>> = {
           "name": "Singidi 1",
           "part": "Prose & Poetry",
           "chapters": [
-            "జీవితం – విలువలు",
-            "దారి చూపే మాటలు",
-            "సాహసమే సాఫల్యం",
-            "మనసు – మనిషి ప్రతిబింబం",
-            "ప్రపంచంలో తెలుగు",
-            "భారతీయ సంస్కృతి – సాంప్రదాయాలు",
-            "నా భాష – నా గర్వం",
-            "ప్రకృతి – మన గురువు",
-            "తెలుగు తల్లి ప్రపంచం",
-            "దేశభక్తి కవిత్వం"
+            "ధర్మార్జునులు",
+            "నేనెరిగిన బూర్గుల",
+            "వలసకూలీ",
+            "రంగస్థలం",
+            "శతక మధురిమ",
+            "ప్రేరణ",
+            "తీర్పు",
+            "ఆటా పాట",
+            "హరివిల్లు",
+            "చెలిమి"
           ]
         },
         {
           "name": "Singidi 1",
           "part": "Supplementary",
           "chapters": [
-            "ఔదార్యం",
-            "సేవ భావన",
-            "విజ్ఞాన ప్రపంచం",
-            "శ్రమ – విజయం"
+            "కోమటి శెట్టి గారి విచారము",
+            "బొమ్మైయి",
+            "చిరునవ్వు",
+            "వీరభద్రం"
           ]
         }
       ]
@@ -1315,83 +1584,132 @@ const NEW_NCERT_SYLLABUS: Record<string, Record<string, any>> = {
       ]
     },
     "Social Science": {
-      "book": "Social Science",
-      "chapters": [
-        "The Rise of Nationalism in Europe",
-        "Nationalism in India",
-        "The Making of a Global World",
-        "The Age of Industrialisation",
-        "Print Culture and the Modern World",
-        "Resources and Development",
-        "Forest and Wildlife Resources",
-        "Water Resources",
-        "Agriculture",
-        "Minerals and Energy Resources",
-        "Manufacturing Industries",
-        "Lifelines of National Economy",
-        "Power Sharing",
-        "Federalism",
-        "Gender, Religion and Caste",
-        "Political Parties",
-        "Outcomes of Democracy",
-        "Development",
-        "Sectors of the Indian Economy",
-        "Money and Credit",
-        "Globalisation and the Indian Economy",
-        "Consumer Rights"
+      "books": [
+        {
+          "name": "India and the Contemporary World - II",
+          "part": "History",
+          "chapters": [
+            "The Rise of Nationalism in Europe",
+            "Nationalism in India",
+            "The Making of a Global World",
+            "The Age of Industrialisation",
+            "Print Culture and the Modern World"
+          ]
+        },
+        {
+          "name": "Contemporary India - II",
+          "part": "Geography",
+          "chapters": [
+            "Resources and Development",
+            "Forest and Wildlife Resources",
+            "Water Resources",
+            "Agriculture",
+            "Minerals and Energy Resources",
+            "Manufacturing Industries",
+            "Lifelines of National Economy"
+          ]
+        },
+        {
+          "name": "Democratic Politics - II",
+          "part": "Political Science",
+          "chapters": [
+            "Power Sharing",
+            "Federalism",
+            "Gender, Religion and Caste",
+            "Political Parties",
+            "Outcomes of Democracy"
+          ]
+        },
+        {
+          "name": "Understanding Economic Development",
+          "part": "Economics",
+          "chapters": [
+            "Development",
+            "Sectors of the Indian Economy",
+            "Money and Credit",
+            "Globalisation and the Indian Economy",
+            "Consumer Rights"
+          ]
+        }
       ]
     },
     "Sanskrit": {
-      "book": "Shemushi Part 2",
-      "chapters": [
-        "शुचिपर्यावरणम् (Shuchiparyavaranam)",
-        "बुद्धिर्बलवती सदा (Buddhibalavatee Sada)",
-        "शिशुलालनम् (Shishulaalanam)",
-        "जननी तुल्यवत्सला (Jananee Tulya Vatsalaa)",
-        "सुभाषितानि (Subhaashitaani)",
-        "सौहार्दं प्रकृतेः शोभा (Sauhaardam Praakriteh Shobhaa)",
-        "विचित्रः साक्षी (Vichitrah Saakshee)",
-        "सूक्तयः (Sooktah)",
-        "भूकम्पविभीषिका (Bhookampavibheeshikaa)",
-        "अन्योक्तयः (Anyoktah)"
+      "books": [
+        {
+          "name": "Shemushi Part 2",
+          "part": "NCERT Standard",
+          "chapters": [
+            "शुचिपर्यावरणम् (Shuchiparyavaranam)",
+            "बुद्धिर्बलवती सदा (Buddhibalavatee Sada)",
+            "शिशुलालनम् (Shishulaalanam)",
+            "जननी तुल्यवत्सला (Jananee Tulya Vatsalaa)",
+            "सुभाषितानि (Subhaashitaani)",
+            "सौहार्दं प्रकृतेः शोभा (Sauhaardam Praakriteh Shobhaa)",
+            "विचित्रः साक्षी (Vichitrah Saakshee)",
+            "सूक्तयः (Sooktah)",
+            "भूकम्पविभीषिका (Bhookampavibheeshikaa)",
+            "अन्योक्तयः (Anyoktah)"
+          ]
+        },
+        {
+          "name": "Manika Part 2",
+          "part": "CBSE Sanskrit Communicative",
+          "chapters": [
+            "वाङ्‌मयंतपः",
+            "नास्ति त्यागसमं सुखम्",
+            "रमणीया हि सृष्टिरेषा",
+            "आज्ञा गुरुणां ह्यविचारणीया",
+            "अभ्यासवशगं मनः",
+            "साधुवृत्तिं समाचरेत्",
+            "रम्यं उद्यानम्",
+            "तिरुक्कुरल्-सूक्ति-सौरभम्"
+          ]
+        }
       ]
     },
     "Telugu (Andhra Pradesh)": {
       "books": [
         {
-          "name": "Sahithi Parimalam",
-          "part": "Poetry (పద్య భాగం)",
+          "name": "Telugu Parimalam",
+          "part": "Detailed Lessons (పాఠ్యాంశాలు)",
           "chapters": [
-            "ధర్మబోధ (Dharmabodha)",
-            "చైతన్యం (Chaitanyam)",
-            "హరివిల్లు (Harivillu)",
-            "స్నేహం (Sneham)",
-            "తీర్పు (Teerpu)",
-            "మాతృమహిమ (Matamahima)"
+            "1. ప్రత్యక్ష దైవాలు (ఇతిహాసం - ఎఱ్ఱన)",
+            "2. బతుకు గంప (కథానిక - మూలింటి చంద్రకళ)",
+            "3. శతక మాధుర్యం (శతకం - వివిధ శతక కవులు)",
+            "4. ఉపన్యాస కళ (వ్యాసం - వాసిరెడ్డి సీతాదేవి)",
+            "5. జలియన్ వాలా బాగ్ (ఖండకావ్యం - ఉమర్ అలీషా)",
+            "6. ప్రకృతి సందేశం (గేయం - వై.సి.వి.రెడ్డి)",
+            "7. చేజారిన బాల్యం (వ్యాసం - శీలా వీర్రాజు)",
+            "8. జీవని (కథ - వి. చంద్రశేఖరరావు)",
+            "9. రాజధర్మం (ప్రబంధం - శ్రీకృష్ణ దేవరాయలు)",
+            "10. కన్యాశుల్కం (నాటకం - గురజాడ అప్పారావు)",
+            "11. యుద్ధ విజేత (వచన కవిత - నేతల ప్రతాప్ కుమార్)",
+            "12. సూక్తి సుధ (సాహిత్య వ్యాసం - ఎస్. గంగప్ప)"
           ]
         },
         {
-          "name": "Sahithi Parimalam",
-          "part": "Prose (గద్య భాగం)",
+          "name": "Telugu Parimalam",
+          "part": "Non-Detailed Lessons (ఉపవాచకం - రామాయణం)",
           "chapters": [
-            "ఇల్లకాలుగె (Illakaluge)",
-            "రంగస్థలం (Rangasthalam)",
-            "ప్రియమైన నాన్నకు (Priyamaina Nannaku)",
-            "ఏ దేశమేగినా (E Desamegina)",
-            "నా చదువు (Na Chaduvu)",
-            "ఆకుపచ్చ తోరణం (Akupacha Toranam)"
+            "1. బాలకాండ (శ్రీరామ జననం, యాగ రక్షణ, సీతా కల్యాణం)",
+            "2. అయోధ్యకాండ (పట్టాభిషేక ప్రయత్నం, వనవాస గమనం)",
+            "3. అరణ్యకాండ (దండకారణ్య ప్రవేశం, శూర్పణఖ, సీతాపహరణం)",
+            "4. కిష్కింధకాండ (సుగ్రీవ మైత్రి, వాలి వధ, సీతాన్వేషణ)",
+            "5. సుందరకాండ (సముద్ర లంఘనం, సీతా దర్శనం, లంకా దహనం)",
+            "6. యుద్ధకాండ (సేతు నిర్మాణం, రావణ సంహారం, పట్టాభిషేకం)"
           ]
         },
         {
-          "name": "Sahithi Parimalam",
-          "part": "Non-Detail (ఉపవాచకం)",
+          "name": "Telugu Parimalam",
+          "part": "Grammar & Composition (భాషాంశాలు & వ్యాకరణం)",
           "chapters": [
-            "న్యాయపతి సుబ్బారావు (Nyayapati Subbarao)",
-            "కొండా వెంకటప్పయ్య (Konda Venkatappayah)",
-            "కాశీనాథुని నాగేశ్వరరావు (Kasinathuni Nageswararao)",
-            "ఉన్నవ దంపతులు (Unnava Danpathulu)",
-            "దువ్వూరి సుబ్బమ్మ (Duvvuri Subbamma)",
-            "అయ్యదేవర కాళేశ్వరరావు (Ayyadevara Kaleswararao)"
+            "1. సంధులు (సవర్ణదీర్ఘ, గుణ, వృద్ధి, యణాదేశ, ఉత్వ, ఇత్వ, అత్వ, సరళాదేశ, గసడదవాదేశ, రుగాగమ, త్రిక)",
+            "2. సమాసాలు (ద్వంద్వ, ద్విగు, తత్పురుష, కర్మధారయ, బహువ్రీహి, రూపక)",
+            "3. ఛందస్సు (ఉత్పలమాల, చంపకమాల, శార్దూలం, మత్తేభం, కందం, తేటగీతి, ఆటవెలది, ద్విపద)",
+            "4. అలంకారాలు (వృత్యానుప్రాస, ఛేకానుప్రాస, అంత్యానుప్రాస, లాటానుప్రాస, ఉపమ, రూపక, ఉత్ప్రేక్ష, అతిశయోక్తి)",
+            "5. పదజాలం (పర్యాయపదాలు, నానార్థాలు, ప్రకృతి-వికృతులు, వ్యుత్పత్యర్థాలు, జాతీయాలు, సామెతలు)",
+            "6. సృజనాత్మక రచన & లేఖారచన (లేఖలు, కరపత్రాలు, ప్రకటనలు, వ్యాసాలు, సంభాషణలు, నినాదాలు)",
+            "7. అపరిచిత గద్యం & పద్యం (అవగాహన - ప్రతిస్పందన)"
           ]
         }
       ]
@@ -1436,6 +1754,10 @@ const NEW_NCERT_SYLLABUS: Record<string, Record<string, any>> = {
     }
   }
 };
+
+if (NEW_NCERT_SYLLABUS["Class 10"] && NEW_NCERT_SYLLABUS["Class 10"]["Telugu (Andhra Pradesh)"]) {
+  NEW_NCERT_SYLLABUS["Class 10"]["Telugu"] = NEW_NCERT_SYLLABUS["Class 10"]["Telugu (Andhra Pradesh)"];
+}
 
 // Create Old NCERT Syllabus as a clone of New NCERT Syllabus
 const OLD_NCERT_SYLLABUS: Record<string, Record<string, any>> = JSON.parse(JSON.stringify(NEW_NCERT_SYLLABUS));
