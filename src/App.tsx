@@ -532,19 +532,32 @@ const App: React.FC = () => {
     setGenerationProgress(0);
     setError(null);
     try {
+      const startTime = performance.now();
       const newPaper = await generateQuestionPaper(config);
       setGenerationProgress(100);
       newPaper.uid = user.uid;
       
-      // Save paper using modular storage architecture (prevents 1 MiB document size limit errors)
-      await savePaperToFirestore(db, newPaper, user.uid);
-      
-      setTimeout(() => {
-        setCurrentPaper(newPaper);
-        setView('preview');
-        setIsGenerating(false);
-        showToast("Question paper generated successfully!", "success");
-      }, 500);
+      // Instant View Transition: Display the generated paper to the teacher immediately
+      setCurrentPaper(newPaper);
+      setView('preview');
+      setIsGenerating(false);
+      showToast("Question paper generated successfully!", "success");
+
+      const renderTime = (performance.now() - startTime).toFixed(0);
+      console.log(`[GenPaperAI Performance] Paper ready in ${renderTime}ms. Saving to cloud in background...`);
+
+      // Asynchronous Background Persistence: Save paper using modular storage architecture without blocking UI
+      savePaperToFirestore(db, newPaper, user.uid)
+        .then(() => {
+          console.log(`[GenPaperAI Storage] Paper ${newPaper.id} saved to Firestore successfully.`);
+        })
+        .catch((saveErr: any) => {
+          console.error("[GenPaperAI Storage Error] Failed to persist paper to Firestore:", saveErr);
+          if (saveErr?.message?.includes('permission-denied')) {
+            handleFirestoreError(saveErr, OperationType.WRITE, 'papers/' + config.subject);
+          }
+          showToast("Note: Paper preview loaded, but cloud autosave failed: " + (saveErr?.message || "Network error"), "warning");
+        });
     } catch (err: any) {
       if (err.message?.includes('permission-denied')) {
         handleFirestoreError(err, OperationType.WRITE, 'papers/' + config.subject);

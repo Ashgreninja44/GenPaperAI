@@ -1,14 +1,21 @@
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
-import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
+import { GoogleGenAI } from '@google/genai';
+
+let cachedAi: GoogleGenAI | null = null;
+function getAiInstance(apiKey: string): GoogleGenAI {
+  if (!cachedAi) {
+    cachedAi = new GoogleGenAI({ apiKey });
+  }
+  return cachedAi;
+}
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '10mb' }));
 
   // Serve static files from public/assets
   app.use('/assets', express.static(path.join(process.cwd(), 'public', 'assets')));
@@ -22,8 +29,7 @@ async function startServer() {
         return res.status(400).json({ error: "GEMINI_API_KEY environment variable is not configured on the backend server." });
       }
       
-      const { GoogleGenAI } = await import("@google/genai");
-      const ai = new GoogleGenAI({ apiKey: key });
+      const ai = getAiInstance(key);
       const response = await ai.models.generateContent({
         model,
         contents,

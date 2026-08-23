@@ -140,12 +140,9 @@ export const savePaperToFirestore = async (
       }
     }
 
-    // Step 3: Write metadata document to `papers/{paperId}`
-    await setDoc(doc(db, 'papers', paper.id), paperMetadataDoc);
-
-    // Step 4: Write lightweight header document to `paperDetails/{paperId}`
+    // Step 3: Prepare detail header document
     const questionsSize = estimateDocSize({ questions });
-    const detailHeaderDoc: Record<string, any> = sanitizeForFirestore({
+    let detailHeaderDoc: Record<string, any> = sanitizeForFirestore({
       id: paper.id,
       uid,
       lastUpdated: Date.now(),
@@ -154,21 +151,26 @@ export const savePaperToFirestore = async (
       ...(questionsSize < 300 * 1024 ? { questions } : {})
     });
 
-    if (estimateDocSize(detailHeaderDoc) <= MAX_SAFE_DOC_SIZE_BYTES) {
-      await setDoc(doc(db, 'paperDetails', paper.id), detailHeaderDoc);
-    } else {
+    if (estimateDocSize(detailHeaderDoc) > MAX_SAFE_DOC_SIZE_BYTES) {
       // If header is too large, write lightweight header without questions array
-      await setDoc(doc(db, 'paperDetails', paper.id), sanitizeForFirestore({
+      detailHeaderDoc = sanitizeForFirestore({
         id: paper.id,
         uid,
         lastUpdated: Date.now(),
         questionCount: questions ? questions.length : 0
-      }));
+      });
     }
+
+    // Step 4: Parallelize writing metadata document to `papers/{paperId}` and `paperDetails/{paperId}`
+    await Promise.all([
+      setDoc(doc(db, 'papers', paper.id), paperMetadataDoc),
+      setDoc(doc(db, 'paperDetails', paper.id), detailHeaderDoc)
+    ]);
 
     // Step 5: Save each question into `paperDetails/{paperId}/questions/{q.question_id}` subcollection
     if (questions && questions.length > 0) {
       const BATCH_SIZE = 400; // Batch operations limit
+      const commitPromises: Promise<void>[] = [];
       for (let i = 0; i < questions.length; i += BATCH_SIZE) {
         const batch = writeBatch(db);
         const chunk = questions.slice(i, i + BATCH_SIZE);
@@ -187,8 +189,9 @@ export const savePaperToFirestore = async (
 
           batch.set(qDocRef, sanitizedQ);
         }
-        await batch.commit();
+        commitPromises.push(batch.commit());
       }
+      await Promise.all(commitPromises);
     }
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, `papers/${paper.id}`);

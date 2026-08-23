@@ -18,6 +18,7 @@ export const generateContentProxy = async (params: {
   contents: any;
   config?: any;
 }): Promise<{ text: string | null; candidates?: any[] }> => {
+  const reqStart = performance.now();
   try {
     const response = await fetch('/api/ai/generateContent', {
       method: 'POST',
@@ -28,15 +29,19 @@ export const generateContentProxy = async (params: {
     });
 
     if (response.ok) {
-      return await response.json();
+      const data = await response.json();
+      console.log(`[Gemini Proxy API] Completed in ${(performance.now() - reqStart).toFixed(0)}ms via backend server.`);
+      return data;
     }
     
-    const errorData = await response.json();
+    const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || `Server responded with status ${response.status}`);
   } catch (err) {
-    console.warn("[Gemini Proxy] Failed server-side call, checking client-side fallback:", err);
+    console.warn(`[Gemini Proxy] Server route unreachable (${(performance.now() - reqStart).toFixed(0)}ms), utilizing direct client SDK:`, err);
     if (apiKey) {
+      const sdkStart = performance.now();
       const sdkResponse = await ai.models.generateContent(params);
+      console.log(`[Gemini Direct SDK] Completed in ${(performance.now() - sdkStart).toFixed(0)}ms.`);
       return {
         text: sdkResponse.text,
         candidates: sdkResponse.candidates
