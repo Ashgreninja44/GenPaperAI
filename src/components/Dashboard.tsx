@@ -29,7 +29,7 @@ const Dashboard: React.FC<DashboardProps> = ({ history, onCreateNew, onViewPaper
 
   const stats: HistoryStats = {
     totalGenerated: history.length,
-    topics: Array.from(new Set(history.map(p => p.config.subject))),
+    topics: Array.from(new Set(history.map(p => p.config?.subject).filter(Boolean))) as string[],
   };
 
   const filteredAndSortedHistory = useMemo(() => {

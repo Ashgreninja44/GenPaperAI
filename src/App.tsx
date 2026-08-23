@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import Dashboard from './components/Dashboard';
 import PaperForm from './components/PaperForm';
@@ -9,6 +9,7 @@ import QuestionBankView from './components/QuestionBank';
 import Settings from './components/Settings';
 import Profile from './components/Profile';
 import ResetPassword from './components/ResetPassword';
+import About from './components/About';
 import BackgroundAnimation from './components/BackgroundAnimation';
 import ThemeBackdrop from './components/ThemeBackdrop';
 import Logo from './components/Logo';
@@ -40,9 +41,29 @@ import {
   sendPasswordResetEmail
 } from './firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, deleteDoc, getDocFromServer, getDoc, updateDoc, getDocs, writeBatch } from 'firebase/firestore';
-import { LogOut, User as UserIcon, Settings as SettingsIcon, Mail, Shield, Globe, Loader2, AlertCircle, CheckCircle2, Key, Eye, EyeOff } from 'lucide-react';
+import { 
+  LogOut, 
+  User as UserIcon, 
+  Settings as SettingsIcon, 
+  Mail, 
+  Shield, 
+  Globe, 
+  Loader2, 
+  AlertCircle, 
+  CheckCircle2, 
+  Key, 
+  Eye, 
+  EyeOff,
+  Zap,
+  BookOpen,
+  Printer,
+  Info,
+  Sparkles,
+  FileCheck,
+  FileText
+} from 'lucide-react';
 
-type View = 'dashboard' | 'create' | 'preview' | 'bank' | 'settings' | 'profile';
+type View = 'dashboard' | 'create' | 'preview' | 'bank' | 'settings' | 'profile' | 'about';
 
 const THEMES: Record<string, string> = {
   default: 'linear-gradient(135deg, #3C128D 0%, #8A2CB0 60%, #EEA727 100%)',
@@ -97,6 +118,8 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const location = useLocation();
+  const navigate = useNavigate();
+  const [showLegalModal, setShowLegalModal] = useState<'terms' | 'privacy' | null>(null);
 
   // Paper Generation Progress Simulation
   useEffect(() => {
@@ -208,7 +231,7 @@ const App: React.FC = () => {
       setIsAuthReady(true);
     });
 
-    // Check for redirect result (Microsoft fallback)
+    // Check for redirect result safely without crashing on iframe/IndexedDB closing states
     getRedirectResult(auth).then((result) => {
       if (result) {
         console.log("Redirect login success:", result.user.uid);
@@ -216,9 +239,18 @@ const App: React.FC = () => {
         showToast(isNewUser ? "🎉 Welcome to GenPaperAI!" : "👋 Welcome back!", "success");
       }
     }).catch((err) => {
-      console.error("Redirect login error:", err);
-      setError("Redirect login failed: " + err.message);
-      showToast("Redirect login failed: " + err.message, "error");
+      const msg = err?.message || String(err);
+      if (
+        msg.includes('closing') ||
+        msg.includes('hidden') ||
+        msg.includes('Database is closing') ||
+        err?.code === 'auth/no-auth-event' ||
+        err?.code === 'auth/null-user'
+      ) {
+        console.warn("Redirect result skipped (transient iframe/IndexedDB state):", msg);
+        return;
+      }
+      console.warn("Redirect login notice:", err);
     });
 
     return () => unsubscribe();
@@ -359,9 +391,12 @@ const App: React.FC = () => {
           const isNewUser = result.user.metadata.creationTime === result.user.metadata.lastSignInTime;
           showToast(isNewUser ? "🎉 Welcome to GenPaperAI!" : "👋 Welcome back!", "success");
         } catch (popupErr: any) {
-          console.warn("Microsoft popup failed, falling back to redirect:", popupErr.message);
-          // Fallback to redirect if popup fails (common in some browsers/iframes)
-          await signInWithRedirect(auth, microsoftProvider);
+          if (popupErr.code === 'auth/popup-closed-by-user' || popupErr.code === 'auth/cancelled-popup-request') {
+            console.log("Microsoft login popup closed by user");
+          } else {
+            console.error("Microsoft login failed:", popupErr);
+            showToast("Microsoft login failed. Please allow popups or use Google / Email sign-in.", "error");
+          }
         }
       }
     } catch (err: any) {
@@ -762,6 +797,16 @@ const App: React.FC = () => {
                                           </div>
                                         Settings
                                     </button>
+
+                                    <button 
+                                        onClick={() => { setView('about'); setIsOpen(false); }}
+                                        className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                                    >
+                                        <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                                            <Sparkles className="w-4 h-4 text-amber-500" />
+                                        </div>
+                                        About GenPaperAI
+                                    </button>
                                     
                                     {userProfile?.role === 'admin' && (
                                         <div className="border-t border-gray-100 mt-1 pt-1">
@@ -795,30 +840,24 @@ const App: React.FC = () => {
                       </div>
                    </>
                ) : (
-                  <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex items-center gap-2">
                       <button 
-                          onClick={() => handleLogin('google')}
-                          disabled={!!isLoggingIn}
-                          className="px-5 py-2 rounded-xl text-sm font-bold bg-white text-[#3C128D] shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2 disabled:opacity-70 disabled:scale-100"
+                          onClick={() => navigate('/about')}
+                          className="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
                       >
-                          {isLoggingIn === 'google' ? <Loader2 className="w-4 h-4 animate-spin" /> : <GoogleIcon className="w-4 h-4" />}
-                          Google
+                          <Info className="w-3.5 h-3.5 text-amber-300" />
+                          <span>About</span>
                       </button>
                       <button 
-                          onClick={() => handleLogin('microsoft')}
-                          disabled={!!isLoggingIn}
-                          className="px-5 py-2 rounded-xl text-sm font-bold bg-white text-[#3C128D] shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2 disabled:opacity-70 disabled:scale-100"
+                          onClick={() => {
+                              const el = document.getElementById('auth-card');
+                              if (el) {
+                                  el.scrollIntoView({ behavior: 'smooth' });
+                              }
+                          }}
+                          className="px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black bg-white text-[#3C128D] shadow-md hover:shadow-lg hover:scale-105 transition-all cursor-pointer"
                       >
-                          {isLoggingIn === 'microsoft' ? <Loader2 className="w-4 h-4 animate-spin" /> : <MicrosoftIcon className="w-4 h-4" />}
-                          Microsoft
-                      </button>
-                      <button 
-                          onClick={() => { setShowEmailModal(true); setEmailMode('login'); }}
-                          disabled={!!isLoggingIn}
-                          className="px-5 py-2 rounded-xl text-sm font-bold bg-white text-[#3C128D] shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2 disabled:opacity-70 disabled:scale-100"
-                      >
-                          <EmailIcon className="w-4 h-4" />
-                          E-mail
+                          Sign In
                       </button>
                   </div>
                )}
@@ -851,6 +890,23 @@ const App: React.FC = () => {
       <main className="container mx-auto py-4 px-4 relative z-10 flex-grow">
         <Routes>
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/about" element={
+            <About 
+              isLoggedIn={!!user} 
+              onBack={() => { 
+                if (user) { 
+                  setView('dashboard'); 
+                } 
+                navigate('/'); 
+              }} 
+              onOpenAuth={() => { 
+                navigate('/'); 
+                setTimeout(() => {
+                  document.getElementById('auth-card')?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }} 
+            />
+          } />
           <Route path="*" element={
             !isAuthReady || (user && !userProfile) ? (
                 <div className="flex flex-col items-center justify-center h-64 gap-4">
@@ -860,39 +916,163 @@ const App: React.FC = () => {
                     </p>
                 </div>
             ) : !user ? (
-                <div className="max-w-2xl mx-auto text-center py-12 sm:py-20 animate-fade-in">
-                    <div className="flex justify-center mb-8">
-                        <Logo className="w-16 h-16 sm:w-24 sm:h-24 shadow-2xl shadow-[#8A2CB0]/40" />
+                <div className="max-w-4xl mx-auto text-center py-8 sm:py-14 animate-fade-in px-2">
+                    {/* Logo & Hero */}
+                    <div className="flex justify-center mb-6">
+                        <Logo className="w-20 h-20 sm:w-24 sm:h-24 shadow-2xl shadow-[#8A2CB0]/50" />
                     </div>
-                    <h2 className="text-3xl sm:text-5xl font-black text-white mb-6 drop-shadow-lg leading-tight">Generate Question Papers in Seconds</h2>
-                    <p className="text-xl text-white/80 mb-10 leading-relaxed">
-                        GenPaperAI helps teachers and educators create high-quality, balanced question papers using advanced AI. 
-                        Login to start creating and saving your papers.
+                    
+                    <h1 className="text-3xl sm:text-5xl font-black text-white mb-4 drop-shadow-lg leading-tight tracking-tight">
+                        Generate Question Papers in Seconds
+                    </h1>
+                    
+                    <p className="text-base sm:text-xl text-white/90 mb-10 max-w-2xl mx-auto leading-relaxed font-normal">
+                        Create structured, curriculum-aware question papers with AI. Choose your class, subject, chapters and paper pattern, and let GenPaperAI handle the rest.
                     </p>
-                    <div className="flex flex-col gap-3 w-full max-w-sm mx-auto animate-fade-in" style={{ animationDelay: '0.4s' }}>
-                        <button 
-                            onClick={() => handleLogin('google')}
-                            disabled={!!isLoggingIn}
-                            className="w-full py-4 rounded-xl text-base font-black bg-white text-[#3C128D] shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:scale-100"
+
+                    {/* Authentication Card */}
+                    <div 
+                        id="auth-card"
+                        className="w-full max-w-md mx-auto glass-panel bg-white/95 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/40 text-gray-900 transition-all text-left"
+                    >
+                        <div className="text-center mb-6">
+                            <h2 className="text-xl sm:text-2xl font-black text-[#3C128D] tracking-tight">
+                                Welcome to GenPaperAI
+                            </h2>
+                            <p className="text-xs sm:text-sm text-gray-500 font-medium mt-1">
+                                Sign in to continue
+                            </p>
+                        </div>
+
+                        <div className="space-y-3">
+                            {/* Google Authentication Button */}
+                            <button 
+                                onClick={() => handleLogin('google')}
+                                disabled={!!isLoggingIn}
+                                className="w-full py-3.5 px-4 rounded-2xl text-sm sm:text-base font-bold bg-white text-gray-800 border border-gray-200 shadow-sm hover:shadow-md hover:bg-gray-50 active:scale-[0.99] transition-all flex items-center justify-center gap-3 disabled:opacity-60 cursor-pointer"
+                            >
+                                {isLoggingIn === 'google' ? (
+                                    <Loader2 className="w-5 h-5 animate-spin text-[#8A2CB0]" />
+                                ) : (
+                                    <GoogleIcon className="w-5 h-5 shrink-0" />
+                                )}
+                                <span>Continue with Google</span>
+                            </button>
+
+                            {/* Microsoft Authentication Button */}
+                            <button 
+                                onClick={() => handleLogin('microsoft')}
+                                disabled={!!isLoggingIn}
+                                className="w-full py-3.5 px-4 rounded-2xl text-sm sm:text-base font-bold bg-white text-gray-800 border border-gray-200 shadow-sm hover:shadow-md hover:bg-gray-50 active:scale-[0.99] transition-all flex items-center justify-center gap-3 disabled:opacity-60 cursor-pointer"
+                            >
+                                {isLoggingIn === 'microsoft' ? (
+                                    <Loader2 className="w-5 h-5 animate-spin text-[#8A2CB0]" />
+                                ) : (
+                                    <MicrosoftIcon className="w-5 h-5 shrink-0" />
+                                )}
+                                <span>Continue with Microsoft</span>
+                            </button>
+
+                            {/* Divider */}
+                            <div className="relative py-2 flex items-center justify-center">
+                                <div className="absolute inset-0 flex items-center">
+                                    <div className="w-full border-t border-gray-200" />
+                                </div>
+                                <div className="relative bg-white px-3 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                                    or
+                                </div>
+                            </div>
+
+                            {/* Email Authentication Button */}
+                            <button 
+                                onClick={() => { setShowEmailModal(true); setEmailMode('login'); }}
+                                disabled={!!isLoggingIn}
+                                className="w-full py-3.5 px-4 rounded-2xl text-sm sm:text-base font-bold bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] text-white shadow-md hover:shadow-lg hover:opacity-95 active:scale-[0.99] transition-all flex items-center justify-center gap-3 disabled:opacity-60 cursor-pointer"
+                            >
+                                <EmailIcon className="w-5 h-5 shrink-0" />
+                                <span>Continue with Email</span>
+                            </button>
+                        </div>
+
+                        {/* Email Account Helper */}
+                        <div className="mt-4 text-center">
+                            <p className="text-xs text-gray-500">
+                                New to GenPaperAI?{' '}
+                                <button
+                                    type="button"
+                                    onClick={() => { setShowEmailModal(true); setEmailMode('signup'); }}
+                                    className="font-bold text-[#8A2CB0] hover:underline cursor-pointer"
+                                >
+                                    Create an account
+                                </button>
+                            </p>
+                        </div>
+
+                        {/* Terms & Privacy Notice */}
+                        <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+                            <p className="text-[11px] text-gray-400 leading-normal">
+                                By continuing, you agree to our{' '}
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowLegalModal('terms')} 
+                                    className="text-gray-600 hover:text-[#8A2CB0] underline underline-offset-2 transition-colors font-semibold cursor-pointer"
+                                >
+                                    Terms of Service
+                                </button>{' '}
+                                and{' '}
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowLegalModal('privacy')} 
+                                    className="text-gray-600 hover:text-[#8A2CB0] underline underline-offset-2 transition-colors font-semibold cursor-pointer"
+                                >
+                                    Privacy Policy
+                                </button>
+                                .
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Feature Highlights Strip */}
+                    <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+                        <div className="glass-panel p-5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg flex flex-col">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center mb-3 shadow-md">
+                                <Zap className="w-5 h-5" />
+                            </div>
+                            <h3 className="font-black text-base text-white mb-1">Fast Generation</h3>
+                            <p className="text-xs text-white/80 leading-relaxed">
+                                Generate structured, balanced question papers in seconds with automatic sectioning and marks calculation.
+                            </p>
+                        </div>
+
+                        <div className="glass-panel p-5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg flex flex-col">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8A2CB0] to-purple-600 text-white flex items-center justify-center mb-3 shadow-md">
+                                <BookOpen className="w-5 h-5" />
+                            </div>
+                            <h3 className="font-black text-base text-white mb-1">Curriculum-Aware</h3>
+                            <p className="text-xs text-white/80 leading-relaxed">
+                                Aligned with CBSE and state board syllabi, grades, subjects, chapters, and subject blueprints.
+                            </p>
+                        </div>
+
+                        <div className="glass-panel p-5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg flex flex-col">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 text-white flex items-center justify-center mb-3 shadow-md">
+                                <Printer className="w-5 h-5" />
+                            </div>
+                            <h3 className="font-black text-base text-white mb-1">Ready-to-Print Papers</h3>
+                            <p className="text-xs text-white/80 leading-relaxed">
+                                Instantly preview, customize, and export clean PDF documents ready for printing with matching answer keys.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Public Link to About Page */}
+                    <div className="mt-10 text-center">
+                        <button
+                            onClick={() => navigate('/about')}
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs sm:text-sm font-bold backdrop-blur-md border border-white/25 transition-all hover:scale-105 cursor-pointer shadow-lg"
                         >
-                            {isLoggingIn === 'google' ? <Loader2 className="w-5 h-5 animate-spin" /> : <GoogleIcon className="w-5 h-5" />}
-                            Google
-                        </button>
-                        <button 
-                            onClick={() => handleLogin('microsoft')}
-                            disabled={!!isLoggingIn}
-                            className="w-full py-4 rounded-xl text-base font-black bg-white text-[#3C128D] shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:scale-100"
-                        >
-                            {isLoggingIn === 'microsoft' ? <Loader2 className="w-5 h-5 animate-spin" /> : <MicrosoftIcon className="w-5 h-5" />}
-                            Microsoft
-                        </button>
-                        <button 
-                            onClick={() => { setShowEmailModal(true); setEmailMode('login'); }}
-                            disabled={!!isLoggingIn}
-                            className="w-full py-4 rounded-xl text-base font-black bg-white text-[#3C128D] shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:scale-100"
-                        >
-                            <EmailIcon className="w-5 h-5" />
-                            E-mail
+                            <Info className="w-4 h-4 text-amber-300" />
+                            <span>Learn about GenPaperAI & its Creator →</span>
                         </button>
                     </div>
                 </div>
@@ -977,6 +1157,13 @@ const App: React.FC = () => {
                                 <p className="text-white font-medium">Loading profile...</p>
                             </div>
                         )
+                    )}
+
+                    {view === 'about' && (
+                        <About 
+                            isLoggedIn={true}
+                            onBack={() => setView('dashboard')}
+                        />
                     )}
                 </>
             )
@@ -1210,6 +1397,54 @@ const App: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Legal / Terms / Privacy Modal */}
+      {showLegalModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowLegalModal(null)}></div>
+          <div className="glass-panel w-full max-w-lg rounded-3xl shadow-2xl z-10 overflow-hidden animate-scale-in border border-white/40 bg-white p-6 sm:p-8 text-gray-900">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-4">
+              <h3 className="text-xl font-black text-[#3C128D]">
+                {showLegalModal === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
+              </h3>
+              <button 
+                onClick={() => setShowLegalModal(null)} 
+                className="text-gray-400 hover:text-gray-600 font-bold p-1 text-2xl leading-none cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="text-sm text-gray-600 space-y-3 leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
+              {showLegalModal === 'terms' ? (
+                <>
+                  <p><strong>Educational Assessment Tool:</strong> GenPaperAI is designed to assist educators, teachers, and schools in preparing balanced question papers and academic assessments efficiently.</p>
+                  <p><strong>Teacher Review & Authority:</strong> All generated questions and papers are suggestions to be reviewed, edited, and approved by qualified educators before use in formal examinations.</p>
+                  <p><strong>Account Responsibility:</strong> Users are responsible for maintaining the security of their login credentials and the content saved in their workspaces.</p>
+                  <p className="text-xs text-gray-400 pt-2 border-t border-gray-100">
+                    GenPaperAI adheres to standard academic integrity and software guidelines.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p><strong>Data Privacy:</strong> GenPaperAI values educator and student privacy. We only store paper configurations and question banks that you explicitly create and save in your account.</p>
+                  <p><strong>Cloud Security:</strong> Authentication is handled securely via Firebase Authentication (Google, Microsoft, and Email). Stored papers are saved in private Firestore collections accessible solely to your authenticated account.</p>
+                  <p><strong>No Commercial Sale of Data:</strong> We do not sell, rent, or monetize your generated question papers or personal account information.</p>
+                  <p className="text-xs text-gray-400 pt-2 border-t border-gray-100">
+                    Compliance policies are maintained in accordance with standard cloud privacy best practices.
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
+              <button 
+                onClick={() => setShowLegalModal(null)}
+                className="px-5 py-2.5 rounded-xl bg-[#3C128D] text-white text-sm font-bold shadow-md hover:opacity-90 cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

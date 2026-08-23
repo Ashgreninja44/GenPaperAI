@@ -55,7 +55,7 @@ const PaperPreview: React.FC<PaperPreviewProps> = ({ paper, onBack, onUpdatePape
     if (paper.questions && !hasUnsavedChanges) {
       // Sort questions by section to ensure sequential numbering within sections
       const sortedQuestions = [...paper.questions].sort((a, b) => {
-        return a.section.localeCompare(b.section);
+        return (a.section || '').localeCompare(b.section || '');
       });
       setQuestions(sortedQuestions);
     }

@@ -15,7 +15,7 @@ import {
   sendPasswordResetEmail,
   confirmPasswordReset
 } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -26,6 +26,18 @@ export const storage = getStorage(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const microsoftProvider = new OAuthProvider('microsoft.com');
+
+// Test Firestore connection on boot as mandated by skill
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.warn("Firestore connection check: client is offline or reconnecting.");
+    }
+  }
+}
+testConnection();
 
 export enum OperationType {
   CREATE = 'create',
@@ -57,6 +69,16 @@ export interface FirestoreErrorInfo {
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errorMessage = error instanceof Error ? error.message : String(error);
+
+  // Filter transient IndexedDB / window closing / hidden states
+  if (
+    errorMessage.includes('Database is closing') ||
+    errorMessage.includes('closing/hidden') ||
+    errorMessage.includes('The client is offline')
+  ) {
+    console.warn(`[Firestore Transient State] (${operationType} at ${path}):`, errorMessage);
+    return;
+  }
   
   const errInfo: FirestoreErrorInfo = {
     error: errorMessage,
@@ -66,7 +88,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData.map(provider => ({
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
         providerId: provider.providerId,
         displayName: provider.displayName,
         email: provider.email,
@@ -75,7 +97,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     },
     operationType,
     path
-  }
+  };
   
   console.error('Firestore Error: ', JSON.stringify(errInfo));
 
