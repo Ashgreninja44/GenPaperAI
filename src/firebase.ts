@@ -26,6 +26,14 @@ export const storage = getStorage(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const microsoftProvider = new OAuthProvider('microsoft.com');
+microsoftProvider.setCustomParameters({
+  prompt: 'select_account',
+  tenant: 'common',
+});
+microsoftProvider.addScope('openid');
+microsoftProvider.addScope('profile');
+microsoftProvider.addScope('email');
+microsoftProvider.addScope('User.Read');
 
 // Test Firestore connection on boot as mandated by skill
 async function testConnection() {

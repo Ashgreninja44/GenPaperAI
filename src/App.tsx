@@ -266,7 +266,14 @@ const App: React.FC = () => {
         console.warn("Redirect result skipped (transient iframe/IndexedDB state):", msg);
         return;
       }
-      console.warn("Redirect login notice:", err);
+      console.error("[FirebaseAuth] Redirect result error:", err?.code, err?.message, err);
+      if (err?.code === 'auth/account-exists-with-different-credential') {
+        showToast("An account already exists with this email using a different sign-in method. Please sign in with Google or Email.", "error");
+      } else if (err?.code === 'auth/unauthorized-domain') {
+        showToast(`Domain (${window.location.hostname}) is not authorized in Firebase Auth settings.`, "error");
+      } else if (err?.code && err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+        showToast(`Sign-in notice: ${err.message || err.code}`, "error");
+      }
     });
 
     return () => unsubscribe();
@@ -392,36 +399,52 @@ const App: React.FC = () => {
     setIsLoggingIn(providerType);
     setError(null);
 
+    const provider = providerType === 'google' ? googleProvider : microsoftProvider;
+
     try {
-      if (providerType === 'google') {
-        console.log("Starting Google login...");
-        const result = await signInWithPopup(auth, googleProvider);
-        console.log("Google login success:", result.user.uid);
-        const isNewUser = result.user.metadata.creationTime === result.user.metadata.lastSignInTime;
-        showToast(isNewUser ? "🎉 Welcome to GenPaperAI!" : "👋 Welcome back!", "success");
-      } else if (providerType === 'microsoft') {
-        console.log("Starting Microsoft login...");
-        try {
-          const result = await signInWithPopup(auth, microsoftProvider);
-          console.log("Microsoft login success:", result.user.uid);
-          const isNewUser = result.user.metadata.creationTime === result.user.metadata.lastSignInTime;
-          showToast(isNewUser ? "🎉 Welcome to GenPaperAI!" : "👋 Welcome back!", "success");
-        } catch (popupErr: any) {
-          if (popupErr.code === 'auth/popup-closed-by-user' || popupErr.code === 'auth/cancelled-popup-request') {
-            console.log("Microsoft login popup closed by user");
-          } else {
-            console.error("Microsoft login failed:", popupErr);
-            showToast("Microsoft login failed. Please allow popups or use Google / Email sign-in.", "error");
-          }
-        }
-      }
+      console.log(`[FirebaseAuth] Starting ${providerType} login via popup...`);
+      const result = await signInWithPopup(auth, provider);
+      console.log(`[FirebaseAuth] ${providerType} login success:`, result.user.uid);
+      const isNewUser = result.user.metadata.creationTime === result.user.metadata.lastSignInTime;
+      showToast(isNewUser ? "🎉 Welcome to GenPaperAI!" : "👋 Welcome back!", "success");
     } catch (err: any) {
-      console.error(`${providerType} login error:`, err);
-      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-        console.log(`${providerType} login popup closed by user`);
+      const errorCode = err?.code || '';
+      const errorMessage = err?.message || String(err);
+      console.error(`[FirebaseAuth] ${providerType} login error:`, {
+        code: errorCode,
+        message: errorMessage,
+        customData: err?.customData,
+        currentHostname: window.location.hostname
+      });
+
+      if (errorCode === 'auth/popup-closed-by-user' || errorCode === 'auth/cancelled-popup-request') {
+        console.log(`[FirebaseAuth] ${providerType} login popup closed by user`);
+      } else if (errorCode === 'auth/popup-blocked') {
+        console.warn(`[FirebaseAuth] Popup was blocked by browser for ${providerType}. Attempting redirect...`);
+        showToast("Popup blocked by browser. Redirecting to Microsoft sign-in...", "warning");
+        try {
+          await signInWithRedirect(auth, provider);
+          return;
+        } catch (redirectErr: any) {
+          console.error(`[FirebaseAuth] Redirect initiation error:`, redirectErr);
+          showToast("Popup blocked. Please allow popups for this site or use Google / Email sign-in.", "error");
+        }
+      } else if (errorCode === 'auth/account-exists-with-different-credential') {
+        const email = err?.customData?.email || 'this email';
+        showToast(`An account already exists for ${email} using a different sign-in method. Please sign in with Google or Email.`, "error");
+      } else if (errorCode === 'auth/unauthorized-domain') {
+        const currentHost = window.location.hostname;
+        console.error(`[FirebaseAuth] Unauthorized Domain: ${currentHost}. Add '${currentHost}' to Firebase Console > Authentication > Settings > Authorized domains.`);
+        showToast(`Domain not authorized (${currentHost}). Add it to Firebase Auth Authorized Domains.`, "error");
+      } else if (errorCode === 'auth/operation-not-allowed') {
+        console.error(`[FirebaseAuth] Operation not allowed. Enable Microsoft under Firebase Console > Authentication > Sign-in method.`);
+        showToast(`Microsoft sign-in is not enabled in the Firebase Console. Please enable Microsoft under Auth Providers.`, "error");
+      } else if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/invalid-oauth-provider') {
+        showToast(`Invalid ${providerType} credentials or OAuth application configuration.`, "error");
+      } else if (errorCode === 'auth/internal-error') {
+        showToast(`Authentication service error. Please check your network and try again.`, "error");
       } else {
-        setError(`${providerType} login failed: ` + err.message);
-        showToast(`${providerType} login failed: ` + err.message, "error");
+        showToast(`${providerType === 'microsoft' ? 'Microsoft' : 'Google'} login failed: ${errorMessage}`, "error");
       }
     } finally {
       setIsLoggingIn(null);
