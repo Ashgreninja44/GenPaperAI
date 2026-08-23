@@ -52,10 +52,16 @@ const About: React.FC<AboutProps> = ({ onBack, isLoggedIn = false, onOpenAuth })
     '/darshit.jpg',
     '/darshit.jpeg',
     '/darshit.png',
+    '/darshit.webp',
+    '/creator.jpg',
+    '/creator.jpeg',
+    '/creator.png',
     '/S929 (1).jpeg',
     '/S929.jpeg',
     '/assets/darshit.jpg',
-    '/assets/darshit.jpeg'
+    '/assets/darshit.jpeg',
+    '/assets/creator.jpg',
+    '/assets/creator.png'
   ];
 
   const handleImageError = () => {
