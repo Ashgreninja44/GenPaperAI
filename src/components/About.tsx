@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Sparkles, 
@@ -16,8 +16,6 @@ import {
   Calendar,
   ExternalLink,
   User,
-  Camera,
-  Upload,
   Heart
 } from 'lucide-react';
 import Logo from './Logo';
@@ -33,54 +31,38 @@ const About: React.FC<AboutProps> = ({ onBack, isLoggedIn = false, onOpenAuth })
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
   const [imageSrcIndex, setImageSrcIndex] = useState(0);
-  const [customPhoto, setCustomPhoto] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem('genpaper_creator_photo');
-    } catch {
-      return null;
-    }
-  });
 
+  // Instantly reset scroll position when About page mounts or navigates
+  useLayoutEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'instant' as ScrollBehavior,
+    });
+    if (document.documentElement) {
+      document.documentElement.scrollTop = 0;
+    }
+    if (document.body) {
+      document.body.scrollTop = 0;
+    }
+  }, []);
+
+  // Static list of candidate photograph paths provided during development
   const photoSources = [
-    customPhoto,
     '/darshit.jpg',
     '/darshit.jpeg',
     '/darshit.png',
-    '/creator.jpg',
-    '/creator.jpeg',
-    '/creator.png',
-    '/assets/darshit.jpg',
-    '/assets/darshit.jpeg',
     '/S929 (1).jpeg',
-    '/S929.jpeg'
-  ].filter(Boolean) as string[];
+    '/S929.jpeg',
+    '/assets/darshit.jpg',
+    '/assets/darshit.jpeg'
+  ];
 
   const handleImageError = () => {
     if (imageSrcIndex < photoSources.length - 1) {
       setImageSrcIndex(prev => prev + 1);
     } else {
       setImageError(true);
-    }
-  };
-
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result as string;
-        if (result) {
-          setCustomPhoto(result);
-          setImageError(false);
-          setImageSrcIndex(0);
-          try {
-            localStorage.setItem('genpaper_creator_photo', result);
-          } catch {
-            // Local storage error
-          }
-        }
-      };
-      reader.readAsDataURL(file);
     }
   };
 
@@ -305,11 +287,11 @@ const About: React.FC<AboutProps> = ({ onBack, isLoggedIn = false, onOpenAuth })
         <div className="lg:col-span-5 glass-panel p-6 sm:p-8 rounded-3xl bg-white/10 backdrop-blur-md border border-white/25 shadow-2xl flex flex-col items-center text-center">
           
           {/* Creator Photograph Frame */}
-          <div className="relative mb-5 group">
-            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-tr from-[#3C128D] via-[#8A2CB0] to-[#EEA727] opacity-75 blur-sm group-hover:opacity-100 transition duration-300"></div>
+          <div className="relative mb-5">
+            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-tr from-[#3C128D] via-[#8A2CB0] to-[#EEA727] opacity-75 blur-sm"></div>
             
-            <div className="relative w-36 h-44 sm:w-40 sm:h-48 rounded-2xl overflow-hidden bg-gray-900 border-2 border-white/30 shadow-2xl flex items-center justify-center group/img">
-              {!imageError && photoSources.length > 0 ? (
+            <div className="relative w-36 h-44 sm:w-40 sm:h-48 rounded-2xl overflow-hidden bg-gray-900 border-2 border-white/30 shadow-2xl flex items-center justify-center">
+              {!imageError ? (
                 <img 
                   src={photoSources[imageSrcIndex] || '/darshit.jpg'} 
                   alt="Pendyala Sri Darshit Sarma - Creator of GenPaperAI"
@@ -319,38 +301,12 @@ const About: React.FC<AboutProps> = ({ onBack, isLoggedIn = false, onOpenAuth })
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-gradient-to-b from-[#3C128D] to-[#8A2CB0] text-white">
-                  <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center mb-2">
-                    <User className="w-7 h-7 text-amber-300" />
+                  <div className="w-16 h-16 rounded-full bg-white/15 border border-white/20 flex items-center justify-center mb-2 shadow-inner">
+                    <span className="text-2xl font-black text-amber-300">D</span>
                   </div>
                   <span className="text-xs font-bold text-white/90">Darshit Sarma</span>
-                  <label className="mt-2 px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-[10px] font-bold text-white flex items-center gap-1 cursor-pointer transition-all">
-                    <Upload className="w-3 h-3" />
-                    <span>Upload Photo</span>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
-                      onChange={handlePhotoUpload} 
-                    />
-                  </label>
+                  <span className="text-[10px] text-purple-200 mt-0.5">Creator</span>
                 </div>
-              )}
-
-              {/* Hover Change Photo Overlay */}
-              {!imageError && (
-                <label 
-                  title="Upload / Update Photo"
-                  className="absolute inset-0 bg-black/50 backdrop-blur-xs opacity-0 group-hover/img:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-white text-[11px] font-bold cursor-pointer"
-                >
-                  <Camera className="w-5 h-5 text-amber-300" />
-                  <span>Update Photo</span>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
-                    onChange={handlePhotoUpload} 
-                  />
-                </label>
               )}
             </div>
           </div>

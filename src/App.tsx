@@ -10,6 +10,7 @@ import Settings from './components/Settings';
 import Profile from './components/Profile';
 import ResetPassword from './components/ResetPassword';
 import About from './components/About';
+import ScrollToTop from './components/ScrollToTop';
 import BackgroundAnimation from './components/BackgroundAnimation';
 import ThemeBackdrop from './components/ThemeBackdrop';
 import Logo from './components/Logo';
@@ -120,6 +121,21 @@ const App: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [showLegalModal, setShowLegalModal] = useState<'terms' | 'privacy' | null>(null);
+
+  // Instantly reset scroll to top on in-app view changes
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'instant' as ScrollBehavior,
+    });
+    if (document.documentElement) {
+      document.documentElement.scrollTop = 0;
+    }
+    if (document.body) {
+      document.body.scrollTop = 0;
+    }
+  }, [view]);
 
   // Paper Generation Progress Simulation
   useEffect(() => {
@@ -693,6 +709,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen relative font-sans text-gray-900 selection:bg-[#EEA727] selection:text-[#3C128D] overflow-x-hidden flex flex-col">
+      <ScrollToTop />
       
       {/* Premium Vibrant Background Elements */}
       <div className="premium-bg-wrapper">
