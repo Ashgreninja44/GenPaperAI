@@ -49,19 +49,15 @@ const About: React.FC<AboutProps> = ({ onBack, isLoggedIn = false, onOpenAuth })
 
   // Static list of candidate photograph paths provided during development
   const photoSources = [
-    '/darshit.jpg',
     '/darshit.jpeg',
+    '/darshit.jpg',
     '/darshit.png',
     '/darshit.webp',
     '/creator.jpg',
     '/creator.jpeg',
     '/creator.png',
-    '/S929 (1).jpeg',
-    '/S929.jpeg',
-    '/assets/darshit.jpg',
     '/assets/darshit.jpeg',
-    '/assets/creator.jpg',
-    '/assets/creator.png'
+    '/assets/darshit.jpg'
   ];
 
   const handleImageError = () => {
