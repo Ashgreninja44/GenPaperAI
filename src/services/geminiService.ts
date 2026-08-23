@@ -208,6 +208,9 @@ export const generateQuestionPaper = async (config: PaperConfig): Promise<Genera
   const isTelugu = config.subject.toLowerCase().includes('telugu');
   const isHindi = config.subject.toLowerCase().includes('hindi');
   const isSanskrit = config.subject.toLowerCase().includes('sanskrit');
+  const isClass10 = config.grade.includes('10');
+  const isScience = config.subject.toLowerCase() === 'science';
+  const isSocialScience = config.subject.toLowerCase().includes('social');
   const shouldIncludeFigures = config.includeFigures || isMath;
 
   // SYLLABUS CONTEXT
@@ -218,11 +221,26 @@ export const generateQuestionPaper = async (config: PaperConfig): Promise<Genera
        Focus on COMPETENCY-BASED and analytical questions according to the official blueprint.
        Include real-life applications where appropriate.
        REDUCE rote learning; emphasize conceptual depth.
+       ${isClass10 && isScience ? `
+       CBSE CLASS 10 SCIENCE OFFICIAL SECTION-WISE STRUCTURE (3 SECTIONS: 80 MARKS TOTAL):
+       - Section A (Biology - 30 Marks): Life Processes, Control and Coordination, How do Organisms Reproduce, Heredity, Our Environment. Must be categorized as "Section A" or "Section A: Biology".
+       - Section B (Chemistry - 25 Marks): Chemical Reactions and Equations, Acids, Bases and Salts, Metals and Non-metals, Carbon and its Compounds. Must be categorized as "Section B" or "Section B: Chemistry".
+       - Section C (Physics - 25 Marks): Light - Reflection and Refraction, The Human Eye and the Colorful World, Electricity, Magnetic Effects of Electric Current. Must be categorized as "Section C" or "Section C: Physics".` : ''}
+       ${isClass10 && isSocialScience ? `
+       CBSE CLASS 10 SOCIAL SCIENCE OFFICIAL SECTION-WISE STRUCTURE (4 EQUAL SECTIONS: 20 MARKS EACH = 80 MARKS TOTAL):
+       - Section A (History - 20 Marks): Rise of Nationalism in Europe, Nationalism in India, Making of a Global World, Age of Industrialisation, Print Culture, and Map Work. Must be labeled "Section A" or "Section A: History".
+       - Section B (Geography - 20 Marks): Resources and Development, Forest and Wildlife, Water Resources, Agriculture, Minerals and Energy Resources, Manufacturing Industries, Lifelines of National Economy, and Map Work. Must be labeled "Section B" or "Section B: Geography".
+       - Section C (Political Science - 20 Marks): Power Sharing, Federalism, Gender/Religion/Caste, Political Parties, Outcomes of Democracy. Must be labeled "Section C" or "Section C: Political Science".
+       - Section D (Economics - 20 Marks): Development, Sectors of Indian Economy, Money and Credit, Globalization, Consumer Rights. Must be labeled "Section D" or "Section D: Economics".` : ''}
        ${isTelugu ? `
-       TELUGU LANGUAGE INSTRUCTIONS (ఆంధ్రప్రదేశ్ & తెలంగాణ తెలుగు పాఠ్యప్రణాళిక):
+       TELUGU LANGUAGE INSTRUCTIONS (ఆంధ్రప్రదేశ్ & తెలంగాణ తెలుగు పాఠ్యప్రణాళిక — తెలుగు పరిమళం):
        - All question text, options, section names, and answer keys MUST be written in authentic, fluent Telugu script (తెలుగు లిపి).
-       - Maintain official question formats: విభాగం-1 (అవగాహన-ప్రతిస్పందన: అపరిచిత/పరిచిత గద్య, పద్య అంశాలు), విభాగం-2 (వ్యక్తీకరణ-సృజనాత్మకత: లఘు, వ్యాసరూప, రామాయణ ఉపవాచక ప్రశ్నలు, లేఖ/కరపత్రం), విభాగం-3 (భాషాంశాలు-వ్యాకరణం: సంధులు, సమాసాలు, ఛందస్సు, అలంకారాలు, పదజాలం, జాతీయాలు).
-       - DO NOT include Science assertion-reason or math case studies in Telugu.` : ''}
+       - Maintain official AP SCERT SSC question formats:
+         • విభాగం-1 (అవగాహన-ప్రతిస్పందన — 20 మార్కులు): పరిచిత పద్యం ప్రతిపదార్థ తాత్పర్యం (1 × 8M with choice), అపరిచిత పద్యం & 4 ప్రశ్నలు (4 × 1M = 4M), పరిచిత/అపరిచిత గద్యం & 4 ప్రశ్నలు (4 × 1M = 4M), ఉపవాచకం (రామాయణం) సంఘటనల కాలక్రమం (4 × 1M = 4M).
+         • విభాగం-2 (వ్యక్తీకరణ-సృజనాత్మకత — 36 మార్కులు): కవి పరిచయం/నేపథ్యం/పాత్రల లఘు సమాధాన ప్రశ్నలు (3 × 4M = 12M), పద్యభాగ సమగ్ర వ్యాసరూప ప్రశ్న (1 × 8M with internal choice), గద్యభాగ సమగ్ర వ్యాసరూప ప్రశ్న (1 × 8M with internal choice), సృజనాత్మక రచన / ఉపవాచక రామాయణ విశేషాంశం (1 × 8M with internal choice: లేఖ/కరపత్రం/ప్రకటన/సంభాషణ).
+         • విభాగం-3 (భాషాంశాలు & వ్యాకరణం — 24 మార్కులు): పదజాలం (12 × 1M = 12M: అర్థాలు, పర్యాయపదాలు, నానార్థాలు, ప్రకృతి-వికృతులు, వ్యుత్పత్యర్థాలు, జాతీయాలు, సామెతలు), వ్యాకరణాంశాలు (12 × 1M = 12M: సంధులు, సమాసాలు, ఛందస్సు వృత్తాలు/జాతులు, అలంకారాలు, వాక్య రకాలు).
+       - రామాయణం (ఉపవాచకం) ప్రశ్నలు తప్పనిసరిగా బాలకాండ, అయోధ్యకాండ, అరణ్యకాండ, కిష్కింధకాండ, సుందరకాండ, లేదా యుద్ధకాండ ఆధారంగా ఉండాలి.
+       - DO NOT include Science assertion-reason or math case studies in Telugu papers.` : ''}
        ${isHindi ? `
        HINDI LANGUAGE INSTRUCTIONS (सीबीएसई हिंदी पाठ्यक्रम):
        - All questions, sections, and answers MUST be written in correct Devanagari script (देवनागरी लिपि).

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { PaperConfig, QuestionCounts, CustomSection, QuestionBank, Question } from '../types';
 import { SYLLABUS_DATA, GRADES, FONT_OPTIONS, BOARDS, TEST_TYPES, QUESTION_TYPES_DROPDOWN, CBSE_EXAM_PATTERNS, PRESET_SCHOOLS } from '../constants';
 import { SyllabusData } from '../services/syllabusService';
@@ -41,12 +41,14 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
 
   // --- Logo Management State ---
   const [customLogo, setCustomLogo] = useState<string | null>(null); 
-  const [logoPlacement, setLogoPlacement] = useState<'left' | 'center' | 'right'>('center');
+  const [logoPlacement, setLogoPlacement] = useState<'left' | 'center' | 'right' | ''>('');
   const [logoError, setLogoError] = useState<string | null>(null);
 
   // Typography State
-  const [headingFont, setHeadingFont] = useState(FONT_OPTIONS[0].value);
-  const [bodyFont, setBodyFont] = useState(FONT_OPTIONS[1].value);
+  const [headingFont, setHeadingFont] = useState('');
+  const [bodyFont, setBodyFont] = useState('');
+  const [headingFontError, setHeadingFontError] = useState<string | null>(null);
+  const [bodyFontError, setBodyFontError] = useState<string | null>(null);
 
   // General Instructions State
   const [generalInstructions, setGeneralInstructions] = useState('');
@@ -57,7 +59,8 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
   const [selectedBoard, setSelectedBoard] = useState(BOARDS[0]);
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
-  const [testType, setTestType] = useState(TEST_TYPES[0]);
+  const [testType, setTestType] = useState('');
+  const [testTypeError, setTestTypeError] = useState<string | null>(null);
   
   // Subject Pattern Blueprint State
   const [activePattern, setActivePattern] = useState<SubjectPaperPattern | null>(null);
@@ -79,7 +82,8 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
 
   const [totalMarks, setTotalMarks] = useState<number>(0);
   const [totalMarksError, setTotalMarksError] = useState<string | null>(null);
-  const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Medium');
+  const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard' | ''>('');
+  const [difficultyError, setDifficultyError] = useState<string | null>(null);
   
   // Include Figures Toggle
   const [includeFigures, setIncludeFigures] = useState(false);
@@ -123,7 +127,9 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
 
   const boardData = getBoardData();
   const classData = boardData ? boardData[selectedClass] as any : null;
-  const availableSubjects = classData ? Object.keys(classData) : [];
+  const availableSubjects = useMemo(() => {
+    return classData ? Object.keys(classData) : [];
+  }, [classData]);
 
   const getAvailableChapters = () => {
     if (!classData || !selectedSubject) return [];
@@ -472,12 +478,20 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
     setSelectedClass('');
     setSelectedSubject('');
     setSelectedChapters([]);
+    setActivePattern(null);
+    setTotalMarks(0);
+    setTimePreset('');
+    setTimeAllowed('');
   };
 
   const handleClassChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedClass(e.target.value);
     setSelectedSubject('');
     setSelectedChapters([]);
+    setActivePattern(null);
+    setTotalMarks(0);
+    setTimePreset('');
+    setTimeAllowed('');
   };
 
   const handleSubjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -491,12 +505,65 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
 
   const handleTestTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
       setTestType(e.target.value);
+      setTestTypeError(null);
       setCustomTestNameError(null);
   };
 
   const handleCustomTestNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       setCustomTestName(e.target.value);
       if (e.target.value.trim().length >= 3) setCustomTestNameError(null);
+  };
+
+  const handleResetForm = () => {
+    setSelectedSchool('');
+    setCustomSchoolName('');
+    setBranchName('');
+    setIsCustomSchoolMode(false);
+    setSchoolSearch('');
+    setSchoolError(null);
+    setBranchError(null);
+    setCustomLogo(null);
+    setLogoPlacement('');
+    setLogoError(null);
+    setHeadingFont('');
+    setBodyFont('');
+    setHeadingFontError(null);
+    setBodyFontError(null);
+    setGeneralInstructions('');
+    setSelectedBoard(BOARDS[0]);
+    setSelectedClass('');
+    setSelectedSubject('');
+    setTestType('');
+    setTestTypeError(null);
+    setCustomTestName('');
+    setCustomTestNameError(null);
+    setSelectedChapters([]);
+    setChapterError(null);
+    setTimeAllowed('');
+    setTimePreset('');
+    setCustomTime('');
+    setTimeAllowedError(null);
+    setTotalMarks(0);
+    setTotalMarksError(null);
+    setDifficulty('');
+    setDifficultyError(null);
+    setIncludeFigures(false);
+    setCounts({ mcq: '', ar: '', vsaq: '', saq: '', laq: '', caseStudy: '' });
+    setCustomSections([]);
+    setCustomTotalMarks(0);
+    setCustomTotalQuestions(0);
+    setErrors({ mcq: null, ar: null, vsaq: null, saq: null, laq: null, caseStudy: null });
+    setCurrentCalculatedMarks(null);
+    setSourceTab('ai');
+    setExtractionUrl('');
+    setPasteText('');
+    setExtractionError(null);
+    setManualQuestions([]);
+    setPreviewQuestions([]);
+    setExtractedMetadata(null);
+    setSelectedBankId('');
+    setActivePattern(null);
+    setPatternCounts({});
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -583,13 +650,39 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
     const finalSchoolNameString = `${effectiveSchoolName}, ${branchName.trim()}`;
     if (hasErrors && schoolContainerRef.current) schoolContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     
+    if (!headingFont) {
+      setHeadingFontError("Please select heading font.");
+      hasErrors = true;
+    }
+
+    if (!bodyFont) {
+      setBodyFontError("Please select body font.");
+      hasErrors = true;
+    }
+
+    if (!testType || !testType.trim()) {
+      setTestTypeError("Please select test type.");
+      hasErrors = true;
+    }
+
+    if (!difficulty) {
+      setDifficultyError("Please select difficulty.");
+      hasErrors = true;
+    }
+
     if (!totalMarks || totalMarks === 0) {
-        setTotalMarksError('Please select marks');
+        setTotalMarksError('Please select total marks.');
         hasErrors = true;
     }
 
-    if (timeAllowed.trim() === '') { setTimeAllowedError('Please select time'); hasErrors = true; }
-    else if (!/\d/.test(timeAllowed)) { setTimeAllowedError('Must contain number'); hasErrors = true; }
+    if (timeAllowed.trim() === '') { 
+      setTimeAllowedError('Please select time allowed.'); 
+      hasErrors = true; 
+    } else if (!/\d/.test(timeAllowed)) { 
+      setTimeAllowedError('Must contain number'); 
+      hasErrors = true; 
+    }
+    
     if (selectedChapters.length === 0) { setChapterError("Please select at least one chapter."); hasErrors = true; }
 
     const newErrors: any = {};
@@ -628,15 +721,15 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
       board: selectedBoard,
       schoolName: finalSchoolNameString,
       schoolLogo: effectiveLogo || "",
-      logoPlacement: logoPlacement || "center",
-      headingFont: headingFont || "",
-      bodyFont: bodyFont || "",
+      logoPlacement: (logoPlacement as any) || "center",
+      headingFont: headingFont || FONT_OPTIONS[0].value,
+      bodyFont: bodyFont || FONT_OPTIONS[1].value,
       generalInstructions: generalInstructions.trim() || "",
       subject: finalSubjectString,
       grade: selectedClass,
       timeAllowed: timeAllowed.trim(),
       totalMarks,
-      difficulty,
+      difficulty: (difficulty as 'Easy' | 'Medium' | 'Hard') || 'Medium',
       testType: finalTestType,
       customSections: isCustomTest ? customSections : [],
       counts: finalCounts as QuestionCounts,
@@ -762,15 +855,43 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
                          <label className="block text-sm font-bold mb-2 text-gray-700">Logo Placement</label>
                          <div className="flex flex-wrap gap-2 sm:gap-3 mb-6">
                              {[{ id: 'left', label: 'Left' }, { id: 'center', label: 'Center' }, { id: 'right', label: 'Right' }].map((opt) => (
-                                 <label key={opt.id} className={`flex-1 min-w-[80px] py-3 rounded-lg border text-center text-sm font-semibold cursor-pointer transition-all ${logoPlacement === opt.id ? 'bg-[#f3e8ff] border-[#8A2CB0] text-[#3C128D] shadow-sm' : 'bg-white hover:bg-gray-50'}`}>
+                                 <label key={opt.id} className={`flex-1 min-w-[80px] py-3 rounded-lg border text-center text-sm font-semibold cursor-pointer transition-all ${logoPlacement === opt.id ? 'bg-[#f3e8ff] border-[#8A2CB0] text-[#3C128D] shadow-sm' : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200'}`}>
                                      <input type="radio" name="logoPlacement" value={opt.id} checked={logoPlacement === opt.id} onChange={(e) => setLogoPlacement(e.target.value as any)} className="hidden" />
                                      {opt.label}
                                  </label>
                              ))}
                          </div>
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                             <div><label className="block text-xs font-bold text-gray-500 mb-1">Heading Font</label><select className="w-full px-2 py-2.5 rounded border text-sm dark-dropdown" value={headingFont} onChange={(e) => setHeadingFont(e.target.value)}>{FONT_OPTIONS.map((font) => (<option key={font.value} value={font.value}>{font.label}</option>))}</select></div>
-                             <div><label className="block text-xs font-bold text-gray-500 mb-1">Body Font</label><select className="w-full px-2 py-2.5 rounded border text-sm dark-dropdown" value={bodyFont} onChange={(e) => setBodyFont(e.target.value)}>{FONT_OPTIONS.map((font) => (<option key={font.value} value={font.value}>{font.label}</option>))}</select></div>
+                             <div>
+                                 <label className="block text-xs font-bold text-gray-500 mb-1">Heading Font <span className="text-red-500">*</span></label>
+                                 <select 
+                                     className={`w-full px-2 py-2.5 rounded border text-sm dark-dropdown ${headingFontError ? 'border-red-500 bg-red-50' : 'border-gray-200'}`} 
+                                     value={headingFont} 
+                                     onChange={(e) => {
+                                         setHeadingFont(e.target.value);
+                                         if (e.target.value) setHeadingFontError(null);
+                                     }}
+                                 >
+                                     <option value="" disabled>Select heading font</option>
+                                     {FONT_OPTIONS.map((font) => (<option key={font.value} value={font.value}>{font.label}</option>))}
+                                 </select>
+                                 {headingFontError && <p className="text-red-600 text-[10px] font-bold mt-1">{headingFontError}</p>}
+                             </div>
+                             <div>
+                                 <label className="block text-xs font-bold text-gray-500 mb-1">Body Font <span className="text-red-500">*</span></label>
+                                 <select 
+                                     className={`w-full px-2 py-2.5 rounded border text-sm dark-dropdown ${bodyFontError ? 'border-red-500 bg-red-50' : 'border-gray-200'}`} 
+                                     value={bodyFont} 
+                                     onChange={(e) => {
+                                         setBodyFont(e.target.value);
+                                         if (e.target.value) setBodyFontError(null);
+                                     }}
+                                 >
+                                     <option value="" disabled>Select body font</option>
+                                     {FONT_OPTIONS.map((font) => (<option key={font.value} value={font.value}>{font.label}</option>))}
+                                 </select>
+                                 {bodyFontError && <p className="text-red-600 text-[10px] font-bold mt-1">{bodyFontError}</p>}
+                             </div>
                          </div>
                     </div>
                  </div>
@@ -851,44 +972,59 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
                 )}
                 
                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Test Type</label>
-                    <select className="w-full px-4 py-2.5 rounded-lg border dark-dropdown" value={testType} onChange={handleTestTypeChange}>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Test Type <span className="text-red-500">*</span></label>
+                    <select 
+                        className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown ${testTypeError ? 'border-red-500 bg-red-50' : 'border-gray-200'}`} 
+                        value={testType} 
+                        onChange={handleTestTypeChange}
+                    >
+                        <option value="" disabled>Select test type</option>
                         {TEST_TYPES.map((type) => (<option key={type} value={type} disabled={type === "CBSE Board Exam" && selectedClass !== "Class 10"}>{type}{type === "CBSE Board Exam" && selectedClass !== "Class 10" ? " (Class 10 Only)" : ""}</option>))}
                     </select>
+                    {testTypeError && <p className="text-red-600 text-xs font-bold mt-1.5">{testTypeError}</p>}
                     {isCustomTest && (
                         <div className="mt-3">
                             <label className="block text-xs font-bold text-gray-500 mb-1">Custom Test Name <span className="text-red-500">*</span></label>
                             <input type="text" className="w-full px-4 py-2.5 rounded-lg border border-gray-200" placeholder="e.g. Unit Test 3" value={customTestName} onChange={handleCustomTestNameChange} />
+                            {customTestNameError && <p className="text-red-600 text-xs font-bold mt-1.5">{customTestNameError}</p>}
                         </div>
                     )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Difficulty</label>
-                  <select className="w-full px-4 py-2.5 rounded-lg border dark-dropdown" value={difficulty} onChange={(e) => setDifficulty(e.target.value as any)}>
-                    <option value="Easy">Easy</option><option value="Medium">Medium</option><option value="Hard">Hard</option>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Difficulty <span className="text-red-500">*</span></label>
+                  <select 
+                    className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown ${difficultyError ? 'border-red-500 bg-red-50' : 'border-gray-200'}`} 
+                    value={difficulty} 
+                    onChange={(e) => {
+                      setDifficulty(e.target.value as any);
+                      if (e.target.value) setDifficultyError(null);
+                    }}
+                  >
+                    <option value="" disabled>Select difficulty</option>
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
                   </select>
+                  {difficultyError && <p className="text-red-600 text-xs font-bold mt-1.5">{difficultyError}</p>}
                 </div>
 
                 <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Total Marks <span className="text-red-500">*</span></label>
-                    <div className="flex gap-2">
-                        <select 
-                            className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown ${totalMarksError ? 'border-red-500 bg-red-50' : 'border-gray-200'}`}
-                            value={totalMarks || ''} 
-                            onChange={(e) => {
-                                const val = parseInt(e.target.value);
-                                setTotalMarks(val);
-                                if (val > 0) setTotalMarksError(null);
-                            }} 
-                        >
-                            <option value="">Select Marks</option>
-                            {[10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100].map(m => (
-                                <option key={m} value={m}>{m} Marks</option>
-                            ))}
-                        </select>
-                        {!isCustomTest && <button type="button" onClick={handleAutoDistribute} className="btn-glass btn-glass-secondary px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">Auto Distribute</button>}
-                    </div>
+                    <select 
+                        className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown ${totalMarksError ? 'border-red-500 bg-red-50' : 'border-gray-200'}`}
+                        value={totalMarks || ''} 
+                        onChange={(e) => {
+                            const val = parseInt(e.target.value) || 0;
+                            setTotalMarks(val);
+                            if (val > 0) setTotalMarksError(null);
+                        }} 
+                    >
+                        <option value="" disabled>Select total marks</option>
+                        {[10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100].map(m => (
+                            <option key={m} value={m}>{m} Marks</option>
+                        ))}
+                    </select>
                     {totalMarksError && <p className="text-red-600 text-xs font-bold mt-1.5">{totalMarksError}</p>}
                 </div>
 
@@ -896,12 +1032,32 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Time Allowed <span className="text-red-500">*</span></label>
                     <div className="flex gap-4">
                          <div className="relative w-full md:w-1/2">
-                            <select value={timePreset} onChange={handlePresetChange} className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown disabled:opacity-50 ${timeAllowedError && timePreset !== 'Custom' ? 'border-red-500' : 'border-gray-200'}`}>
-                                <option value="">Select Time</option>
-                                <option value="30 Minutes">30 Minutes</option><option value="40 Minutes">40 Minutes</option><option value="45 Minutes">45 Minutes</option><option value="1 Hour">1 Hour</option><option value="1.5 Hours">1.5 Hours</option><option value="2 Hours">2 Hours</option><option value="2.5 Hours">2.5 Hours</option><option value="3 Hours">3 Hours</option><option value="Custom">Custom</option>
+                            <select 
+                                value={timePreset} 
+                                onChange={handlePresetChange} 
+                                className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown disabled:opacity-50 ${timeAllowedError && timePreset !== 'Custom' ? 'border-red-500 bg-red-50' : 'border-gray-200'}`}
+                            >
+                                <option value="" disabled>Select time allowed</option>
+                                <option value="30 Minutes">30 Minutes</option>
+                                <option value="40 Minutes">40 Minutes</option>
+                                <option value="45 Minutes">45 Minutes</option>
+                                <option value="1 Hour">1 Hour</option>
+                                <option value="1.5 Hours">1.5 Hours</option>
+                                <option value="2 Hours">2 Hours</option>
+                                <option value="2.5 Hours">2.5 Hours</option>
+                                <option value="3 Hours">3 Hours</option>
+                                <option value="Custom">Custom</option>
                             </select>
                          </div>
-                         {timePreset === 'Custom' && <input type="text" className="w-full md:w-1/2 px-4 py-2.5 rounded-lg border border-gray-200" placeholder="e.g. 90 Minutes" value={customTime} onChange={handleCustomTimeChange} />}
+                         {timePreset === 'Custom' && (
+                            <input 
+                                type="text" 
+                                className={`w-full md:w-1/2 px-4 py-2.5 rounded-lg border ${timeAllowedError ? 'border-red-500 bg-red-50' : 'border-gray-200'}`} 
+                                placeholder="e.g. 90 Minutes" 
+                                value={customTime} 
+                                onChange={handleCustomTimeChange} 
+                            />
+                         )}
                     </div>
                     {timeAllowedError && <p className="text-red-600 text-sm font-bold mt-1.5">{timeAllowedError}</p>}
                 </div>
@@ -1189,8 +1345,19 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
                 </h3>
                 {currentCalculatedMarks !== null && (
                   <div className="flex items-center gap-2">
+                    {!isCustomTest && !activePattern && (
+                      <button
+                        type="button"
+                        onClick={handleAutoDistribute}
+                        disabled={!totalMarks || totalMarks <= 0}
+                        className="px-3 py-1.5 bg-[#8A2CB0] hover:bg-[#732494] text-white rounded-lg text-xs font-bold transition-all whitespace-nowrap shadow-sm disabled:opacity-50"
+                        title="Auto distribute question counts to match total marks"
+                      >
+                        Auto Distribute
+                      </button>
+                    )}
                     <span className={`text-xs sm:text-sm font-bold px-3 py-1 rounded-full ${currentCalculatedMarks === totalMarks ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-orange-100 text-orange-700 border border-orange-200'}`}>
-                      Allocated: {currentCalculatedMarks} / {totalMarks} Marks
+                      Allocated: {currentCalculatedMarks} / {totalMarks || 0} Marks
                     </span>
                   </div>
                 )}
@@ -1369,9 +1536,28 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
             )}
           </div>
           
-          <div className="flex gap-4 pt-4">
-              <button type="button" onClick={onCancel} className="flex-1 py-3.5 border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-colors" disabled={isGenerating}>Cancel</button>
-              <button type="submit" className="flex-1 btn-glass btn-glass-primary py-3.5 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2" disabled={isGenerating}>
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <button 
+                type="button" 
+                onClick={handleResetForm} 
+                className="px-5 py-3.5 border border-gray-200 text-gray-500 rounded-xl font-bold hover:bg-gray-100 hover:text-gray-700 transition-colors text-sm" 
+                disabled={isGenerating}
+              >
+                Reset Form
+              </button>
+              <button 
+                type="button" 
+                onClick={onCancel} 
+                className="flex-1 py-3.5 border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-colors text-sm" 
+                disabled={isGenerating}
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className="flex-1 btn-glass btn-glass-primary py-3.5 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 text-sm" 
+                disabled={isGenerating}
+              >
                 {isGenerating ? (<><svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Generating...</span></>) : (<span>Generate Paper ✨</span>)}
               </button>
           </div>

@@ -181,7 +181,7 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
   },
 
   // --------------------------------------------------------------------------
-  // 2. CLASS 10 SCIENCE
+  // 2. CLASS 10 SCIENCE (CBSE / NCERT 2026-27 - BIOLOGY 30M, CHEMISTRY 25M, PHYSICS 25M)
   // --------------------------------------------------------------------------
   "Class 10-Science": {
     id: "cbse-10-science-2026",
@@ -189,7 +189,211 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
     board: "CBSE / NCERT (New)",
     classLevel: "Class 10",
     subject: "Science",
-    displayName: "CBSE Class 10 Science (Physics, Chemistry, Biology)",
+    displayName: "CBSE Class 10 Science (Section A: Biology 30M, Section B: Chemistry 25M, Section C: Physics 25M)",
+    totalMarks: 80,
+    duration: "3 Hours",
+    durationMinutes: 180,
+    isVerified: true,
+    sourceReference: "CBSE Official Guidance (09/12/2025) & Sample Paper Design 2025-27 (Code 086) - Biology 30M, Chemistry 25M, Physics 25M",
+    generalInstructions: [
+      "This question paper consists of 39 compulsory questions divided into THREE Sections: Section A (Biology), Section B (Chemistry), and Section C (Physics).",
+      "Section A — BIOLOGY (30 Marks): Q1 to Q8 are 1-mark objective questions (MCQs & Assertion-Reason), Q9 & Q10 are 2-mark Very Short Answer questions (30-50 words), Q11 to Q13 are 3-mark Short Answer questions (50-80 words), Q14 is a 5-mark Long Answer question (80-120 words with internal choice), and Q15 is a 4-mark Case-Based/Source-Based question with sub-parts.",
+      "Section B — CHEMISTRY (25 Marks): Q16 to Q22 are 1-mark objective questions (MCQs & Assertion-Reason), Q23 & Q24 are 2-mark Very Short Answer questions, Q25 & Q26 are 3-mark Short Answer questions, Q27 is a 5-mark Long Answer question (with internal choice), and Q28 is a 4-mark Case-Based/Source-Based question with sub-parts.",
+      "Section C — PHYSICS (25 Marks): Q29 to Q34 are 1-mark objective questions (MCQs & Assertion-Reason), Q35 & Q36 are 2-mark Very Short Answer questions, Q37 & Q38 are 3-mark Short Answer questions, Q39 is a 5-mark Long Answer question (with internal choice), and Q40 is a 4-mark Case-Based/Source-Based question with sub-parts.",
+      "All questions are compulsory. Internal choices are provided in some questions across Sections A, B, and C.",
+      "Neat, properly labeled diagrams and balanced chemical equations should be drawn wherever required."
+    ],
+    sections: [
+      {
+        id: "sci-sec-bio",
+        sectionCode: "Section A",
+        title: "Section A: Biology (30 Marks)",
+        instructions: "Questions 1 to 15 carry 30 marks covering Life Processes, Control & Coordination, How do Organisms Reproduce, Heredity, and Our Environment.",
+        totalMarks: 30,
+        questionTypes: [
+          {
+            id: "sci-bio-mcq-ar",
+            name: "Biology MCQs & Assertion-Reasoning (1 Mark)",
+            shortCode: "mcq",
+            description: "Objective questions (6 MCQs + 2 Assertion-Reasoning) on biological concepts, processes, and experiments.",
+            defaultMarksPerQuestion: 1,
+            allowedMarks: [1],
+            defaultCount: 8,
+            internalChoiceNote: "Compulsory objective questions (Q1 to Q8)"
+          },
+          {
+            id: "sci-bio-vsa",
+            name: "Biology Very Short Answer (2 Marks)",
+            shortCode: "vsaq",
+            description: "Concise biological definitions, pathways, or differences (30-50 words).",
+            defaultMarksPerQuestion: 2,
+            allowedMarks: [2],
+            defaultCount: 2,
+            internalChoiceNote: "Internal choice provided in 1 question (Q9, Q10)"
+          },
+          {
+            id: "sci-bio-sa",
+            name: "Biology Short Answer (3 Marks)",
+            shortCode: "saq",
+            description: "Biological mechanisms, cycles, physiological reasoning, or experiments (50-80 words).",
+            defaultMarksPerQuestion: 3,
+            allowedMarks: [3],
+            defaultCount: 3,
+            internalChoiceNote: "Internal choice provided in 1 question (Q11 to Q13)"
+          },
+          {
+            id: "sci-bio-la",
+            name: "Biology Long Answer (5 Marks)",
+            shortCode: "laq",
+            description: "Comprehensive multi-part question with diagrammatic explanation (80-120 words).",
+            defaultMarksPerQuestion: 5,
+            allowedMarks: [5],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice provided (Q14)"
+          },
+          {
+            id: "sci-bio-case",
+            name: "Biology Case-Based / Data-Based (4 Marks)",
+            shortCode: "case",
+            description: "Contextual experimental setup, ecological case, or physiological data with sub-questions (1M + 1M + 2M).",
+            defaultMarksPerQuestion: 4,
+            allowedMarks: [4],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice in the 2-mark sub-question (Q15)"
+          }
+        ]
+      },
+      {
+        id: "sci-sec-chem",
+        sectionCode: "Section B",
+        title: "Section B: Chemistry (25 Marks)",
+        instructions: "Questions 16 to 28 carry 25 marks covering Chemical Reactions, Acids/Bases/Salts, Metals/Non-metals, and Carbon Compounds.",
+        totalMarks: 25,
+        questionTypes: [
+          {
+            id: "sci-chem-mcq-ar",
+            name: "Chemistry MCQs & Assertion-Reasoning (1 Mark)",
+            shortCode: "mcq",
+            description: "Objective questions (6 MCQs + 1 Assertion-Reasoning) testing reaction types, properties, and chemical behavior.",
+            defaultMarksPerQuestion: 1,
+            allowedMarks: [1],
+            defaultCount: 7,
+            internalChoiceNote: "Compulsory objective questions (Q16 to Q22)"
+          },
+          {
+            id: "sci-chem-vsa",
+            name: "Chemistry Very Short Answer (2 Marks)",
+            shortCode: "vsaq",
+            description: "Brief explanations, chemical tests, or balanced reaction equations (30-50 words).",
+            defaultMarksPerQuestion: 2,
+            allowedMarks: [2],
+            defaultCount: 2,
+            internalChoiceNote: "Internal choice provided in 1 question (Q23, Q24)"
+          },
+          {
+            id: "sci-chem-sa",
+            name: "Chemistry Short Answer (3 Marks)",
+            shortCode: "saq",
+            description: "Reactivity trends, salt preparation/properties, isomerism, or redox mechanisms (50-80 words).",
+            defaultMarksPerQuestion: 3,
+            allowedMarks: [3],
+            defaultCount: 2,
+            internalChoiceNote: "Internal choice provided in 1 question (Q25, Q26)"
+          },
+          {
+            id: "sci-chem-la",
+            name: "Chemistry Long Answer (5 Marks)",
+            shortCode: "laq",
+            description: "Multi-part comprehensive question covering chemical properties, series, or industrial processes.",
+            defaultMarksPerQuestion: 5,
+            allowedMarks: [5],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice provided (Q27)"
+          },
+          {
+            id: "sci-chem-case",
+            name: "Chemistry Case-Based / Data-Based (4 Marks)",
+            shortCode: "case",
+            description: "Experimental investigation or industrial chemistry case study with sub-questions (1M + 1M + 2M).",
+            defaultMarksPerQuestion: 4,
+            allowedMarks: [4],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice in the 2-mark sub-question (Q28)"
+          }
+        ]
+      },
+      {
+        id: "sci-sec-phy",
+        sectionCode: "Section C",
+        title: "Section C: Physics (25 Marks)",
+        instructions: "Questions 29 to 40 carry 25 marks covering Light (Reflection & Refraction), Human Eye, Electricity, and Magnetic Effects of Current.",
+        totalMarks: 25,
+        questionTypes: [
+          {
+            id: "sci-phy-mcq-ar",
+            name: "Physics MCQs & Assertion-Reasoning (1 Mark)",
+            shortCode: "mcq",
+            description: "Objective questions (5 MCQs + 1 Assertion-Reasoning) testing optical rules, circuits, and magnetic fields.",
+            defaultMarksPerQuestion: 1,
+            allowedMarks: [1],
+            defaultCount: 6,
+            internalChoiceNote: "Compulsory objective questions (Q29 to Q34)"
+          },
+          {
+            id: "sci-phy-vsa",
+            name: "Physics Very Short Answer (2 Marks)",
+            shortCode: "vsaq",
+            description: "Direct numericals, law statements, or ray/circuit identification (30-50 words).",
+            defaultMarksPerQuestion: 2,
+            allowedMarks: [2],
+            defaultCount: 2,
+            internalChoiceNote: "Internal choice provided in 1 question (Q35, Q36)"
+          },
+          {
+            id: "sci-phy-sa",
+            name: "Physics Short Answer (3 Marks)",
+            shortCode: "saq",
+            description: "Standard numerical calculations (Ohm's Law, Lens/Mirror formula, Joule's Law) or ray diagrams (50-80 words).",
+            defaultMarksPerQuestion: 3,
+            allowedMarks: [3],
+            defaultCount: 2,
+            internalChoiceNote: "Internal choice provided in 1 question (Q37, Q38)"
+          },
+          {
+            id: "sci-phy-la",
+            name: "Physics Long Answer (5 Marks)",
+            shortCode: "laq",
+            description: "Multi-part theoretical derivation, comprehensive ray tracing, or compound circuit analysis (80-120 words).",
+            defaultMarksPerQuestion: 5,
+            allowedMarks: [5],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice provided (Q39)"
+          },
+          {
+            id: "sci-phy-case",
+            name: "Physics Case-Based / Data-Based (4 Marks)",
+            shortCode: "case",
+            description: "Application scenario, experimental optical bench, or domestic circuit data with sub-questions (1M + 1M + 2M).",
+            defaultMarksPerQuestion: 4,
+            allowedMarks: [4],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice in the 2-mark sub-question (Q40)"
+          }
+        ]
+      }
+    ]
+  },
+
+  // --------------------------------------------------------------------------
+  // CLASS 9 SCIENCE (PRESERVED STANDARD 5-SECTION BLUEPRINT)
+  // --------------------------------------------------------------------------
+  "Class 9-Science": {
+    id: "cbse-9-science-2026",
+    academicSession: "2026-27",
+    board: "CBSE / NCERT (New)",
+    classLevel: "Class 9",
+    subject: "Science",
+    displayName: "CBSE Class 9 Science (Physics, Chemistry, Biology)",
     totalMarks: 80,
     duration: "3 Hours",
     durationMinutes: 180,
@@ -206,14 +410,14 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
     ],
     sections: [
       {
-        id: "sci-sec-a",
+        id: "sci-9-sec-a",
         sectionCode: "A",
         title: "Section A (MCQs & Assertion-Reason)",
         instructions: "Questions 1 to 20 carry 1 mark each. Q1-Q16 are MCQs, Q17-Q20 are Assertion-Reasoning.",
         totalMarks: 20,
         questionTypes: [
           {
-            id: "sci-mcq",
+            id: "sci-9-mcq",
             name: "Multiple Choice Questions",
             shortCode: "mcq",
             description: "Concept-based and experimental setup MCQs from Physics, Chemistry, Biology.",
@@ -223,7 +427,7 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
             internalChoiceNote: "Compulsory questions"
           },
           {
-            id: "sci-ar",
+            id: "sci-9-ar",
             name: "Assertion-Reasoning",
             shortCode: "ar",
             description: "Assertion and Reason statements requiring evaluation of truth and causal linkage.",
@@ -235,14 +439,14 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
         ]
       },
       {
-        id: "sci-sec-b",
+        id: "sci-9-sec-b",
         sectionCode: "B",
         title: "Section B (Short Answer - I / VSA)",
         instructions: "Questions 21 to 26 carry 2 marks each. Concise answers with chemical equations or ray diagrams.",
         totalMarks: 12,
         questionTypes: [
           {
-            id: "sci-sai",
+            id: "sci-9-sai",
             name: "Short Answer - I (2 Marks)",
             shortCode: "vsaq",
             description: "Brief explanations, balanced chemical reactions, or definitions (30-50 words).",
@@ -254,17 +458,17 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
         ]
       },
       {
-        id: "sci-sec-c",
+        id: "sci-9-sec-c",
         sectionCode: "C",
         title: "Section C (Short Answer - II)",
         instructions: "Questions 27 to 33 carry 3 marks each. Structured explanations, circuits, or biological cycles.",
         totalMarks: 21,
         questionTypes: [
           {
-            id: "sci-saii",
+            id: "sci-9-saii",
             name: "Short Answer - II (3 Marks)",
             shortCode: "saq",
-            description: "Mechanisms, numericals on electricity/light, or biological pathways (50-80 words).",
+            description: "Mechanisms, numericals on motion/force/work, or tissue pathways (50-80 words).",
             defaultMarksPerQuestion: 3,
             allowedMarks: [3],
             defaultCount: 7,
@@ -273,14 +477,14 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
         ]
       },
       {
-        id: "sci-sec-d",
+        id: "sci-9-sec-d",
         sectionCode: "D",
         title: "Section D (Long Answer)",
         instructions: "Questions 34 to 36 carry 5 marks each. Multi-part comprehensive questions with internal choices.",
         totalMarks: 15,
         questionTypes: [
           {
-            id: "sci-la",
+            id: "sci-9-la",
             name: "Long Answer (5 Marks)",
             shortCode: "laq",
             description: "In-depth theoretical, experimental, and numerical problems (80-120 words).",
@@ -292,14 +496,14 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
         ]
       },
       {
-        id: "sci-sec-e",
+        id: "sci-9-sec-e",
         sectionCode: "E",
         title: "Section E (Case-Based / Data-Based)",
         instructions: "Questions 37 to 39 carry 4 marks each. Data tables, experiments, or clinical scenarios.",
         totalMarks: 12,
         questionTypes: [
           {
-            id: "sci-case",
+            id: "sci-9-case",
             name: "Case-Based Questions (4 Marks)",
             shortCode: "case",
             description: "Practical experiment/application passage with sub-questions (1M + 1M + 2M).",
@@ -314,7 +518,7 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
   },
 
   // --------------------------------------------------------------------------
-  // 3. CLASS 10 SOCIAL SCIENCE
+  // 3. CLASS 10 SOCIAL SCIENCE (CBSE / NCERT 2026-27 - 4 SECTIONS, 20M EACH)
   // --------------------------------------------------------------------------
   "Class 10-Social Science": {
     id: "cbse-10-social-science-2026",
@@ -322,7 +526,291 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
     board: "CBSE / NCERT (New)",
     classLevel: "Class 10",
     subject: "Social Science",
-    displayName: "CBSE Class 10 Social Science (History, Geography, Civics, Economics)",
+    displayName: "CBSE Class 10 Social Science (Section A: History 20M, Section B: Geography 20M, Section C: Pol. Science 20M, Section D: Economics 20M)",
+    totalMarks: 80,
+    duration: "3 Hours",
+    durationMinutes: 180,
+    isVerified: true,
+    sourceReference: "CBSE Official Guidance (09/12/2025) & Sample Paper Design 2025-27 (Code 087) - 4 Equal Sections (20M each)",
+    generalInstructions: [
+      "The question paper comprises FOUR Sections: Section A (History - 20 Marks), Section B (Geography - 20 Marks), Section C (Political Science - 20 Marks), and Section D (Economics - 20 Marks).",
+      "Section A — HISTORY (20 Marks): MCQs/Assertion-Reason (4 × 1M = 4M), Very Short Answer (1 × 2M = 2M), Short Answer (1 × 3M = 3M), Long Answer (1 × 5M = 5M with internal choice), Case-Based/Source-Based Question (1 × 4M = 4M), and Map Skill Work (1 × 2M = 2M).",
+      "Section B — GEOGRAPHY (20 Marks): MCQs/Assertion-Reason (5 × 1M = 5M), Very Short Answer (1 × 2M = 2M), Short Answer (1 × 3M = 3M), Long Answer (1 × 5M = 5M with internal choice), Case-Based/Source-Based Question (1 × 4M = 4M), and Map Skill Work (1 × 3M = 3M).",
+      "Section C — POLITICAL SCIENCE (20 Marks): MCQs/Assertion-Reason (6 × 1M = 6M), Very Short Answer (1 × 2M = 2M), Short Answer (1 × 3M = 3M), Long Answer (1 × 5M = 5M with internal choice), and Case-Based/Source-Based Question (1 × 4M = 4M).",
+      "Section D — ECONOMICS (20 Marks): MCQs/Assertion-Reason (6 × 1M = 6M), Very Short Answer (1 × 2M = 2M), Short Answer (1 × 3M = 3M), Long Answer (1 × 5M = 5M with internal choice), and Case-Based/Source-Based Question (1 × 4M = 4M).",
+      "All questions are compulsory. Internal choices are provided in some questions across all sections.",
+      "Answers should be brief and to the point: VSA (up to 40 words), SA (up to 60 words), LA (up to 120 words), and Case-based (up to 100 words)."
+    ],
+    sections: [
+      {
+        id: "sst-sec-hist",
+        sectionCode: "Section A",
+        title: "Section A: History (India and the Contemporary World - II) (20 Marks)",
+        instructions: "Questions carry 20 marks covering Rise of Nationalism in Europe, Nationalism in India, Making of a Global World, Age of Industrialization, Print Culture, and Map Work.",
+        totalMarks: 20,
+        questionTypes: [
+          {
+            id: "sst-hist-mcq",
+            name: "History MCQs & Assertion-Reason (1 Mark)",
+            shortCode: "mcq",
+            description: "Objective questions testing historical events, chronology, leaders, and extracts.",
+            defaultMarksPerQuestion: 1,
+            allowedMarks: [1],
+            defaultCount: 4,
+            internalChoiceNote: "Compulsory objective questions"
+          },
+          {
+            id: "sst-hist-vsa",
+            name: "History Very Short Answer (2 Marks)",
+            shortCode: "vsaq",
+            description: "Brief factual and conceptual explanation (max 40 words).",
+            defaultMarksPerQuestion: 2,
+            allowedMarks: [2],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice provided in question"
+          },
+          {
+            id: "sst-hist-sa",
+            name: "History Short Answer (3 Marks)",
+            shortCode: "saq",
+            description: "Point-wise historical analysis, causes, and impacts (max 60 words).",
+            defaultMarksPerQuestion: 3,
+            allowedMarks: [3],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice provided in question"
+          },
+          {
+            id: "sst-hist-la",
+            name: "History Long Answer (5 Marks)",
+            shortCode: "laq",
+            description: "Comprehensive historical evaluation with multi-dimensional perspective (max 120 words).",
+            defaultMarksPerQuestion: 5,
+            allowedMarks: [5],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice provided (1 out of 2)"
+          },
+          {
+            id: "sst-hist-case",
+            name: "History Case-Based / Source-Based (4 Marks)",
+            shortCode: "case",
+            description: "Historical extract/speech/primary source with 3 analytical sub-questions.",
+            defaultMarksPerQuestion: 4,
+            allowedMarks: [4],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice in sub-question"
+          },
+          {
+            id: "sst-hist-map",
+            name: "History Map Skill Work (2 Marks)",
+            shortCode: "map",
+            description: "Identification and location of Indian National Congress sessions and important Satyagraha/National Movement centres.",
+            defaultMarksPerQuestion: 2,
+            allowedMarks: [2],
+            defaultCount: 1,
+            internalChoiceNote: "2 items on outline map of India (2 × 1M)"
+          }
+        ]
+      },
+      {
+        id: "sst-sec-geo",
+        sectionCode: "Section B",
+        title: "Section B: Geography (Contemporary India - II) (20 Marks)",
+        instructions: "Questions carry 20 marks covering Resources, Forests & Wildlife, Water, Agriculture, Minerals & Energy, Manufacturing, Lifelines, and Map Work.",
+        totalMarks: 20,
+        questionTypes: [
+          {
+            id: "sst-geo-mcq",
+            name: "Geography MCQs & Assertion-Reason (1 Mark)",
+            shortCode: "mcq",
+            description: "Objective questions testing physical, economic, and human geography concepts.",
+            defaultMarksPerQuestion: 1,
+            allowedMarks: [1],
+            defaultCount: 5,
+            internalChoiceNote: "Compulsory objective questions"
+          },
+          {
+            id: "sst-geo-vsa",
+            name: "Geography Very Short Answer (2 Marks)",
+            shortCode: "vsaq",
+            description: "Brief geographical definitions, conservation methods, or facts (max 40 words).",
+            defaultMarksPerQuestion: 2,
+            allowedMarks: [2],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice provided in question"
+          },
+          {
+            id: "sst-geo-sa",
+            name: "Geography Short Answer (3 Marks)",
+            shortCode: "saq",
+            description: "Comparative geographical explanations, agricultural patterns, or resource management (max 60 words).",
+            defaultMarksPerQuestion: 3,
+            allowedMarks: [3],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice provided in question"
+          },
+          {
+            id: "sst-geo-la",
+            name: "Geography Long Answer (5 Marks)",
+            shortCode: "laq",
+            description: "Comprehensive spatial analysis of industries, energy transition, or sustainable agriculture (max 120 words).",
+            defaultMarksPerQuestion: 5,
+            allowedMarks: [5],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice provided (1 out of 2)"
+          },
+          {
+            id: "sst-geo-case",
+            name: "Geography Case-Based / Data-Based (4 Marks)",
+            shortCode: "case",
+            description: "Passage on environmental, industrial, or river valley project with 3 analytical sub-questions.",
+            defaultMarksPerQuestion: 4,
+            allowedMarks: [4],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice in sub-question"
+          },
+          {
+            id: "sst-geo-map",
+            name: "Geography Map Skill Work (3 Marks)",
+            shortCode: "map",
+            description: "Locating and labeling / Identification of major soil types, dams, thermal/nuclear plants, cotton/iron centres, seaports, and international airports on outline map of India.",
+            defaultMarksPerQuestion: 3,
+            allowedMarks: [3],
+            defaultCount: 1,
+            internalChoiceNote: "3 items on outline map of India (3 × 1M)"
+          }
+        ]
+      },
+      {
+        id: "sst-sec-pol",
+        sectionCode: "Section C",
+        title: "Section C: Political Science (Democratic Politics - II) (20 Marks)",
+        instructions: "Questions carry 20 marks covering Power Sharing, Federalism, Gender/Religion/Caste, Political Parties, and Outcomes of Democracy.",
+        totalMarks: 20,
+        questionTypes: [
+          {
+            id: "sst-pol-mcq",
+            name: "Political Science MCQs & Assertion-Reason (1 Mark)",
+            shortCode: "mcq",
+            description: "Objective questions testing democratic institutions, constitutional clauses, and political parties.",
+            defaultMarksPerQuestion: 1,
+            allowedMarks: [1],
+            defaultCount: 6,
+            internalChoiceNote: "Compulsory objective questions"
+          },
+          {
+            id: "sst-pol-vsa",
+            name: "Political Science Very Short Answer (2 Marks)",
+            shortCode: "vsaq",
+            description: "Concise definitions of federal principles, decentralization, or secularism (max 40 words).",
+            defaultMarksPerQuestion: 2,
+            allowedMarks: [2],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice provided in question"
+          },
+          {
+            id: "sst-pol-sa",
+            name: "Political Science Short Answer (3 Marks)",
+            shortCode: "saq",
+            description: "Constitutional analysis, party functions, or challenges to democracy (max 60 words).",
+            defaultMarksPerQuestion: 3,
+            allowedMarks: [3],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice provided in question"
+          },
+          {
+            id: "sst-pol-la",
+            name: "Political Science Long Answer (5 Marks)",
+            shortCode: "laq",
+            description: "Comprehensive evaluation of federal power-sharing mechanisms or political party reforms (max 120 words).",
+            defaultMarksPerQuestion: 5,
+            allowedMarks: [5],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice provided (1 out of 2)"
+          },
+          {
+            id: "sst-pol-case",
+            name: "Political Science Case-Based / Extract-Based (4 Marks)",
+            shortCode: "case",
+            description: "Extract on governance, democratic outcomes, or social diversity with 3 analytical sub-questions.",
+            defaultMarksPerQuestion: 4,
+            allowedMarks: [4],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice in sub-question"
+          }
+        ]
+      },
+      {
+        id: "sst-sec-eco",
+        sectionCode: "Section D",
+        title: "Section D: Economics (Understanding Economic Development) (20 Marks)",
+        instructions: "Questions carry 20 marks covering Development, Sectors of the Indian Economy, Money and Credit, Globalization, and Consumer Rights.",
+        totalMarks: 20,
+        questionTypes: [
+          {
+            id: "sst-eco-mcq",
+            name: "Economics MCQs & Assertion-Reason (1 Mark)",
+            shortCode: "mcq",
+            description: "Objective questions testing economic indicators, credit terms, sectoral shares, and globalization trends.",
+            defaultMarksPerQuestion: 1,
+            allowedMarks: [1],
+            defaultCount: 6,
+            internalChoiceNote: "Compulsory objective questions"
+          },
+          {
+            id: "sst-eco-vsa",
+            name: "Economics Very Short Answer (2 Marks)",
+            shortCode: "vsaq",
+            description: "Brief economic concepts: per capita income, formal/informal credit, or HDI (max 40 words).",
+            defaultMarksPerQuestion: 2,
+            allowedMarks: [2],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice provided in question"
+          },
+          {
+            id: "sst-eco-sa",
+            name: "Economics Short Answer (3 Marks)",
+            shortCode: "saq",
+            description: "Economic reasoning on employment generation, SHGs, or MNC impacts (max 60 words).",
+            defaultMarksPerQuestion: 3,
+            allowedMarks: [3],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice provided in question"
+          },
+          {
+            id: "sst-eco-la",
+            name: "Economics Long Answer (5 Marks)",
+            shortCode: "laq",
+            description: "Comprehensive analysis of banking credit mechanisms, sustainable development, or globalization impacts (max 120 words).",
+            defaultMarksPerQuestion: 5,
+            allowedMarks: [5],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice provided (1 out of 2)"
+          },
+          {
+            id: "sst-eco-case",
+            name: "Economics Case-Based / Data-Based (4 Marks)",
+            shortCode: "case",
+            description: "Economic case study or sectoral data table with 3 analytical sub-questions.",
+            defaultMarksPerQuestion: 4,
+            allowedMarks: [4],
+            defaultCount: 1,
+            internalChoiceNote: "Internal choice in sub-question"
+          }
+        ]
+      }
+    ]
+  },
+
+  // --------------------------------------------------------------------------
+  // CLASS 9 SOCIAL SCIENCE (PRESERVED STANDARD 6-SECTION BLUEPRINT)
+  // --------------------------------------------------------------------------
+  "Class 9-Social Science": {
+    id: "cbse-9-social-science-2026",
+    academicSession: "2026-27",
+    board: "CBSE / NCERT (New)",
+    classLevel: "Class 9",
+    subject: "Social Science",
+    displayName: "CBSE Class 9 Social Science (History, Geography, Civics, Economics)",
     totalMarks: 80,
     duration: "3 Hours",
     durationMinutes: 180,
@@ -340,14 +828,14 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
     ],
     sections: [
       {
-        id: "sst-sec-a",
+        id: "sst-9-sec-a",
         sectionCode: "A",
         title: "Section A (Multiple Choice Questions)",
         instructions: "Questions 1 to 20 carry 1 mark each covering History, Geography, Political Science, and Economics.",
         totalMarks: 20,
         questionTypes: [
           {
-            id: "sst-mcq",
+            id: "sst-9-mcq",
             name: "Multiple Choice Questions",
             shortCode: "mcq",
             description: "Objective MCQs testing factual, analytical, and conceptual understanding.",
@@ -359,14 +847,14 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
         ]
       },
       {
-        id: "sst-sec-b",
+        id: "sst-9-sec-b",
         sectionCode: "B",
         title: "Section B (Very Short Answer Type)",
         instructions: "Questions 21 to 24 carry 2 marks each (maximum 40 words).",
         totalMarks: 8,
         questionTypes: [
           {
-            id: "sst-vsa",
+            id: "sst-9-vsa",
             name: "Very Short Answer (VSA)",
             shortCode: "vsaq",
             description: "Brief factual and conceptual statements (max 40 words).",
@@ -378,14 +866,14 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
         ]
       },
       {
-        id: "sst-sec-c",
+        id: "sst-9-sec-c",
         sectionCode: "C",
         title: "Section C (Short Answer Type)",
         instructions: "Questions 25 to 29 carry 3 marks each (maximum 60 words).",
         totalMarks: 15,
         questionTypes: [
           {
-            id: "sst-sa",
+            id: "sst-9-sa",
             name: "Short Answer (SA)",
             shortCode: "saq",
             description: "Point-wise explanations and analysis (max 60 words).",
@@ -397,14 +885,14 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
         ]
       },
       {
-        id: "sst-sec-d",
+        id: "sst-9-sec-d",
         sectionCode: "D",
         title: "Section D (Long Answer Type)",
         instructions: "Questions 30 to 33 carry 5 marks each (maximum 120 words).",
         totalMarks: 20,
         questionTypes: [
           {
-            id: "sst-la",
+            id: "sst-9-la",
             name: "Long Answer (LA)",
             shortCode: "laq",
             description: "Comprehensive multi-dimensional analysis with historical/economic reasoning.",
@@ -416,14 +904,14 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
         ]
       },
       {
-        id: "sst-sec-e",
+        id: "sst-9-sec-e",
         sectionCode: "E",
         title: "Section E (Case-Based / Source-Based)",
         instructions: "Questions 34 to 36 carry 4 marks each (maximum 100 words).",
         totalMarks: 12,
         questionTypes: [
           {
-            id: "sst-case",
+            id: "sst-9-case",
             name: "Case-Based Questions",
             shortCode: "case",
             description: "Historical extract, constitutional clause, or economic report with sub-questions.",
@@ -435,21 +923,21 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
         ]
       },
       {
-        id: "sst-sec-f",
+        id: "sst-9-sec-f",
         sectionCode: "F",
         title: "Section F (Map Skill Work)",
         instructions: "Question 37 carries 5 marks: 37a (History - 2 marks) and 37b (Geography - 3 marks).",
         totalMarks: 5,
         questionTypes: [
           {
-            id: "sst-map",
+            id: "sst-9-map",
             name: "Map Skill-Based Work",
             shortCode: "map",
-            description: "Locating and labeling / Identification on an outline map of India (History 2M + Geography 3M).",
+            description: "Locating and labeling / Identification on an outline map of India / World.",
             defaultMarksPerQuestion: 5,
             allowedMarks: [5],
             defaultCount: 1,
-            internalChoiceNote: "History (Indian National Congress sessions / Freedom Movement) + Geography (Dams, Ports, Airports, Mineral centers)"
+            internalChoiceNote: "History (French Revolution / Russian Revolution / Nazism) + Geography (Physical features, Drainage, Climate)"
           }
         ]
       }
@@ -1069,15 +1557,16 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
     course: "Telugu Parimalam (First Language)",
     displayName: "AP SSC Class 10 Telugu Parimalam (తెలుగు పరిమళం)",
     totalMarks: 80,
-    duration: "3 Hours",
-    durationMinutes: 180,
+    duration: "3 Hours 15 Minutes",
+    durationMinutes: 195,
     isVerified: true,
-    sourceReference: "AP SCERT / BSEAP SSC Telugu Parimalam Examination Blueprint 2024-26",
+    sourceReference: "AP SCERT / BSEAP SSC Telugu Parimalam Examination Blueprint 2024-27",
     generalInstructions: [
       "ఈ ప్రశ్నపత్రంలో మూడు విభాగాలు (విభాగం-1, విభాగం-2, విభాగం-3) ఉంటాయి. మొత్తం 80 మార్కులు.",
-      "విభాగం - 1 : అవగాహన - ప్రతిస్పందన (20 మార్కులు) - అపరిచిత/పరిచిత గద్య, పద్య అంశాలు.",
-      "విభాగం - 2 : వ్యక్తీకరణ - సృజనాత్మకత (36 మార్కులు) - లఘు, వ్యాసరూప, ఉపవాచక (రామాయణం) ప్రశ్నలు & సృజనాత్మక రచన.",
-      "విభాగం - 3 : భాషాంశాలు & వ్యాకరణం (24 మార్కులు) - సంధులు, సమాసాలు, ఛందస్సు, అలంకారాలు, పదజాలం, జాతీయాలు.",
+      "మొత్తం సమయం 3 గంటల 15 నిమిషాలు (మొదటి 15 నిమిషాలు ప్రశ్నపత్రం చదువుకోవడానికి, 3 గంటలు పరీక్ష రాయడానికి కేటాయించబడింది).",
+      "విభాగం - 1 : అవగాహన - ప్రతిస్పందన (20 మార్కులు) - పరిచిత పద్యం ప్రతిపదార్థ తాత్పర్యం (8M), అపరిచిత పద్యం (4M), పరిచిత/అపరిచిత గద్యం (4M), రామాయణ సంఘటనల కాలక్రమం (4M).",
+      "విభాగం - 2 : వ్యక్తీకరణ - సృజనాత్మకత (36 మార్కులు) - లఘు సమాధాన ప్రశ్నలు (12M), పద్యభాగ వ్యాసరూప ప్రశ్న (8M), గద్యభాగ వ్యాసరూప ప్రశ్న (8M), సృజనాత్మక రచన / ఉపవాచకం (8M).",
+      "విభాగం - 3 : భాషాంశాలు & వ్యాకరణం (24 మార్కులు) - పదజాలం (12M: అర్థాలు, పర్యాయపదాలు, నానార్థాలు, ప్రకృతి-వికృతులు, జాతీయాలు, సామెతలు) మరియు వ్యాకరణాంశాలు (12M: సంధులు, సమాసాలు, ఛందస్సు, అలంకారాలు, వాక్యాలు).",
       "అన్ని సమాధానాలను స్పష్టమైన, దోషరహితమైన తెలుగు లిపిలో రాయండి."
     ],
     sections: [
@@ -1085,97 +1574,97 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
         id: "tel-sec-1",
         sectionCode: "విభాగం - 1",
         title: "విభాగం - 1 : అవగాహన - ప్రతిస్పందన (Reading Comprehension & Appreciation)",
-        instructions: "మొత్తం 20 మార్కులు. అపరిచిత గద్యం, అపరిచిత పద్యం, పరిచిత పద్యం & ప్రతిపదార్థం, పరిచిత గద్యం.",
+        instructions: "మొత్తం 20 మార్కులు. పరిచిత పద్య ప్రతిపదార్థం (8M), అపరిచిత పద్యం (4M), గద్యం (4M), రామాయణ సంఘటనల క్రమం (4M).",
         totalMarks: 20,
         questionTypes: [
           {
-            id: "tel-aparichita-gadyam",
-            name: "అపరిచిత గద్యం & ప్రశ్నలు (Unseen Prose)",
-            shortCode: "reading",
-            description: "అపరిచిత గద్యాన్ని చదివి క్రింది 5 ప్రశ్నలకు జవాబులు రాయండి (5 × 1M = 5 మార్కులు).",
-            defaultMarksPerQuestion: 5,
-            allowedMarks: [5],
+            id: "tel-parichita-padyam-pratipadhartham",
+            name: "పరిచిత పద్యం - ప్రతిపదార్థ తాత్పర్యం (Textbook Poetry with Choice)",
+            shortCode: "literature",
+            description: "పాఠ్యభాగంలోని రెండు పద్యాలలో ఒకదానికి ప్రతిపదార్థ తాత్పర్యం రాయండి (1 × 8M = 8 మార్కులు).",
+            defaultMarksPerQuestion: 8,
+            allowedMarks: [8],
             defaultCount: 1,
-            internalChoiceNote: "అన్ని ఉప-ప్రశ్నలు తప్పనిసరి"
+            internalChoiceNote: "రెండు పద్యాలలో ఒకదానికి ప్రతిపదార్థం, తాత్పర్యం రాయాలి (అంతర్గత ఎంపిక)"
           },
           {
             id: "tel-aparichita-padyam",
             name: "అపరిచిత పద్యం & ప్రశ్నలు (Unseen Poetry)",
             shortCode: "reading",
-            description: "అపరిచిత పద్యాన్ని చదివి క్రింది 5 ప్రశ్నలకు జవాబులు రాయండి (5 × 1M = 5 మార్కులు).",
-            defaultMarksPerQuestion: 5,
-            allowedMarks: [5],
+            description: "అపరిచిత పద్యాన్ని చదివి క్రింది 4 ప్రశ్నలకు జవాబులు రాయండి (4 × 1M = 4 మార్కులు).",
+            defaultMarksPerQuestion: 4,
+            allowedMarks: [4],
             defaultCount: 1,
-            internalChoiceNote: "అన్ని ఉప-ప్రశ్నలు తప్పనిసరి"
+            internalChoiceNote: "4 ప్రశ్నలు - అన్ని ఉప-ప్రశ్నలు తప్పనిసరి (4 × 1M)"
           },
           {
-            id: "tel-parichita-padyam",
-            name: "పరిచిత పద్యం - ప్రతిపదార్థ తాత్పర్యం / భావగ్రహణం",
-            shortCode: "literature",
-            description: "పాఠ్యభాగ పద్యానికి ప్రతిపదార్థ తాత్పర్యం లేదా భావం రాయండి (1 × 5M = 5 మార్కులు).",
-            defaultMarksPerQuestion: 5,
-            allowedMarks: [5],
+            id: "tel-parichita-aparichita-gadyam",
+            name: "పరిచిత / అపరిచిత గద్యం & ప్రశ్నలు (Prose Passage)",
+            shortCode: "reading",
+            description: "ఇచ్చిన గద్యాంశాన్ని చదివి క్రింది 4 ప్రశ్నలకు జవాబులు రాయండి (4 × 1M = 4 మార్కులు).",
+            defaultMarksPerQuestion: 4,
+            allowedMarks: [4],
             defaultCount: 1,
-            internalChoiceNote: "రెండు పద్యాలలో ఒకదానికి సమాధానం రాయండి (అంతర్గత ఎంపిక)"
+            internalChoiceNote: "4 ప్రశ్నలు - అన్ని ఉప-ప్రశ్నలు తప్పనిసరి (4 × 1M)"
           },
           {
-            id: "tel-parichita-gadyam",
-            name: "పరిచిత గద్యం / ఉపవాచకం సంఘటన క్రమం",
+            id: "tel-ramayanam-sanghatana-kramam",
+            name: "ఉపవాచకం (రామాయణం) సంఘటనల కాలక్రమం (Chronological Event Ordering)",
             shortCode: "literature",
-            description: "పాఠ్యభాగ గద్యం ఆధారంగా ప్రశ్నలు లేదా రామాయణ సంఘటనల క్రమం అమర్చడం (5 × 1M = 5 మార్కులు).",
-            defaultMarksPerQuestion: 5,
-            allowedMarks: [5],
+            description: "రామాయణంలోని ఇచ్చిన 4 వాక్యాలను సరైన కాలక్రమంలో అమర్చి రాయండి (4 × 1M = 4 మార్కులు).",
+            defaultMarksPerQuestion: 4,
+            allowedMarks: [4],
             defaultCount: 1,
-            internalChoiceNote: "అన్ని ఉప-ప్రశ్నలు తప్పనిసరి"
+            internalChoiceNote: "4 సంఘటన వాక్యాలు - కాలక్రమంలో అమర్చాలి (4 × 1M)"
           }
         ]
       },
       {
         id: "tel-sec-2",
         sectionCode: "విభాగం - 2",
-        title: "విభాగం - 2 : వ్యక్తీకరణ - సృజనాత్మకత (Writing & Creative Expression)",
-        instructions: "మొత్తం 36 మార్కులు. లఘు ప్రశ్నలు, వ్యాసరూప ప్రశ్నలు, రామాయణ ఉపవాచక ప్రశ్నలు మరియు సృజనాత్మక రచన.",
+        title: "విభాగం - 2 : వ్యక్తీకరణ - సృజనాత్మకత (Expression & Creative Writing)",
+        instructions: "మొత్తం 36 మార్కులు. లఘు ప్రశ్నలు (3 × 4M = 12M), పద్యభాగ వ్యాసరూప ప్రశ్న (1 × 8M = 8M), గద్యభాగ వ్యాసరూప ప్రశ్న (1 × 8M = 8M), సృజనాత్మక రచన / రామాయణ విశ్లేషణ (1 × 8M = 8M).",
         totalMarks: 36,
         questionTypes: [
           {
             id: "tel-laghu-prashnalu",
-            name: "లఘు సమాధాన ప్రశ్నలు (Short Answer - Prose & Poetry)",
+            name: "లఘు సమాధాన ప్రశ్నలు (Short Answer - Kavi Parichayam / Theme / Characters)",
             shortCode: "literature",
-            description: "గద్య మరియు పద్య భాగాల నుండి 4 లఘు సమాధాన ప్రశ్నలు (4 × 3M = 12 మార్కులు).",
-            defaultMarksPerQuestion: 3,
-            allowedMarks: [3],
-            defaultCount: 4,
-            internalChoiceNote: "ప్రతి ప్రశ్నకు 4-5 వాక్యాలలో సమాధానం రాయండి"
+            description: "గద్య, పద్య మరియు ఉపవాచక భాగాల నుండి 3 లఘు ప్రశ్నలకు 4-5 వాక్యాలలో సమాధానాలు రాయండి (3 × 4M = 12 మార్కులు).",
+            defaultMarksPerQuestion: 4,
+            allowedMarks: [4],
+            defaultCount: 3,
+            internalChoiceNote: "కవి పరిచయం, నేపథ్యం, పాత్ర స్వభావం ఆధారంగా 3 ప్రశ్నలు (3 × 4M)"
           },
           {
-            id: "tel-vyasarupa-prashnalu",
-            name: "వ్యాసరూప ప్రశ్నలు (Detailed Essay Questions - Lessons)",
+            id: "tel-vyasarupa-padyam",
+            name: "పద్యభాగ వ్యాసరూప ప్రశ్న (Poetry Essay with Internal Choice)",
             shortCode: "literature",
-            description: "పాఠ్యాంశాల సమగ్ర భావన ఆధారంగా 2 వ్యాసరూప ప్రశ్నలు (2 × 6M = 12 మార్కులు).",
-            defaultMarksPerQuestion: 6,
-            allowedMarks: [6],
-            defaultCount: 2,
-            internalChoiceNote: "ప్రతి ప్రశ్నకు అంతర్గత ఎంపిక కలదు (ఈ క్రింది వానిలో ఒకదానికి సమాధానం)"
-          },
-          {
-            id: "tel-upavachakam-ramayanam",
-            name: "ఉపవాచకం (రామాయణం) పాత్ర స్వభావం / సంఘటన వివరణ",
-            shortCode: "literature",
-            description: "బాలకాండ నుండి యుద్ధకాండ వరకు గల కాండల పాత్రల విశిష్టత లేదా సందేశం (1 × 6M = 6 మార్కులు).",
-            defaultMarksPerQuestion: 6,
-            allowedMarks: [6],
+            description: "పద్యభాగ పాఠ్యాంశాల సమగ్ర సందేశం/విశ్లేషణ ఆధారంగా ఒక వ్యాసరూప ప్రశ్నకు సమాధానం రాయండి (1 × 8M = 8 మార్కులు).",
+            defaultMarksPerQuestion: 8,
+            allowedMarks: [8],
             defaultCount: 1,
-            internalChoiceNote: "రెండు ప్రశ్నలలో ఒకదానికి సమాధానం రాయండి"
+            internalChoiceNote: "రెండు ప్రశ్నలలో ఒకదానికి సమగ్ర సమాధానం రాయండి (అంతర్గత ఎంపిక)"
           },
           {
-            id: "tel-srujanatmakata",
-            name: "సృజనాత్మక రచన (లేఖ / కరపత్రం / ప్రకటన / సంభాషణ)",
+            id: "tel-vyasarupa-gadyam",
+            name: "గద్యభాగ వ్యాసరూప ప్రశ్న (Prose Essay with Internal Choice)",
+            shortCode: "literature",
+            description: "గద్యభాగ పాఠ్యాంశాల సమగ్ర సందేశం/విశ్లేషణ ఆధారంగా ఒక వ్యాసరూప ప్రశ్నకు సమాధానం రాయండి (1 × 8M = 8 మార్కులు).",
+            defaultMarksPerQuestion: 8,
+            allowedMarks: [8],
+            defaultCount: 1,
+            internalChoiceNote: "రెండు ప్రశ్నలలో ఒకదానికి సమగ్ర సమాధానం రాయండి (అంతర్గత ఎంపిక)"
+          },
+          {
+            id: "tel-srujanatmakata-upavachakam",
+            name: "సృజనాత్మక రచన / ఉపవాచక విశేషాంశం (Creative Writing / Letter / Pamphlet)",
             shortCode: "writing",
-            description: "సమకాలీన లేదా సామాజిక అంశంపై లేఖారచన, కరపత్రం, ప్రకటన లేదా సంభాషణ (1 × 6M = 6 మార్కులు).",
-            defaultMarksPerQuestion: 6,
-            allowedMarks: [6],
+            description: "లేఖారచన, కరపత్రం, ప్రకటన, సంభాషణ లేదా రామాయణ పాత్ర విశ్లేషణపై సృజనాత్మక సమాధానం రాయండి (1 × 8M = 8 మార్కులు).",
+            defaultMarksPerQuestion: 8,
+            allowedMarks: [8],
             defaultCount: 1,
-            internalChoiceNote: "రెండు అంశాలలో ఒకదానిని ఎంచుకొని రాయండి"
+            internalChoiceNote: "రెండు సృజనాత్మక అంశాలలో ఒకదానిని ఎంచుకొని రాయండి (అంతర్గత ఎంపిక)"
           }
         ]
       },
@@ -1183,48 +1672,28 @@ export const VERIFIED_SUBJECT_PATTERNS: Record<string, SubjectPaperPattern> = {
         id: "tel-sec-3",
         sectionCode: "విభాగం - 3",
         title: "విభాగం - 3 : భాషాంశాలు & వ్యాకరణం (Language Elements & Grammar)",
-        instructions: "మొత్తం 24 మార్కులు. సంధులు, సమాసాలు, ఛందస్సు, అలంకారాలు, పదజాలం మరియు జాతీయాలు.",
+        instructions: "మొత్తం 24 మార్కులు. పదజాలం (12 × 1M = 12M) మరియు వ్యాకరణాంశాలు (12 × 1M = 12M).",
         totalMarks: 24,
         questionTypes: [
           {
-            id: "tel-sandhi-samasa",
-            name: "సంధులు & సమాసాలు (Sandhi & Samasa)",
+            id: "tel-padajalam-12",
+            name: "పదజాలం (Vocabulary - 12 Objective / Short Items)",
             shortCode: "grammar",
-            description: "సవర్ణదీర్ఘ, గుణ, వృద్ధి, యణాదేశ, ఉత్వ, ఇత్వ సంధులు మరియు తత్పురుష, ద్వంద్వ, ద్విగు, బహువ్రీహి సమాసాలు (6 × 1M = 6 మార్కులు).",
+            description: "అర్థాలు, పర్యాయపదాలు, నానార్థాలు, ప్రకృతి-వికృతులు, వ్యుత్పత్యర్థాలు, జాతీయాలు, సామెతలు (12 × 1M = 12 మార్కులు).",
             defaultMarksPerQuestion: 1,
             allowedMarks: [1],
-            defaultCount: 6,
-            internalChoiceNote: "పదాలను విడదీయడం, సంధి పేరు రాయడం, విగ్రహవాక్యాలు"
+            defaultCount: 12,
+            internalChoiceNote: "12 లక్ష్యాత్మక / సంక్షిప్త పదజాల ప్రశ్నలు (12 × 1M)"
           },
           {
-            id: "tel-chandassu-alankara",
-            name: "ఛందస్సు & అలంకారాలు (Prosody & Figures of Speech)",
+            id: "tel-vyakaranamsalu-12",
+            name: "వ్యాకరణాంశాలు (Grammar Rules - 12 Objective / Short Items)",
             shortCode: "grammar",
-            description: "వృత్త పద్య లక్షణాలు (ఉత్పలమాల, చంపకమాల, శార్దూలం, మత్తేభం) మరియు శబ్ద/అర్థాలంకారాలు (6 × 1M = 6 మార్కులు).",
+            description: "సంధులు, సమాసాలు, ఛందస్సు (వృత్తాలు/జాతులు), అలంకారాలు, కర్తరి-కర్మణి/ప్రత్యక్ష-పరోక్ష వాక్యాలు (12 × 1M = 12 మార్కులు).",
             defaultMarksPerQuestion: 1,
             allowedMarks: [1],
-            defaultCount: 6,
-            internalChoiceNote: "గణవిభజన, యతి-ప్రాస గుర్తింపు, అలంకార సమన్వయం"
-          },
-          {
-            id: "tel-padajalam",
-            name: "పదజాలం (పర్యాయపదాలు, నానార్థాలు, ప్రకృతి-వికృతులు)",
-            shortCode: "grammar",
-            description: "పర్యాయపదాలు, నానార్థాలు, ప్రకృతి-వికృతులు, వ్యుత్పత్యర్థాలు (6 × 1M = 6 మార్కులు).",
-            defaultMarksPerQuestion: 1,
-            allowedMarks: [1],
-            defaultCount: 6,
-            internalChoiceNote: "లక్ష్యాత్మక వ్యాకరణ ప్రశ్నలు"
-          },
-          {
-            id: "tel-jatiyalu-sametalu",
-            name: "జాతీయాలు, సామెతలు & వాక్య ప్రయోగాలు",
-            shortCode: "grammar",
-            description: "జాతీయాల అర్థం, సామెతల గుర్తింపు, స్వంత వాక్య ప్రయోగాలు (6 × 1M = 6 మార్కులు).",
-            defaultMarksPerQuestion: 1,
-            allowedMarks: [1],
-            defaultCount: 6,
-            internalChoiceNote: "సందర్భోచిత ప్రయోగాలు"
+            defaultCount: 12,
+            internalChoiceNote: "12 లక్ష్యాత్మక / సంక్షిప్త వ్యాకరణ ప్రశ్నలు (12 × 1M)"
           }
         ]
       }
