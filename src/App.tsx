@@ -440,7 +440,11 @@ const App: React.FC = () => {
         console.error(`[FirebaseAuth] Operation not allowed. Enable Microsoft under Firebase Console > Authentication > Sign-in method.`);
         showToast(`Microsoft sign-in is not enabled in the Firebase Console. Please enable Microsoft under Auth Providers.`, "error");
       } else if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/invalid-oauth-provider') {
-        showToast(`Invalid ${providerType} credentials or OAuth application configuration.`, "error");
+        if (errorMessage.includes('AADSTS7000215') || errorMessage.includes('client secret')) {
+          showToast("Azure configuration error: In Firebase Console > Authentication > Microsoft, replace the Secret ID with the Azure Client Secret Value.", "error");
+        } else {
+          showToast(`Invalid ${providerType} credentials or OAuth application configuration.`, "error");
+        }
       } else if (errorCode === 'auth/internal-error') {
         showToast(`Authentication service error. Please check your network and try again.`, "error");
       } else {

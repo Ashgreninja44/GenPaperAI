@@ -16,7 +16,9 @@ import {
   Calendar,
   ExternalLink,
   User,
-  Heart
+  Heart,
+  Copy,
+  Check
 } from 'lucide-react';
 import Logo from './Logo';
 import { InstagramIcon, YouTubeIcon, XTwitterIcon } from './BrandIcons';
@@ -31,6 +33,43 @@ const About: React.FC<AboutProps> = ({ onBack, isLoggedIn = false, onOpenAuth })
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
   const [imageSrcIndex, setImageSrcIndex] = useState(0);
+  const [copiedEmail, setCopiedEmail] = useState(false);
+
+  const handleCopyEmail = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const email = 'pendyaladarshit4@gmail.com';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(email).then(() => {
+        setCopiedEmail(true);
+        setTimeout(() => setCopiedEmail(false), 2000);
+      }).catch(() => {
+        fallbackCopy(email);
+      });
+    } else {
+      fallbackCopy(email);
+    }
+  };
+
+  const fallbackCopy = (text: string) => {
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopiedEmail(true);
+      setTimeout(() => setCopiedEmail(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy email:', err);
+    }
+  };
 
   // Instantly reset scroll position when About page mounts or navigates
   useLayoutEffect(() => {
@@ -363,20 +402,36 @@ const About: React.FC<AboutProps> = ({ onBack, isLoggedIn = false, onOpenAuth })
             </div>
 
             {/* Email Address Contact Item */}
-            <a 
-              href="mailto:pendyaladarshit4@gmail.com?subject=GenPaperAI%20Inquiry"
-              className="bg-black/30 hover:bg-black/40 p-3 rounded-xl border border-white/10 hover:border-white/30 flex items-center gap-3 transition-all group"
-            >
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <Mail className="w-4 h-4" />
-              </div>
-              <div className="min-w-0 flex-grow">
-                <div className="text-[10px] uppercase font-bold text-white/50 tracking-wider">Email Contact</div>
-                <div className="text-xs font-semibold text-white truncate">
-                  pendyaladarshit4@gmail.com
+            <div className="bg-black/30 hover:bg-black/40 p-3 rounded-xl border border-white/10 hover:border-white/30 flex items-center justify-between gap-2 transition-all group">
+              <a 
+                href="mailto:pendyaladarshit4@gmail.com?subject=GenPaperAI%20Inquiry"
+                className="flex items-center gap-3 min-w-0 flex-grow"
+                title="Send email to pendyaladarshit4@gmail.com"
+              >
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                  <Mail className="w-4 h-4" />
                 </div>
-              </div>
-            </a>
+                <div className="min-w-0 flex-grow">
+                  <div className="text-[10px] uppercase font-bold text-white/50 tracking-wider">Email Contact</div>
+                  <div className="text-xs font-semibold text-white truncate">
+                    pendyaladarshit4@gmail.com
+                  </div>
+                </div>
+              </a>
+              <button
+                type="button"
+                onClick={handleCopyEmail}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-all shrink-0 flex items-center gap-1 cursor-pointer"
+                title={copiedEmail ? "Copied to clipboard!" : "Copy email address"}
+                aria-label="Copy email address"
+              >
+                {copiedEmail ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Connect With Me / Social Media Section */}
@@ -462,12 +517,33 @@ const About: React.FC<AboutProps> = ({ onBack, isLoggedIn = false, onOpenAuth })
                   </p>
                 </div>
               </div>
-              <a
-                href="mailto:pendyaladarshit4@gmail.com?subject=GenPaperAI%20Inquiry%20from%20Website"
-                className="px-5 py-2.5 rounded-xl bg-white text-[#3C128D] text-xs font-black shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all whitespace-nowrap cursor-pointer"
-              >
-                Email Darshit
-              </a>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleCopyEmail}
+                  className="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  title="Copy email address to clipboard"
+                  aria-label="Copy email address"
+                >
+                  {copiedEmail ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-300" />
+                      <span className="text-emerald-300">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-white/80" />
+                      <span>Copy Email</span>
+                    </>
+                  )}
+                </button>
+                <a
+                  href="mailto:pendyaladarshit4@gmail.com?subject=GenPaperAI%20Inquiry%20from%20Website"
+                  className="px-5 py-2.5 rounded-xl bg-white text-[#3C128D] text-xs font-black shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all whitespace-nowrap cursor-pointer"
+                >
+                  Email Darshit
+                </a>
+              </div>
             </div>
           </div>
 
