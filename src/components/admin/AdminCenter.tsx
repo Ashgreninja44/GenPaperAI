@@ -35,6 +35,7 @@ import {
 } from '../../services/adminService';
 import { getMaintenanceConfig } from '../../services/maintenanceService';
 import { getAllStoredPapers } from '../../services/paperStorageService';
+import { getEffectiveProfilePhoto } from '../../services/profilePhotoService';
 
 import { AdminOverview } from './AdminOverview';
 import { AdminUsers } from './AdminUsers';
@@ -45,15 +46,17 @@ import { AdminDiagnostics } from './AdminDiagnostics';
 import { AdminSecurity } from './AdminSecurity';
 import { AdminAuditLog } from './AdminAuditLog';
 
-interface AdminCenterProps {
+export interface AdminCenterProps {
   user: UserProfile;
-  onBackToProfile: () => void;
+  onBackToDashboard: () => void;
+  onBackToProfile?: () => void;
 }
 
 type AdminTab = 'overview' | 'users' | 'ai-models' | 'analytics' | 'system' | 'diagnostics' | 'security' | 'audit-log';
 
 export const AdminCenter: React.FC<AdminCenterProps> = ({
   user,
+  onBackToDashboard,
   onBackToProfile
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
@@ -157,6 +160,9 @@ export const AdminCenter: React.FC<AdminCenterProps> = ({
     { id: 'audit-log', label: 'Audit Log', icon: FileCheck2 },
   ];
 
+  const effectivePhoto = getEffectiveProfilePhoto(user);
+  const handleExitAdmin = onBackToDashboard || onBackToProfile || (() => {});
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100" id="admin-center-root">
       {/* Top Admin Header Bar */}
@@ -164,23 +170,24 @@ export const AdminCenter: React.FC<AdminCenterProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
-              onClick={onBackToProfile}
-              className="p-2 rounded-xl text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-1.5 text-xs font-bold"
-              title="Return to User Profile"
+              onClick={handleExitAdmin}
+              className="p-2 rounded-xl text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+              title="Return to Main Application Dashboard"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">User Profile</span>
+              <span className="hidden sm:inline">Exit to Dashboard</span>
+              <span className="sm:hidden">Exit</span>
             </button>
 
             <div className="h-5 w-px bg-gray-200 dark:bg-gray-800" />
 
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shadow-sm">
                 <Crown className="w-5 h-5" />
               </div>
               <div>
                 <h1 className="text-base font-black text-gray-900 dark:text-white leading-none">
-                  Admin Center
+                  Admin Portal
                 </h1>
                 <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
                   {isOwner ? 'Platform Owner / Super Admin' : isSuper ? 'Super Administrator' : 'Administrator'}
@@ -201,16 +208,16 @@ export const AdminCenter: React.FC<AdminCenterProps> = ({
             </button>
 
             <div className="flex items-center gap-2 pl-2 border-l border-gray-200 dark:border-gray-800">
-              {user.profilePhoto ? (
+              {effectivePhoto ? (
                 <img 
-                  src={user.profilePhoto} 
+                  src={effectivePhoto} 
                   alt={user.name} 
                   className="w-8 h-8 rounded-full object-cover border border-amber-500/40"
                   referrerPolicy="no-referrer"
                 />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-indigo-600 text-white flex items-center justify-center font-bold text-xs">
-                  {user.name.charAt(0)}
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'A'}
                 </div>
               )}
               <div className="hidden lg:block text-left">

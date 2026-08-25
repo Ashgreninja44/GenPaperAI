@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { UserProfile, MaintenanceConfig } from '../types';
-import { Shield, Mail, Calendar, User as UserIcon, Crown, ArrowRight, Settings as SettingsIcon, ShieldCheck, Sparkles, Camera } from 'lucide-react';
+import { Shield, Mail, Calendar, Crown, ShieldCheck, Sparkles } from 'lucide-react';
 import { GoogleIcon, MicrosoftIcon, EmailIcon } from './BrandIcons';
 import { isSuperAdmin, isPlatformAdmin, OWNER_EMAIL } from '../services/adminService';
 import { getEffectiveProfilePhoto, isUsingCustomProfilePicture } from '../services/profilePhotoService';
-import { AdminCenter } from './admin/AdminCenter';
 
 interface ProfileProps {
   profile: UserProfile;
@@ -19,23 +18,11 @@ const Profile: React.FC<ProfileProps> = ({
   onGoToSettings,
   maintenanceConfig 
 }) => {
-  const [showAdminCenter, setShowAdminCenter] = useState(false);
-
   const isOwner = profile.email.toLowerCase() === OWNER_EMAIL.toLowerCase();
   const isSuper = isSuperAdmin(profile.email, profile.role);
   const isAdmin = isPlatformAdmin(profile.email, profile.role);
   const effectivePhoto = getEffectiveProfilePhoto(profile);
   const isCustomPhoto = isUsingCustomProfilePicture(profile);
-
-  // If the admin opened the dedicated Admin Center, render it
-  if (showAdminCenter && isAdmin) {
-    return (
-      <AdminCenter 
-        user={profile} 
-        onBackToProfile={() => setShowAdminCenter(false)} 
-      />
-    );
-  }
 
   return (
     <div className="max-w-4xl mx-auto p-6 animate-fade-in">
@@ -105,34 +92,6 @@ const Profile: React.FC<ProfileProps> = ({
                     Edit Profile
                 </button>
             </div>
-
-            {/* DEDICATED SEPARATE ADMIN CENTER ACCESS (VISIBLE ONLY TO ADMINS/SUPER ADMINS) */}
-            {isAdmin && (
-              <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-purple-950 via-[#3C128D] to-indigo-950 text-white border-2 border-amber-400/40 shadow-xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-1.5 z-10">
-                  <div className="flex items-center gap-2">
-                    <span className="p-2 rounded-xl bg-amber-400 text-gray-950 font-black shadow-md">
-                      <Crown className="w-5 h-5" />
-                    </span>
-                    <h3 className="text-lg font-black text-white">
-                      GenPaperAI Admin Center
-                    </h3>
-                  </div>
-                  <p className="text-xs text-purple-200 leading-relaxed max-w-xl">
-                    Dedicated administrator area for User Roles, Gemini Model Registry, Platform Analytics, System Gates, Diagnostics, and Security Audit Logs.
-                  </p>
-                </div>
-
-                <button
-                  id="btn-open-admin-center"
-                  onClick={() => setShowAdminCenter(true)}
-                  className="px-6 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-gray-950 font-black text-sm transition-all shadow-lg hover:shadow-amber-400/25 active:scale-95 flex items-center justify-center gap-2 shrink-0 cursor-pointer z-10"
-                >
-                  <span>Open Admin Center</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">

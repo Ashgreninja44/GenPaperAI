@@ -12,6 +12,7 @@ import ResetPassword from './components/ResetPassword';
 import About from './components/About';
 import Maintenance from './components/Maintenance';
 import ThemeStudio from './components/ThemeStudio';
+import { AdminCenter } from './components/admin/AdminCenter';
 import { isMaintenanceModeActive } from './config/maintenance';
 import ScrollToTop from './components/ScrollToTop';
 import BackgroundAnimation from './components/BackgroundAnimation';
@@ -22,7 +23,7 @@ import { SyllabusData, getLatestCurriculum, updateSyllabusFromSources } from './
 import { PaperConfig, GeneratedPaper, QuestionBank, UserProfile, MaintenanceConfig, AnnouncementConfig, ThemeAnimationConfig, DEFAULT_THEME_ANIMATION_CONFIG } from './types';
 import { generateQuestionPaper } from './services/geminiService';
 import { subscribeToMaintenanceMode, isSuperAdmin, setMaintenanceMode } from './services/maintenanceService';
-import { subscribeToAnnouncement } from './services/adminService';
+import { subscribeToAnnouncement, isPlatformAdmin } from './services/adminService';
 import { 
   savePaperToFirestore, 
   loadPaperFromFirestore, 
@@ -69,10 +70,13 @@ import {
   FileCheck,
   FileText,
   Radio,
-  Palette
+  Palette,
+  Crown,
+  ShieldAlert,
+  ShieldCheck
 } from 'lucide-react';
 
-type View = 'dashboard' | 'create' | 'preview' | 'bank' | 'settings' | 'appearance' | 'profile' | 'about';
+type View = 'dashboard' | 'create' | 'preview' | 'bank' | 'settings' | 'appearance' | 'profile' | 'about' | 'admin-portal';
 
 const THEMES: Record<string, string> = {
   default: 'linear-gradient(135deg, #3C128D 0%, #8A2CB0 60%, #EEA727 100%)',
@@ -825,7 +829,9 @@ const App: React.FC = () => {
   }, []);
 
   // Maintenance Mode Gate
-  const isAdmin = isSuperAdmin(user?.email, userProfile?.role);
+  const isSuper = isSuperAdmin(user?.email, userProfile?.role);
+  const isUserAdmin = isPlatformAdmin(user?.email, userProfile?.role);
+  const isAdmin = isSuper;
   const maintenanceActive = isMaintenanceModeActive(maintenanceConfig, user?.email, userProfile?.role);
 
   if (maintenanceActive && !isAdmin) {
@@ -864,10 +870,11 @@ const App: React.FC = () => {
               Turn OFF Maintenance Mode
             </button>
             <button
-              onClick={() => setView('profile')}
-              className="px-3 py-1 bg-black/10 hover:bg-black/20 text-gray-950 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+              onClick={() => setView('admin-portal')}
+              className="px-3 py-1 bg-black/10 hover:bg-black/20 text-gray-950 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1"
             >
-              Admin Settings →
+              <Crown className="w-3 h-3" />
+              Admin Portal →
             </button>
           </div>
         </div>
@@ -894,14 +901,14 @@ const App: React.FC = () => {
                    <>
                       <button 
                           onClick={() => setView('dashboard')} 
-                          className={`px-1.5 py-1 md:px-5 md:py-2 rounded-lg text-[10px] md:text-sm font-bold transition-all duration-300 whitespace-nowrap flex-shrink ${view === 'dashboard' ? 'bg-white text-[#3C128D] shadow-md scale-100 ring-1 ring-[#8A2CB0]/20' : 'text-white hover:text-white/90 hover:bg-white/10'}`}
+                          className={`px-1.5 py-1 md:px-5 md:py-2 rounded-lg text-[10px] md:text-sm font-bold transition-all duration-300 whitespace-nowrap flex-shrink cursor-pointer ${view === 'dashboard' ? 'bg-white text-[#3C128D] shadow-md scale-100 ring-1 ring-[#8A2CB0]/20' : 'text-white hover:text-white/90 hover:bg-white/10'}`}
                       >
                           <span className="hidden sm:inline">Dashboard</span>
                           <span className="sm:hidden">Home</span>
                       </button>
                       <button 
                           onClick={() => setView('bank')} 
-                          className={`px-1.5 py-1 md:px-5 md:py-2 rounded-lg text-[10px] md:text-sm font-bold transition-all duration-300 flex items-center gap-0.5 md:gap-2 whitespace-nowrap flex-shrink ${view === 'bank' ? 'bg-white text-[#3C128D] shadow-md scale-100 ring-1 ring-[#8A2CB0]/20' : 'text-white hover:text-white/90 hover:bg-white/10'}`}
+                          className={`px-1.5 py-1 md:px-5 md:py-2 rounded-lg text-[10px] md:text-sm font-bold transition-all duration-300 flex items-center gap-0.5 md:gap-2 whitespace-nowrap flex-shrink cursor-pointer ${view === 'bank' ? 'bg-white text-[#3C128D] shadow-md scale-100 ring-1 ring-[#8A2CB0]/20' : 'text-white hover:text-white/90 hover:bg-white/10'}`}
                       >
                           <span className="hidden sm:inline">Question Bank</span>
                           <span className="sm:hidden">Question Bank</span>
@@ -909,6 +916,23 @@ const App: React.FC = () => {
                             🚧
                           </span>
                       </button>
+
+                      {/* Top-Level Admin Portal Navigation (Visible Strictly to Owner/Super Admin/Platform Admins) */}
+                      {isUserAdmin && (
+                        <button
+                          id="nav-btn-admin-portal"
+                          onClick={() => setView('admin-portal')}
+                          className={`px-2 py-1 md:px-3.5 md:py-2 rounded-lg text-[10px] md:text-sm font-black transition-all duration-300 flex items-center gap-1 md:gap-1.5 whitespace-nowrap flex-shrink cursor-pointer ${
+                            view === 'admin-portal'
+                              ? 'bg-amber-400 text-gray-950 shadow-md scale-100 ring-2 ring-amber-300'
+                              : 'text-amber-300 hover:text-white hover:bg-white/15 border border-amber-400/30'
+                          }`}
+                          title="Open Admin Portal"
+                        >
+                          <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span>Admin Portal</span>
+                        </button>
+                      )}
                       
                       {/* User Profile Dropdown */}
                       <div className="relative flex-shrink-0 z-[60]">
@@ -1001,6 +1025,30 @@ const App: React.FC = () => {
                                         About GenPaperAI
                                     </button>
                                     
+                                    {/* Dedicated Top-Level Admin Portal access in dropdown */}
+                                    {isUserAdmin && (
+                                        <div className="border-t border-gray-100 mt-1 pt-1">
+                                            <button 
+                                                id="dropdown-btn-admin-portal"
+                                                onClick={() => { setView('admin-portal'); setIsOpen(false); }}
+                                                className={`w-full text-left px-4 py-3 text-sm font-bold flex items-center gap-3 transition-colors cursor-pointer ${
+                                                  view === 'admin-portal' ? 'bg-amber-50 text-amber-950 font-black' : 'text-amber-800 hover:bg-amber-50/80'
+                                                }`}
+                                            >
+                                                <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 shadow-sm border border-amber-200">
+                                                    <Crown className="w-4 h-4" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1.5">
+                                                      <span>Admin Portal</span>
+                                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-200 text-amber-900 uppercase">Super</span>
+                                                    </div>
+                                                    <span className="text-[10px] text-amber-600 font-medium">Owner & System Hub</span>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    )}
+
                                     {userProfile?.role === 'admin' && (
                                         <div className="border-t border-gray-100 mt-1 pt-1">
                                             <button 
@@ -1416,6 +1464,38 @@ const App: React.FC = () => {
                             isLoggedIn={true}
                             onBack={() => setView('dashboard')}
                         />
+                    )}
+
+                    {view === 'admin-portal' && (
+                        !isUserAdmin ? (
+                            <div className="max-w-xl mx-auto my-12 p-8 glass-panel bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-rose-200 text-center animate-fade-in">
+                                <div className="w-16 h-16 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4 shadow-inner">
+                                    <ShieldAlert className="w-8 h-8" />
+                                </div>
+                                <h2 className="text-2xl font-black text-gray-900 mb-2">
+                                    Access Denied
+                                </h2>
+                                <p className="text-sm text-gray-600 leading-relaxed mb-6">
+                                    You do not have administrative clearance to access the GenPaperAI Admin Portal. This area is reserved strictly for authorized Platform Administrators and the Super Admin.
+                                </p>
+                                <button
+                                    onClick={handleBackToDashboard}
+                                    className="px-6 py-2.5 rounded-xl bg-[#3C128D] hover:bg-[#8A2CB0] text-white font-bold text-sm shadow-md transition-all active:scale-95 cursor-pointer"
+                                >
+                                    ← Return to Dashboard
+                                </button>
+                            </div>
+                        ) : userProfile ? (
+                            <AdminCenter 
+                                user={userProfile} 
+                                onBackToDashboard={handleBackToDashboard} 
+                            />
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-64 gap-4">
+                                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+                                <p className="text-white font-medium">Loading Admin Portal...</p>
+                            </div>
+                        )
                     )}
                 </>
             )
