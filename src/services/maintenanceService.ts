@@ -57,6 +57,8 @@ export async function getMaintenanceMode(): Promise<MaintenanceConfig | null> {
   }
 }
 
+export const getMaintenanceConfig = getMaintenanceMode;
+
 /**
  * Updates the maintenance status in Firestore.
  * Requires admin privileges in security rules.

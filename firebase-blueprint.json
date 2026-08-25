@@ -39,6 +39,8 @@
         "name": { "type": "string" },
         "email": { "type": "string" },
         "profilePhoto": { "type": "string" },
+        "customProfilePhoto": { "type": "string" },
+        "providerPhoto": { "type": "string" },
         "selectedTheme": { "type": "string" },
         "preferences": {
           "type": "object",
@@ -49,6 +51,7 @@
         },
         "provider": { "type": "string", "enum": ["google", "microsoft", "email"] },
         "createdAt": { "type": "number" },
+        "lastLogin": { "type": "number" },
         "defaultPaperSettings": {
           "type": "object",
           "properties": {
@@ -58,22 +61,80 @@
             "schoolName": { "type": "string" }
           }
         },
-        "role": { "type": "string", "enum": ["user", "admin"] }
+        "role": { "type": "string", "enum": ["user", "teacher", "admin", "super_admin"] }
       },
       "required": ["uid", "name", "email", "selectedTheme", "createdAt"]
     },
     "AppConfig": {
       "title": "AppConfig",
-      "description": "Global application configuration such as maintenance mode state.",
+      "description": "Global application configuration such as maintenance mode, announcements, AI model registry.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "enabled": { "type": "boolean" },
         "message": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string" },
+        "dismissible": { "type": "boolean" },
+        "models": { "type": "array" },
+        "defaultModel": { "type": "string" },
         "updatedAt": { "type": "number" },
         "updatedBy": { "type": "string" }
       },
-      "required": ["enabled", "updatedAt"]
+      "required": ["updatedAt"]
+    },
+    "AdminAuditLog": {
+      "title": "AdminAuditLog",
+      "description": "Immutable log of privileged administrative actions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "adminEmail": { "type": "string" },
+        "adminUid": { "type": "string" },
+        "action": { "type": "string" },
+        "targetResource": { "type": "string" },
+        "details": { "type": "object" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["id", "adminEmail", "action", "timestamp"]
+    },
+    "SecurityEvent": {
+      "title": "SecurityEvent",
+      "description": "Log of security-related events like failed login attempts and role modifications.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "eventType": { "type": "string" },
+        "provider": { "type": "string" },
+        "identifier": { "type": "string" },
+        "reason": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] }
+      },
+      "required": ["id", "eventType", "timestamp", "severity"]
+    },
+    "GenerationMetric": {
+      "title": "GenerationMetric",
+      "description": "Aggregate metadata of AI paper generation events for analytics.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "durationMs": { "type": "number" },
+        "modelUsed": { "type": "string" },
+        "subject": { "type": "string" },
+        "grade": { "type": "string" },
+        "board": { "type": "string" },
+        "testType": { "type": "string" },
+        "totalMarks": { "type": "number" },
+        "status": { "type": "string", "enum": ["success", "failure"] },
+        "error": { "type": "string" },
+        "usedWebExtract": { "type": "boolean" },
+        "usedQuestionBank": { "type": "boolean" },
+        "usedDiagrams": { "type": "boolean" },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "timestamp", "durationMs", "status"]
     },
     "CurriculumUpdate": {
       "title": "CurriculumUpdate",
@@ -93,7 +154,19 @@
   "firestore": {
     "/app_config/{configId}": {
       "schema": "AppConfig",
-      "description": "Global system configuration like maintenance mode."
+      "description": "Global system configuration like maintenance mode, announcements, AI model registry."
+    },
+    "/admin_audit_logs/{logId}": {
+      "schema": "AdminAuditLog",
+      "description": "Privileged admin audit trail."
+    },
+    "/security_events/{eventId}": {
+      "schema": "SecurityEvent",
+      "description": "Security events and login failures."
+    },
+    "/generation_metrics/{metricId}": {
+      "schema": "GenerationMetric",
+      "description": "AI generation performance and usage metrics."
     },
     "/papers/{paperId}": {
       "schema": "GeneratedPaper",

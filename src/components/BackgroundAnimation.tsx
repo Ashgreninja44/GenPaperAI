@@ -43,8 +43,7 @@ const BackgroundAnimation: React.FC<BackgroundAnimationProps> = ({ theme }) => {
                   top: shape.top,
                   left: shape.left,
                   background: 'radial-gradient(circle, rgba(72, 202, 228, 0.4) 0%, transparent 70%)',
-                  animation: `wave ${shape.duration}s infinite ease-in-out alternate`,
-                  animationDelay: `${shape.delay}s`,
+                  animation: `wave ${shape.duration}s ease-in-out ${shape.delay}s infinite alternate`,
                 }}
               />
             ))}
@@ -64,8 +63,7 @@ const BackgroundAnimation: React.FC<BackgroundAnimationProps> = ({ theme }) => {
                   top: shape.top,
                   left: shape.left,
                   background: 'radial-gradient(circle, rgba(255, 215, 0, 0.3) 0%, transparent 70%)',
-                  animation: `float-slow ${shape.duration}s infinite ease-in-out alternate`,
-                  animationDelay: `${shape.delay}s`,
+                  animation: `float-slow ${shape.duration}s ease-in-out ${shape.delay}s infinite alternate`,
                 }}
               />
             ))}
@@ -85,8 +83,7 @@ const BackgroundAnimation: React.FC<BackgroundAnimationProps> = ({ theme }) => {
                   top: p.top,
                   left: p.left,
                   background: 'rgba(165, 214, 167, 0.6)',
-                  animation: `float-slow ${p.duration}s infinite ease-in-out alternate`,
-                  animationDelay: `${p.delay}s`,
+                  animation: `float-slow ${p.duration}s ease-in-out ${p.delay}s infinite alternate`,
                   boxShadow: '0 0 10px rgba(165, 214, 167, 0.4)',
                 }}
               />
@@ -106,8 +103,7 @@ const BackgroundAnimation: React.FC<BackgroundAnimationProps> = ({ theme }) => {
                   top: p.top,
                   left: p.left,
                   background: 'white',
-                  animation: `twinkle ${p.duration / 4}s infinite ease-in-out alternate`,
-                  animationDelay: `${p.delay}s`,
+                  animation: `twinkle ${p.duration / 4}s ease-in-out ${p.delay}s infinite alternate`,
                   boxShadow: '0 0 5px white',
                 }}
               />
@@ -127,8 +123,7 @@ const BackgroundAnimation: React.FC<BackgroundAnimationProps> = ({ theme }) => {
                   top: p.top,
                   left: p.left,
                   background: 'rgba(255, 241, 118, 0.4)',
-                  animation: `pulse-soft ${p.duration / 2}s infinite ease-in-out alternate`,
-                  animationDelay: `${p.delay}s`,
+                  animation: `pulse-soft ${p.duration / 2}s ease-in-out ${p.delay}s infinite alternate`,
                 }}
               />
             ))}

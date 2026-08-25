@@ -3,6 +3,7 @@ import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { PaperConfig, GeneratedPaper, Question } from "../types";
 import { CBSE_EXAM_PATTERNS } from "../constants";
 import { getSubjectPattern, buildPatternGenerationPrompt } from "../data/subjectPatterns";
+import { logGenerationMetric } from "./adminService";
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 console.log("API KEY EXISTS:", !!apiKey);
@@ -146,8 +147,12 @@ const paperResponseSchema: Schema = {
   required: ["title", "questions", "answerKey"],
 };
 
-export const generateQuestionPaper = async (config: PaperConfig): Promise<GeneratedPaper> => {
-  // Calculate Remaining Marks if manual questions exist
+export const generateQuestionPaper = async (
+  config: PaperConfig, 
+  modelId: string = 'gemini-3-flash-preview',
+  uid?: string
+): Promise<GeneratedPaper> => {
+  const genStartTime = performance.now();
   const manualQuestions = config.manualQuestions || [];
   const manualMarks = manualQuestions.reduce((sum, q) => sum + q.marks, 0);
   const remainingMarks = Math.max(0, config.totalMarks - manualMarks);
@@ -299,7 +304,7 @@ export const generateQuestionPaper = async (config: PaperConfig): Promise<Genera
 
   try {
     const response = await withRetry(() => generateContentProxy({
-      model: 'gemini-3-flash-preview',
+      model: modelId,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -308,9 +313,27 @@ export const generateQuestionPaper = async (config: PaperConfig): Promise<Genera
       },
     }));
 
+    const durationMs = Math.round(performance.now() - genStartTime);
     const text = response.text;
     if (!text) throw new Error("No response received from AI.");
     const data = JSON.parse(text);
+
+    // Record non-blocking generation metric
+    logGenerationMetric({
+      timestamp: Date.now(),
+      durationMs,
+      modelUsed: modelId,
+      subject: config.subject,
+      grade: config.grade,
+      board: config.board,
+      testType: config.testType,
+      totalMarks: config.totalMarks,
+      status: 'success',
+      usedWebExtract: false,
+      usedQuestionBank: (config.manualQuestions && config.manualQuestions.length > 0) || false,
+      usedDiagrams: shouldIncludeFigures,
+      uid
+    }).catch(() => {});
 
     return {
       id: crypto.randomUUID(),
@@ -320,7 +343,25 @@ export const generateQuestionPaper = async (config: PaperConfig): Promise<Genera
       questions: data.questions,
       answerKey: data.answerKey,
     };
-  } catch (error) {
+  } catch (error: any) {
+    const durationMs = Math.round(performance.now() - genStartTime);
+    logGenerationMetric({
+      timestamp: Date.now(),
+      durationMs,
+      modelUsed: modelId,
+      subject: config.subject,
+      grade: config.grade,
+      board: config.board,
+      testType: config.testType,
+      totalMarks: config.totalMarks,
+      status: 'failure',
+      error: error?.message || String(error),
+      usedWebExtract: false,
+      usedQuestionBank: (config.manualQuestions && config.manualQuestions.length > 0) || false,
+      usedDiagrams: shouldIncludeFigures,
+      uid
+    }).catch(() => {});
+
     console.error("Error generating paper:", error);
     throw error;
   }

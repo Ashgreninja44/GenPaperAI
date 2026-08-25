@@ -279,3 +279,17 @@ export const deletePaperFromFirestore = async (
     handleFirestoreError(err, OperationType.DELETE, `papers/${paperId}`);
   }
 };
+
+/**
+ * Fetches all papers across the platform for Admin Analytics.
+ */
+export const getAllStoredPapers = async (): Promise<GeneratedPaper[]> => {
+  try {
+    const { db } = await import('../firebase');
+    const snap = await getDocs(collection(db, 'papers'));
+    return snap.docs.map(d => d.data() as GeneratedPaper);
+  } catch (err) {
+    console.warn('[Storage] Error loading all papers for analytics:', err);
+    return [];
+  }
+};

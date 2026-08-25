@@ -70,6 +70,13 @@ body {
   to { transform: translateX(-200px); }
 }
 
+@keyframes shootingStar {
+  0% { transform: translate(0, 0) rotate(-35deg); opacity: 0; }
+  10% { opacity: 1; }
+  25% { transform: translate(-350px, 200px) rotate(-35deg); opacity: 0; }
+  100% { transform: translate(-350px, 200px) rotate(-35deg); opacity: 0; }
+}
+
 /* Sun */
 .sun {
   position: absolute;

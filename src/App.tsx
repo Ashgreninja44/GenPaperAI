@@ -11,6 +11,7 @@ import Profile from './components/Profile';
 import ResetPassword from './components/ResetPassword';
 import About from './components/About';
 import Maintenance from './components/Maintenance';
+import ThemeStudio from './components/ThemeStudio';
 import { isMaintenanceModeActive } from './config/maintenance';
 import ScrollToTop from './components/ScrollToTop';
 import BackgroundAnimation from './components/BackgroundAnimation';
@@ -18,14 +19,16 @@ import ThemeBackdrop from './components/ThemeBackdrop';
 import Logo from './components/Logo';
 import { GoogleIcon, MicrosoftIcon, EmailIcon } from './components/BrandIcons';
 import { SyllabusData, getLatestCurriculum, updateSyllabusFromSources } from './services/syllabusService';
-import { PaperConfig, GeneratedPaper, QuestionBank, UserProfile, MaintenanceConfig } from './types';
+import { PaperConfig, GeneratedPaper, QuestionBank, UserProfile, MaintenanceConfig, AnnouncementConfig, ThemeAnimationConfig, DEFAULT_THEME_ANIMATION_CONFIG } from './types';
 import { generateQuestionPaper } from './services/geminiService';
 import { subscribeToMaintenanceMode, isSuperAdmin, setMaintenanceMode } from './services/maintenanceService';
+import { subscribeToAnnouncement } from './services/adminService';
 import { 
   savePaperToFirestore, 
   loadPaperFromFirestore, 
   deletePaperFromFirestore 
 } from './services/paperStorageService';
+import { getEffectiveProfilePhoto } from './services/profilePhotoService';
 import { 
   auth, 
   db, 
@@ -64,10 +67,12 @@ import {
   Info,
   Sparkles,
   FileCheck,
-  FileText
+  FileText,
+  Radio,
+  Palette
 } from 'lucide-react';
 
-type View = 'dashboard' | 'create' | 'preview' | 'bank' | 'settings' | 'profile' | 'about';
+type View = 'dashboard' | 'create' | 'preview' | 'bank' | 'settings' | 'appearance' | 'profile' | 'about';
 
 const THEMES: Record<string, string> = {
   default: 'linear-gradient(135deg, #3C128D 0%, #8A2CB0 60%, #EEA727 100%)',
@@ -92,7 +97,20 @@ const App: React.FC = () => {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState<string | null>(null); // 'google', 'microsoft', 'email'
   const [isOpen, setIsOpen] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState('default');
+  const [currentTheme, setCurrentTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem('genpaper_selected_theme');
+      if (saved) return saved;
+    } catch (e) {}
+    return 'default';
+  });
+  const [themeConfig, setThemeConfig] = useState<ThemeAnimationConfig>(() => {
+    try {
+      const saved = localStorage.getItem('genpaper_theme_config');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return DEFAULT_THEME_ANIMATION_CONFIG;
+  });
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' | 'warning' } | null>(null);
 
   const showToast = useCallback((message: string, type: 'error' | 'success' | 'warning' = 'error') => {
@@ -121,6 +139,8 @@ const App: React.FC = () => {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [maintenanceConfig, setMaintenanceConfig] = useState<MaintenanceConfig | null>(null);
+  const [announcementConfig, setAnnouncementConfig] = useState<AnnouncementConfig | null>(null);
+  const [isAnnouncementDismissed, setIsAnnouncementDismissed] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -132,6 +152,15 @@ const App: React.FC = () => {
       setMaintenanceConfig(config);
     });
     return () => unsubscribeMaintenance();
+  }, []);
+
+  // Subscribe to real-time global announcements
+  useEffect(() => {
+    const unsubscribeAnnouncement = subscribeToAnnouncement((config) => {
+      setAnnouncementConfig(config);
+      setIsAnnouncementDismissed(false);
+    });
+    return () => unsubscribeAnnouncement();
   }, []);
 
   // Instantly reset scroll to top on in-app view changes
@@ -186,6 +215,13 @@ const App: React.FC = () => {
               console.log("User profile found in Firestore");
               let data = userDoc.data() as UserProfile;
               
+              // Ensure providerPhoto is tracked if not already set
+              const providerPhoto = currentUser.photoURL || currentUser.providerData?.find(p => p.photoURL)?.photoURL || null;
+              if (providerPhoto && !data.providerPhoto) {
+                data.providerPhoto = providerPhoto;
+                updateDoc(userDocRef, { providerPhoto }).catch(() => {});
+              }
+              
               // Bootstrap Admin for Dev
               if (currentUser.email === 'pendyaladarshit4@gmail.com' && data.role !== 'admin') {
                 console.log("Elevating user to admin...");
@@ -219,11 +255,15 @@ const App: React.FC = () => {
               provider = 'email';
             }
 
+            const providerPhoto = currentUser.photoURL || currentUser.providerData?.find(p => p.photoURL)?.photoURL || null;
+
             const newProfile: UserProfile = {
               uid: currentUser.uid,
               name: currentUser.displayName || 'Anonymous User',
               email: currentUser.email || '',
-              profilePhoto: currentUser.photoURL,
+              profilePhoto: providerPhoto,
+              customProfilePhoto: null,
+              providerPhoto: providerPhoto,
               selectedTheme: 'default',
               preferences: {
                 themeColor: 'default',
@@ -342,22 +382,35 @@ const App: React.FC = () => {
   // Apply Theme
   useEffect(() => {
     if (!userProfile) {
-      console.log("No user profile, applying default theme");
-      applyTheme('default');
+      console.log("No user profile, applying stored/default theme");
+      applyTheme(currentTheme || 'default', themeConfig);
       return;
     }
 
-    const theme = userProfile.preferences?.themeColor || userProfile.selectedTheme || 'default';
+    const theme = userProfile.preferences?.themeColor || userProfile.selectedTheme || currentTheme || 'default';
+    const customConfig = userProfile.preferences?.themeCustomization || themeConfig || DEFAULT_THEME_ANIMATION_CONFIG;
     console.log("Fetched preferences:", userProfile.preferences);
     console.log("Applying theme:", theme);
-    applyTheme(theme);
+    applyTheme(theme, customConfig);
   }, [userProfile]);
 
-  const applyTheme = (theme: string) => {
+  const applyTheme = (theme: string, config?: ThemeAnimationConfig) => {
     setCurrentTheme(theme);
+    const activeConfig = config || themeConfig || DEFAULT_THEME_ANIMATION_CONFIG;
+    setThemeConfig(activeConfig);
+    try {
+      localStorage.setItem('genpaper_theme_config', JSON.stringify(activeConfig));
+      localStorage.setItem('genpaper_selected_theme', theme);
+    } catch (e) {}
+
     const bgWrapper = document.querySelector('.premium-bg-wrapper') as HTMLElement;
     if (bgWrapper) {
       bgWrapper.style.background = THEMES[theme] || THEMES.default;
+      if (activeConfig.enableAnimations === false) {
+        bgWrapper.style.animation = 'none';
+      } else {
+        bgWrapper.style.animation = `gradientMove ${15 / Math.max(activeConfig.animationSpeed || 1, 0.3)}s ease infinite`;
+      }
     }
     
     const orbs = ORB_THEMES[theme] || ORB_THEMES.default;
@@ -365,8 +418,33 @@ const App: React.FC = () => {
       const orb = document.querySelector(`.orb-${i + 1}`) as HTMLElement;
       if (orb) {
         orb.style.background = color;
+        if (activeConfig.enableAnimations === false || (theme === 'default' && activeConfig.default && !activeConfig.default.showOrbs)) {
+          orb.style.display = 'none';
+        } else {
+          orb.style.display = 'block';
+        }
       }
     });
+  };
+
+  const handleApplyTheme = async (newThemeId: string, newConfig: ThemeAnimationConfig) => {
+    applyTheme(newThemeId, newConfig);
+    if (user) {
+      try {
+        const updates: Partial<UserProfile> = {
+          selectedTheme: newThemeId,
+          preferences: {
+            themeColor: newThemeId,
+            background: newThemeId,
+            themeCustomization: newConfig,
+          }
+        };
+        const sanitizedUpdates = sanitizeForFirestore(updates);
+        await updateDoc(doc(db, 'users', user.uid), sanitizedUpdates);
+      } catch (err: any) {
+        console.error("Error saving theme to Firestore:", err);
+      }
+    }
   };
 
   // Sync History from Firestore
@@ -842,15 +920,15 @@ const App: React.FC = () => {
                               }}
                               className="w-6 h-6 md:w-10 md:h-10 rounded-full border border-white/30 overflow-hidden shadow-lg hover:border-white/60 transition-all duration-300 focus:outline-none bg-white/10 cursor-pointer"
                           >
-                              {(userProfile?.profilePhoto || user.photoURL) ? (
+                              {getEffectiveProfilePhoto(userProfile, user.photoURL) ? (
                                   <img 
-                                      src={userProfile?.profilePhoto || user.photoURL || ''} 
+                                      src={getEffectiveProfilePhoto(userProfile, user.photoURL)!} 
                                       alt={userProfile?.name || user.displayName || 'User'} 
-                                      className="w-full h-full object-cover"
+                                      className="w-full h-full object-cover rounded-full"
                                       referrerPolicy="no-referrer"
                                   />
                               ) : (
-                                  <div className="w-full h-full bg-gradient-to-br from-[#3C128D] to-[#8A2CB0] flex items-center justify-center text-white font-bold">
+                                  <div className="w-full h-full bg-gradient-to-br from-[#3C128D] to-[#8A2CB0] flex items-center justify-center text-white font-bold rounded-full">
                                       {(userProfile?.name || user.displayName || user.email || 'U').charAt(0).toUpperCase()}
                                   </div>
                               )}
@@ -865,11 +943,16 @@ const App: React.FC = () => {
                                   <div className="absolute top-full right-0 mt-2 w-64 glass-panel rounded-2xl shadow-2xl z-[9999] py-2 animate-fade-in border border-white/40 opacity-100 bg-white shadow-xl">
                                       <div className="px-4 py-4 border-b border-gray-100 mb-1 bg-gray-50/50">
                                           <div className="flex items-center gap-3">
-                                              <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
-                                                  {(userProfile?.profilePhoto || user.photoURL) ? (
-                                                      <img src={userProfile?.profilePhoto || user.photoURL || ''} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                              <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 ring-1 ring-purple-100">
+                                                  {getEffectiveProfilePhoto(userProfile, user.photoURL) ? (
+                                                      <img 
+                                                          src={getEffectiveProfilePhoto(userProfile, user.photoURL)!} 
+                                                          alt="" 
+                                                          className="w-full h-full object-cover rounded-full" 
+                                                          referrerPolicy="no-referrer" 
+                                                      />
                                                   ) : (
-                                                      <div className="w-full h-full bg-[#3C128D] text-white flex items-center justify-center font-bold">
+                                                      <div className="w-full h-full bg-[#3C128D] text-white flex items-center justify-center font-bold rounded-full">
                                                           {(userProfile?.name || user.displayName || 'U').charAt(0).toUpperCase()}
                                                       </div>
                                                   )}
@@ -888,6 +971,15 @@ const App: React.FC = () => {
                                               <UserIcon className="w-4 h-4 text-[#8A2CB0]" />
                                           </div>
                                           View Profile
+                                      </button>
+                                      <button 
+                                          onClick={() => { setView('appearance'); setIsOpen(false); }}
+                                          className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                                      >
+                                          <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                                              <Palette className="w-4 h-4 text-amber-600" />
+                                          </div>
+                                          Appearance & Theme
                                       </button>
                                       <button 
                                           onClick={() => { setView('settings'); setIsOpen(false); }}
@@ -985,10 +1077,54 @@ const App: React.FC = () => {
       </AnimatePresence>
 
       {/* Background Animations */}
-      <ThemeBackdrop theme={currentTheme} />
+      <ThemeBackdrop theme={currentTheme} config={themeConfig} />
 
       {/* Main Content Area */}
       <main className="container mx-auto py-4 px-4 relative z-10 flex-grow">
+        {/* Global Announcement Banner */}
+        {announcementConfig?.enabled && !isAnnouncementDismissed && (
+          <div className={`mb-6 p-4 rounded-2xl border shadow-lg backdrop-blur-md flex items-start justify-between gap-4 animate-fade-in ${
+            announcementConfig.type === 'warning'
+              ? 'bg-amber-500/15 border-amber-400/40 text-amber-950 dark:text-amber-100'
+              : announcementConfig.type === 'notice'
+              ? 'bg-purple-500/15 border-purple-400/40 text-purple-950 dark:text-purple-100'
+              : 'bg-blue-500/15 border-blue-400/40 text-blue-950 dark:text-blue-100'
+          }`}>
+            <div className="flex items-start gap-3">
+              <span className={`p-2 rounded-xl shrink-0 mt-0.5 ${
+                announcementConfig.type === 'warning'
+                  ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                  : announcementConfig.type === 'notice'
+                  ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300'
+                  : 'bg-blue-500/20 text-blue-700 dark:text-blue-300'
+              }`}>
+                <Radio className="w-4 h-4 animate-pulse" />
+              </span>
+              <div>
+                <h4 className="text-sm font-black flex items-center gap-2">
+                  {announcementConfig.title}
+                  <span className="text-[10px] uppercase font-bold tracking-wider opacity-75 px-2 py-0.5 rounded-full bg-white/20">
+                    Official Broadcast
+                  </span>
+                </h4>
+                <p className="text-xs mt-0.5 leading-relaxed opacity-90">
+                  {announcementConfig.message}
+                </p>
+              </div>
+            </div>
+
+            {announcementConfig.dismissible && (
+              <button
+                onClick={() => setIsAnnouncementDismissed(true)}
+                className="text-xs font-bold px-2 py-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors opacity-75 hover:opacity-100 shrink-0"
+                title="Dismiss announcement"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        )}
+
         <Routes>
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/about" element={
@@ -1237,10 +1373,24 @@ const App: React.FC = () => {
                         />
                     )}
 
+                    {view === 'appearance' && (
+                        <ThemeStudio 
+                            profile={userProfile}
+                            currentTheme={currentTheme}
+                            themeConfig={themeConfig}
+                            onUpdateTheme={handleApplyTheme}
+                            onBack={handleBackToDashboard}
+                            showToast={showToast}
+                        />
+                    )}
+
                     {view === 'settings' && userProfile && (
                         <Settings 
                             profile={userProfile}
+                            currentTheme={currentTheme}
+                            themeConfig={themeConfig}
                             onUpdateProfile={handleUpdateProfile}
+                            onNavigateToThemeStudio={() => setView('appearance')}
                             onBack={handleBackToDashboard}
                         />
                     )}
