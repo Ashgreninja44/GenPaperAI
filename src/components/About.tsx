@@ -31,9 +31,27 @@ interface AboutProps {
 
 const About: React.FC<AboutProps> = ({ onBack, isLoggedIn = false, onOpenAuth }) => {
   const navigate = useNavigate();
+  const [copiedEmail, setCopiedEmail] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageSrcIndex, setImageSrcIndex] = useState(0);
-  const [copiedEmail, setCopiedEmail] = useState(false);
+
+  // Static list of candidate photograph paths in public/ directory
+  const photoSources = [
+    '/darshit.jpeg',
+    '/darshit.jpg',
+    '/darshit.png',
+    '/assets/darshit.jpeg',
+    '/assets/darshit.jpg',
+    '/assets/darshit.png'
+  ];
+
+  const handleImageError = () => {
+    if (imageSrcIndex < photoSources.length - 1) {
+      setImageSrcIndex(prev => prev + 1);
+    } else {
+      setImageError(true);
+    }
+  };
 
   const handleCopyEmail = (e?: React.MouseEvent) => {
     if (e) {
@@ -85,27 +103,6 @@ const About: React.FC<AboutProps> = ({ onBack, isLoggedIn = false, onOpenAuth })
       document.body.scrollTop = 0;
     }
   }, []);
-
-  // Static list of candidate photograph paths provided during development
-  const photoSources = [
-    '/darshit.jpeg',
-    '/darshit.jpg',
-    '/darshit.png',
-    '/darshit.webp',
-    '/creator.jpg',
-    '/creator.jpeg',
-    '/creator.png',
-    '/assets/darshit.jpeg',
-    '/assets/darshit.jpg'
-  ];
-
-  const handleImageError = () => {
-    if (imageSrcIndex < photoSources.length - 1) {
-      setImageSrcIndex(prev => prev + 1);
-    } else {
-      setImageError(true);
-    }
-  };
 
   const handleReturn = () => {
     if (onBack) {
@@ -334,7 +331,7 @@ const About: React.FC<AboutProps> = ({ onBack, isLoggedIn = false, onOpenAuth })
             <div className="relative w-36 h-44 sm:w-40 sm:h-48 rounded-2xl overflow-hidden bg-gray-900 border-2 border-white/30 shadow-2xl flex items-center justify-center">
               {!imageError ? (
                 <img 
-                  src={photoSources[imageSrcIndex] || '/darshit.jpg'} 
+                  src={photoSources[imageSrcIndex] || '/darshit.jpeg'} 
                   alt="Pendyala Sri Darshit Sarma - Creator of GenPaperAI"
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-500"
