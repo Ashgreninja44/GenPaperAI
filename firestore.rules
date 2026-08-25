@@ -85,6 +85,12 @@ service cloud.firestore {
       allow delete: if isSignedIn() && (isOwner(existing().uid) || isAdmin());
     }
 
+    // --- App Configuration (Maintenance Mode) ---
+    match /app_config/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // --- Curriculum (Syllabus) ---
     match /curriculum/{updateId} {
       // FIX: Publicly readable so app works instantly on mount

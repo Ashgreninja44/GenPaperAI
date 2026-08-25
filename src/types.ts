@@ -130,3 +130,11 @@ export interface CurriculumUpdate {
   lastUpdated: number;
   source: string;
 }
+
+export interface MaintenanceConfig {
+  enabled: boolean;
+  message?: string;
+  updatedAt: number;
+  updatedBy?: string;
+}
+

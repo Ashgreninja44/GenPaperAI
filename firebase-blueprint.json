@@ -62,6 +62,19 @@
       },
       "required": ["uid", "name", "email", "selectedTheme", "createdAt"]
     },
+    "AppConfig": {
+      "title": "AppConfig",
+      "description": "Global application configuration such as maintenance mode state.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "message": { "type": "string" },
+        "updatedAt": { "type": "number" },
+        "updatedBy": { "type": "string" }
+      },
+      "required": ["enabled", "updatedAt"]
+    },
     "CurriculumUpdate": {
       "title": "CurriculumUpdate",
       "description": "Dynamic syllabus updates fetched via AI.",
@@ -78,6 +91,10 @@
     }
   },
   "firestore": {
+    "/app_config/{configId}": {
+      "schema": "AppConfig",
+      "description": "Global system configuration like maintenance mode."
+    },
     "/papers/{paperId}": {
       "schema": "GeneratedPaper",
       "description": "User's generated question papers."

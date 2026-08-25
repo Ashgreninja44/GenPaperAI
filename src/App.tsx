@@ -10,14 +10,17 @@ import Settings from './components/Settings';
 import Profile from './components/Profile';
 import ResetPassword from './components/ResetPassword';
 import About from './components/About';
+import Maintenance from './components/Maintenance';
+import { isMaintenanceModeActive } from './config/maintenance';
 import ScrollToTop from './components/ScrollToTop';
 import BackgroundAnimation from './components/BackgroundAnimation';
 import ThemeBackdrop from './components/ThemeBackdrop';
 import Logo from './components/Logo';
 import { GoogleIcon, MicrosoftIcon, EmailIcon } from './components/BrandIcons';
 import { SyllabusData, getLatestCurriculum, updateSyllabusFromSources } from './services/syllabusService';
-import { PaperConfig, GeneratedPaper, QuestionBank, UserProfile } from './types';
+import { PaperConfig, GeneratedPaper, QuestionBank, UserProfile, MaintenanceConfig } from './types';
 import { generateQuestionPaper } from './services/geminiService';
+import { subscribeToMaintenanceMode, isSuperAdmin, setMaintenanceMode } from './services/maintenanceService';
 import { 
   savePaperToFirestore, 
   loadPaperFromFirestore, 
@@ -117,10 +120,19 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [maintenanceConfig, setMaintenanceConfig] = useState<MaintenanceConfig | null>(null);
 
   const location = useLocation();
   const navigate = useNavigate();
   const [showLegalModal, setShowLegalModal] = useState<'terms' | 'privacy' | null>(null);
+
+  // Subscribe to real-time maintenance status from Firestore
+  useEffect(() => {
+    const unsubscribeMaintenance = subscribeToMaintenanceMode((config) => {
+      setMaintenanceConfig(config);
+    });
+    return () => unsubscribeMaintenance();
+  }, []);
 
   // Instantly reset scroll to top on in-app view changes
   useEffect(() => {
@@ -734,9 +746,54 @@ const App: React.FC = () => {
     setView('dashboard');
   }, []);
 
+  // Maintenance Mode Gate
+  const isAdmin = isSuperAdmin(user?.email, userProfile?.role);
+  const maintenanceActive = isMaintenanceModeActive(maintenanceConfig, user?.email, userProfile?.role);
+
+  if (maintenanceActive && !isAdmin) {
+    return (
+      <Maintenance 
+        config={maintenanceConfig} 
+        currentUser={user} 
+        userProfile={userProfile} 
+        onEnterApp={() => setView('dashboard')} 
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen relative font-sans text-gray-900 selection:bg-[#EEA727] selection:text-[#3C128D] overflow-x-hidden flex flex-col">
       <ScrollToTop />
+
+      {/* Super Admin Top Notice when Maintenance is Active */}
+      {maintenanceConfig?.enabled && isAdmin && location.pathname !== '/reset-password' && (
+        <div className="w-full bg-amber-400 text-gray-950 px-4 py-2.5 text-xs sm:text-sm font-bold flex flex-wrap items-center justify-between gap-2 z-[60] shadow-lg border-b border-amber-500">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🚧</span>
+            <span>
+              <strong>MAINTENANCE MODE IS ACTIVE GLOBALLY:</strong> Public visitors currently see the maintenance page. You are browsing with Super Admin access.
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={async () => {
+                if (user?.email) {
+                  await setMaintenanceMode(false, user.email);
+                }
+              }}
+              className="px-3 py-1 bg-gray-950 hover:bg-gray-900 text-amber-300 text-xs font-black rounded-lg transition-transform active:scale-95 cursor-pointer"
+            >
+              Turn OFF Maintenance Mode
+            </button>
+            <button
+              onClick={() => setView('profile')}
+              className="px-3 py-1 bg-black/10 hover:bg-black/20 text-gray-950 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+            >
+              Admin Settings →
+            </button>
+          </div>
+        </div>
+      )}
       
       {/* Premium Vibrant Background Elements */}
       <div className="premium-bg-wrapper">
@@ -1194,6 +1251,7 @@ const App: React.FC = () => {
                                 profile={userProfile}
                                 onBack={handleBackToDashboard}
                                 onGoToSettings={() => setView('settings')}
+                                maintenanceConfig={maintenanceConfig}
                             />
                         ) : (
                             <div className="flex flex-col items-center justify-center h-64 gap-4">
