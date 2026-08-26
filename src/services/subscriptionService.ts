@@ -97,6 +97,7 @@ export async function getSubscriptionConfig(): Promise<SubscriptionGlobalConfig>
       return {
         ...DEFAULT_SUBSCRIPTION_CONFIG,
         ...data,
+        pricingVisible: typeof data.pricingVisible === 'boolean' ? data.pricingVisible : DEFAULT_SUBSCRIPTION_CONFIG.pricingVisible,
         plans: {
           free: { ...DEFAULT_SUBSCRIPTION_CONFIG.plans.free, ...(data.plans?.free || {}) },
           plus: { ...DEFAULT_SUBSCRIPTION_CONFIG.plans.plus, ...(data.plans?.plus || {}) }
@@ -121,6 +122,7 @@ export function subscribeToSubscriptionConfig(
         callback({
           ...DEFAULT_SUBSCRIPTION_CONFIG,
           ...data,
+          pricingVisible: typeof data.pricingVisible === 'boolean' ? data.pricingVisible : DEFAULT_SUBSCRIPTION_CONFIG.pricingVisible,
           plans: {
             free: { ...DEFAULT_SUBSCRIPTION_CONFIG.plans.free, ...(data.plans?.free || {}) },
             plus: { ...DEFAULT_SUBSCRIPTION_CONFIG.plans.plus, ...(data.plans?.plus || {}) }

@@ -1018,23 +1018,25 @@ const App: React.FC = () => {
                                           </div>
                                           View Profile
                                       </button>
-                                      <button 
+                                      {(isSuperAdmin(userProfile.email, userProfile.role) || isUserPlusSubscriber(userProfile) || (subscriptionConfig ? subscriptionConfig.pricingVisible !== false : true)) && (
+                                        <button 
                                           id="dropdown-btn-subscription"
                                           onClick={() => { setView('subscription'); setIsOpen(false); }}
                                           className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-between gap-3 transition-colors cursor-pointer"
-                                      >
+                                        >
                                           <div className="flex items-center gap-3">
                                               <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-[#8A2CB0]">
                                                   <Sparkles className="w-4 h-4" />
                                               </div>
-                                              <span>Subscription & Plans</span>
+                                              <span>{isUserPlusSubscriber(userProfile) || isSuperAdmin(userProfile.email, userProfile.role) ? 'Subscription & Entitlements' : 'Subscription & Plans'}</span>
                                           </div>
                                           {isUserPlusSubscriber(userProfile) ? (
                                             <span className="px-2 py-0.5 rounded text-[10px] font-black bg-purple-100 text-purple-900 border border-purple-200">Plus</span>
                                           ) : (
                                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600">Free</span>
                                           )}
-                                      </button>
+                                        </button>
+                                      )}
                                       <button 
                                           onClick={() => { setView('appearance'); setIsOpen(false); }}
                                           className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
@@ -1502,7 +1504,11 @@ const App: React.FC = () => {
                                 profile={userProfile}
                                 onBack={handleBackToDashboard}
                                 onGoToSettings={() => setView('settings')}
-                                onGoToSubscription={() => setView('subscription')}
+                                onGoToSubscription={
+                                  (isSuperAdmin(userProfile.email, userProfile.role) || isUserPlusSubscriber(userProfile) || (subscriptionConfig ? subscriptionConfig.pricingVisible !== false : true))
+                                    ? () => setView('subscription')
+                                    : undefined
+                                }
                                 maintenanceConfig={maintenanceConfig}
                                 subscriptionConfig={subscriptionConfig}
                             />
@@ -1516,12 +1522,19 @@ const App: React.FC = () => {
 
                     {view === 'subscription' && (
                         userProfile ? (
-                            <SubscriptionView 
-                                user={userProfile}
-                                config={subscriptionConfig}
-                                onBack={handleBackToDashboard}
-                                onNavigateToSettings={() => setView('settings')}
-                            />
+                            (isSuperAdmin(userProfile.email, userProfile.role) || isUserPlusSubscriber(userProfile) || (subscriptionConfig ? subscriptionConfig.pricingVisible !== false : true)) ? (
+                                <SubscriptionView 
+                                    user={userProfile}
+                                    config={subscriptionConfig}
+                                    onBack={handleBackToDashboard}
+                                    onNavigateToSettings={() => setView('settings')}
+                                />
+                            ) : (
+                                (() => {
+                                    setView('dashboard');
+                                    return null;
+                                })()
+                            )
                         ) : (
                             <div className="flex flex-col items-center justify-center h-64 gap-4">
                                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>

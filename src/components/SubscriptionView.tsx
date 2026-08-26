@@ -51,7 +51,13 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
 
   // Determine whether to show the pricing cards
   // Super Admins always see pricing. Normal users see pricing only if pricingVisible is TRUE.
-  const canViewPricing = effectiveConfig.pricingVisible || isSuper;
+  const isPricingVisible = effectiveConfig ? (effectiveConfig.pricingVisible !== false) : true;
+  const canViewPricing = isPricingVisible || isSuper;
+
+  // If pricing is turned off and the user is NOT Plus and NOT Super Admin, do not render the storefront
+  if (!canViewPricing && !isPlus && !isSuper) {
+    return null;
+  }
 
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-6 animate-fade-in text-gray-900 pb-16">

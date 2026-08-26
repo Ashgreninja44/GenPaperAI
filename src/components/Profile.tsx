@@ -44,7 +44,11 @@ const Profile: React.FC<ProfileProps> = ({
   const isPlus = isUserPlusSubscriber(profile);
   const effectivePhoto = getEffectiveProfilePhoto(profile);
   const isCustomPhoto = isUsingCustomProfilePicture(profile);
+  const isPricingVisible = subscriptionConfig ? (subscriptionConfig.pricingVisible !== false) : true;
   const subStatus = getUserSubscriptionStatus(profile, subscriptionConfig || DEFAULT_SUBSCRIPTION_CONFIG);
+
+  // Can the user access subscription management / storefront?
+  const canAccessSubscription = (isSuper || isPlus || isPricingVisible) && !!onGoToSubscription;
 
   return (
     <div className="max-w-4xl mx-auto p-6 animate-fade-in text-gray-900">
@@ -113,13 +117,13 @@ const Profile: React.FC<ProfileProps> = ({
                     </p>
                 </div>
                 <div className="flex items-center gap-2.5">
-                  {onGoToSubscription && (
+                  {canAccessSubscription && (
                     <button 
                         onClick={onGoToSubscription}
                         className="px-5 py-2.5 bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] hover:from-[#320f77] hover:to-[#772499] text-white font-black text-xs rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer"
                     >
                         <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                        <span>Manage Subscription</span>
+                        <span>{isPlus || isSuper ? 'Manage Subscription' : 'Upgrade Plan'}</span>
                     </button>
                   )}
                   <button 
@@ -168,7 +172,7 @@ const Profile: React.FC<ProfileProps> = ({
                 </div>
               </div>
 
-              {onGoToSubscription && (
+              {canAccessSubscription && (
                 <button
                   onClick={onGoToSubscription}
                   className="px-4 py-2 bg-white hover:bg-gray-50 text-purple-900 font-black text-xs rounded-xl shadow-sm border border-purple-200 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"

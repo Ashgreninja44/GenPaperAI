@@ -53,6 +53,14 @@ export const AdminSubscriptions: React.FC<AdminSubscriptionsProps> = ({
   const [subConfig, setSubConfig] = useState<SubscriptionGlobalConfig>(
     config || DEFAULT_SUBSCRIPTION_CONFIG
   );
+
+  // Synchronize state with real-time incoming config prop
+  React.useEffect(() => {
+    if (config) {
+      setSubConfig(config);
+    }
+  }, [config]);
+
   const [isUpdatingConfig, setIsUpdatingConfig] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [tierFilter, setTierFilter] = useState<'all' | 'plus' | 'free' | 'super_admin'>('all');
