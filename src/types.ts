@@ -237,6 +237,7 @@ export interface UserProfile {
   role: UserRole;
   subscriptionTier?: SubscriptionTier;
   isPlusSubscriber?: boolean;
+  subscriptionDetails?: UserSubscriptionDetails;
   defaultPaperSettings?: {
     board?: string;
     grade?: string;
@@ -395,5 +396,59 @@ export interface AdErrorLog {
   placementId: string;
   errorReason: string;
   timestamp: number;
+}
+
+// ==========================================
+// SUBSCRIPTIONS & MONETIZATION
+// ==========================================
+
+export type SubscriptionSource = 'Paid' | 'Admin Grant' | 'Promotional' | 'Beta/Test';
+
+export type SubscriptionDuration = '1_month' | '3_months' | '6_months' | '1_year' | 'lifetime';
+
+export interface SubscriptionEntitlements {
+  papersPerMonth: number | 'unlimited';
+  advancedModelsAllowed: boolean;
+  questionBankMaxItems: number | 'unlimited';
+  webExtractsPerMonth: number | 'unlimited';
+  adFree: boolean;
+  advancedCustomization: boolean;
+  priorityGeneration: boolean;
+  increasedStorage: boolean;
+}
+
+export interface SubscriptionPlanConfig {
+  id: 'free' | 'plus';
+  name: string;
+  price: number; // e.g. 100
+  currency: string; // e.g. '₹'
+  billingPeriodMonths: number; // e.g. 6
+  billingPeriodDisplay: string; // e.g. '6 months'
+  description: string;
+  badge?: string;
+  entitlements: SubscriptionEntitlements;
+  featuresList: string[];
+  highlight?: boolean;
+}
+
+export interface SubscriptionGlobalConfig {
+  pricingVisible: boolean; // Master toggle for normal customer-facing pricing section
+  plans: {
+    free: SubscriptionPlanConfig;
+    plus: SubscriptionPlanConfig;
+  };
+  updatedAt: number;
+  updatedBy?: string;
+}
+
+export interface UserSubscriptionDetails {
+  tier: 'free' | 'plus';
+  status: 'active' | 'expired' | 'canceled';
+  source: SubscriptionSource;
+  startDate: number;
+  expirationDate?: number | null; // null or undefined for lifetime
+  grantedBy?: string;
+  grantReason?: string;
+  lastUpdated: number;
 }
 

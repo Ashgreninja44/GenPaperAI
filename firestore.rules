@@ -43,18 +43,18 @@ service cloud.firestore {
              data.uid == request.auth.uid &&
              data.email is string && data.email.size() <= 200 &&
              data.name is string && data.name.size() <= 200 &&
-             data.role in ['user', 'teacher', 'admin', 'super_admin'];
+             data.role in ['user', 'teacher', 'admin', 'super_admin', 'plus'];
     }
 
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId) && isValidUser(incoming()) && (
-        incoming().role == 'user' || isDeveloperEmail()
+        incoming().role in ['user', 'plus'] || isDeveloperEmail()
       );
       allow update: if (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'profilePhoto', 'customProfilePhoto', 'providerPhoto', 'selectedTheme', 'preferences', 'defaultPaperSettings', 'lastLogin'])) ||
-                       (isSuperAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['role']) && !(existing().email.lower() == 'pendyaladarshit4@gmail.com' && incoming().role != 'super_admin')) ||
-                       (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['role']) && incoming().role in ['user', 'teacher', 'admin'] && existing().role != 'super_admin');
+                       (isSuperAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'subscriptionTier', 'isPlusSubscriber', 'subscriptionDetails']) && !(existing().email.lower() == 'pendyaladarshit4@gmail.com' && incoming().role != 'super_admin')) ||
+                       (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'subscriptionTier', 'isPlusSubscriber', 'subscriptionDetails']) && incoming().role in ['user', 'teacher', 'admin', 'plus'] && existing().role != 'super_admin');
       allow delete: if isSuperAdmin() && !(existing().email.lower() == 'pendyaladarshit4@gmail.com');
     }
 

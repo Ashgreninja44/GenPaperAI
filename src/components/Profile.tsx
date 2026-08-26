@@ -1,31 +1,53 @@
 import React from 'react';
-import { UserProfile, MaintenanceConfig } from '../types';
-import { Shield, Mail, Calendar, Crown, ShieldCheck, Sparkles } from 'lucide-react';
+import { UserProfile, MaintenanceConfig, SubscriptionGlobalConfig } from '../types';
+import { 
+  Shield, 
+  Mail, 
+  Calendar, 
+  Crown, 
+  ShieldCheck, 
+  Sparkles, 
+  Zap, 
+  ArrowRight,
+  Clock,
+  Layers
+} from 'lucide-react';
 import { GoogleIcon, MicrosoftIcon, EmailIcon } from './BrandIcons';
 import { isSuperAdmin, isPlatformAdmin, OWNER_EMAIL } from '../services/adminService';
 import { getEffectiveProfilePhoto, isUsingCustomProfilePicture } from '../services/profilePhotoService';
+import { 
+  getUserSubscriptionStatus, 
+  isUserPlusSubscriber, 
+  DEFAULT_SUBSCRIPTION_CONFIG 
+} from '../services/subscriptionService';
 
 interface ProfileProps {
   profile: UserProfile;
   onBack: () => void;
   onGoToSettings: () => void;
+  onGoToSubscription?: () => void;
   maintenanceConfig?: MaintenanceConfig | null;
+  subscriptionConfig?: SubscriptionGlobalConfig | null;
 }
 
 const Profile: React.FC<ProfileProps> = ({ 
   profile, 
   onBack, 
   onGoToSettings,
-  maintenanceConfig 
+  onGoToSubscription,
+  maintenanceConfig,
+  subscriptionConfig 
 }) => {
   const isOwner = profile.email.toLowerCase() === OWNER_EMAIL.toLowerCase();
   const isSuper = isSuperAdmin(profile.email, profile.role);
   const isAdmin = isPlatformAdmin(profile.email, profile.role);
+  const isPlus = isUserPlusSubscriber(profile);
   const effectivePhoto = getEffectiveProfilePhoto(profile);
   const isCustomPhoto = isUsingCustomProfilePicture(profile);
+  const subStatus = getUserSubscriptionStatus(profile, subscriptionConfig || DEFAULT_SUBSCRIPTION_CONFIG);
 
   return (
-    <div className="max-w-4xl mx-auto p-6 animate-fade-in">
+    <div className="max-w-4xl mx-auto p-6 animate-fade-in text-gray-900">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <button 
           onClick={onBack}
@@ -36,7 +58,7 @@ const Profile: React.FC<ProfileProps> = ({
         <h1 className="text-2xl sm:text-3xl font-black text-white drop-shadow-md">My Profile</h1>
       </div>
 
-      <div className="glass-panel overflow-hidden rounded-3xl shadow-2xl">
+      <div className="glass-panel overflow-hidden rounded-3xl shadow-2xl bg-white/95 backdrop-blur-xl">
         {/* Header/Cover Area */}
         <div className="h-32 bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] relative">
             <div className="absolute -bottom-12 left-8">
@@ -78,6 +100,11 @@ const Profile: React.FC<ProfileProps> = ({
                           <ShieldCheck className="w-3.5 h-3.5" />
                           Administrator
                         </span>
+                      ) : isPlus ? (
+                        <span className="px-3 py-1 bg-purple-100 border border-purple-300 text-purple-900 text-xs font-black rounded-full flex items-center gap-1 shadow-sm">
+                          <Sparkles className="w-3.5 h-3.5 text-[#8A2CB0]" />
+                          GenPaperAI Plus
+                        </span>
                       ) : null}
                     </div>
                     <p className="text-gray-500 font-medium flex items-center gap-2 mt-1">
@@ -85,12 +112,71 @@ const Profile: React.FC<ProfileProps> = ({
                         {profile.email}
                     </p>
                 </div>
-                <button 
-                    onClick={onGoToSettings}
-                    className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-all active:scale-95 cursor-pointer"
+                <div className="flex items-center gap-2.5">
+                  {onGoToSubscription && (
+                    <button 
+                        onClick={onGoToSubscription}
+                        className="px-5 py-2.5 bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] hover:from-[#320f77] hover:to-[#772499] text-white font-black text-xs rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        <span>Manage Subscription</span>
+                    </button>
+                  )}
+                  <button 
+                      onClick={onGoToSettings}
+                      className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-all active:scale-95 cursor-pointer"
+                  >
+                      Edit Profile
+                  </button>
+                </div>
+            </div>
+
+            {/* Subscription & Entitlement Banner */}
+            <div className="mb-6 p-5 rounded-2xl border bg-gradient-to-r from-purple-50/70 to-indigo-50/70 border-purple-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                  isOwner || isSuper
+                    ? 'bg-amber-100 text-amber-700'
+                    : isPlus
+                    ? 'bg-purple-100 text-purple-700'
+                    : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {isOwner || isSuper ? (
+                    <Crown className="w-5 h-5" />
+                  ) : isPlus ? (
+                    <Sparkles className="w-5 h-5" />
+                  ) : (
+                    <Layers className="w-5 h-5" />
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-black text-gray-900">
+                      {subStatus.planName}
+                    </h3>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                      isPlus || isSuper ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-700'
+                    }`}>
+                      {isPlus || isSuper ? 'Ad-Free Active' : 'Free Tier'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 font-medium mt-0.5 flex items-center gap-2">
+                    <span>Valid until: <strong>{subStatus.formattedExpiration}</strong></span>
+                    <span>•</span>
+                    <span>Source: {subStatus.source}</span>
+                  </p>
+                </div>
+              </div>
+
+              {onGoToSubscription && (
+                <button
+                  onClick={onGoToSubscription}
+                  className="px-4 py-2 bg-white hover:bg-gray-50 text-purple-900 font-black text-xs rounded-xl shadow-sm border border-purple-200 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
                 >
-                    Edit Profile
+                  <span>{isPlus || isSuper ? 'View Entitlements' : 'Upgrade Plan'}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </button>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

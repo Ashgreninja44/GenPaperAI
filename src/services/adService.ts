@@ -9,6 +9,7 @@ import {
   AdErrorLog 
 } from '../types';
 import { isSuperAdmin, isAdmin, logAdminAction } from './adminService';
+import { isUserPlusSubscriber } from './subscriptionService';
 
 export const ADSENSE_CLIENT_ID = 'ca-pub-7837168331919243';
 
@@ -119,11 +120,7 @@ export function isUserEligibleForAds(
   }
 
   // 4. Plus Subscribers -> Ad-Free Entitlement
-  if (
-    user.role === 'plus' ||
-    user.subscriptionTier === 'plus' ||
-    user.isPlusSubscriber === true
-  ) {
+  if (isUserPlusSubscriber(user)) {
     return false;
   }
 

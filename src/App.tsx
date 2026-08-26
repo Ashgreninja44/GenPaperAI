@@ -13,6 +13,7 @@ import About from './components/About';
 import Maintenance from './components/Maintenance';
 import ThemeStudio from './components/ThemeStudio';
 import { AdminCenter } from './components/admin/AdminCenter';
+import SubscriptionView from './components/SubscriptionView';
 import { isMaintenanceModeActive } from './config/maintenance';
 import ScrollToTop from './components/ScrollToTop';
 import BackgroundAnimation from './components/BackgroundAnimation';
@@ -20,11 +21,12 @@ import ThemeBackdrop from './components/ThemeBackdrop';
 import Logo from './components/Logo';
 import { GoogleIcon, MicrosoftIcon, EmailIcon } from './components/BrandIcons';
 import { SyllabusData, getLatestCurriculum, updateSyllabusFromSources } from './services/syllabusService';
-import { PaperConfig, GeneratedPaper, QuestionBank, UserProfile, MaintenanceConfig, AnnouncementConfig, ThemeAnimationConfig, DEFAULT_THEME_ANIMATION_CONFIG, AdvertisementConfig } from './types';
+import { PaperConfig, GeneratedPaper, QuestionBank, UserProfile, MaintenanceConfig, AnnouncementConfig, ThemeAnimationConfig, DEFAULT_THEME_ANIMATION_CONFIG, AdvertisementConfig, SubscriptionGlobalConfig } from './types';
 import { generateQuestionPaper } from './services/geminiService';
 import { subscribeToMaintenanceMode, isSuperAdmin, setMaintenanceMode } from './services/maintenanceService';
 import { subscribeToAnnouncement, isPlatformAdmin } from './services/adminService';
 import { subscribeToAdvertisementConfig } from './services/adService';
+import { subscribeToSubscriptionConfig, isUserPlusSubscriber } from './services/subscriptionService';
 import { AdPlacement } from './components/ads/AdPlacement';
 import { 
   savePaperToFirestore, 
@@ -78,7 +80,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 
-type View = 'dashboard' | 'create' | 'preview' | 'bank' | 'settings' | 'appearance' | 'profile' | 'about' | 'admin-portal';
+type View = 'dashboard' | 'create' | 'preview' | 'bank' | 'settings' | 'appearance' | 'profile' | 'about' | 'admin-portal' | 'subscription';
 
 const THEMES: Record<string, string> = {
   default: 'linear-gradient(135deg, #3C128D 0%, #8A2CB0 60%, #EEA727 100%)',
@@ -148,6 +150,7 @@ const App: React.FC = () => {
   const [announcementConfig, setAnnouncementConfig] = useState<AnnouncementConfig | null>(null);
   const [isAnnouncementDismissed, setIsAnnouncementDismissed] = useState(false);
   const [adConfig, setAdConfig] = useState<AdvertisementConfig | null>(null);
+  const [subscriptionConfig, setSubscriptionConfig] = useState<SubscriptionGlobalConfig | null>(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -176,6 +179,14 @@ const App: React.FC = () => {
       setAdConfig(config);
     });
     return () => unsubscribeAds();
+  }, []);
+
+  // Subscribe to real-time subscription configurations
+  useEffect(() => {
+    const unsubscribeSubscriptions = subscribeToSubscriptionConfig((config) => {
+      setSubscriptionConfig(config);
+    });
+    return () => unsubscribeSubscriptions();
   }, []);
 
   // Instantly reset scroll to top on in-app view changes
@@ -1008,6 +1019,23 @@ const App: React.FC = () => {
                                           View Profile
                                       </button>
                                       <button 
+                                          id="dropdown-btn-subscription"
+                                          onClick={() => { setView('subscription'); setIsOpen(false); }}
+                                          className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-between gap-3 transition-colors cursor-pointer"
+                                      >
+                                          <div className="flex items-center gap-3">
+                                              <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-[#8A2CB0]">
+                                                  <Sparkles className="w-4 h-4" />
+                                              </div>
+                                              <span>Subscription & Plans</span>
+                                          </div>
+                                          {isUserPlusSubscriber(userProfile) ? (
+                                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-purple-100 text-purple-900 border border-purple-200">Plus</span>
+                                          ) : (
+                                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600">Free</span>
+                                          )}
+                                      </button>
+                                      <button 
                                           onClick={() => { setView('appearance'); setIsOpen(false); }}
                                           className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
                                       >
@@ -1474,12 +1502,30 @@ const App: React.FC = () => {
                                 profile={userProfile}
                                 onBack={handleBackToDashboard}
                                 onGoToSettings={() => setView('settings')}
+                                onGoToSubscription={() => setView('subscription')}
                                 maintenanceConfig={maintenanceConfig}
+                                subscriptionConfig={subscriptionConfig}
                             />
                         ) : (
                             <div className="flex flex-col items-center justify-center h-64 gap-4">
                                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
                                 <p className="text-white font-medium">Loading profile...</p>
+                            </div>
+                        )
+                    )}
+
+                    {view === 'subscription' && (
+                        userProfile ? (
+                            <SubscriptionView 
+                                user={userProfile}
+                                config={subscriptionConfig}
+                                onBack={handleBackToDashboard}
+                                onNavigateToSettings={() => setView('settings')}
+                            />
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-64 gap-4">
+                                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+                                <p className="text-white font-medium">Loading subscription details...</p>
                             </div>
                         )
                     )}

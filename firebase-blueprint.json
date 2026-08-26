@@ -61,7 +61,10 @@
             "schoolName": { "type": "string" }
           }
         },
-        "role": { "type": "string", "enum": ["user", "teacher", "admin", "super_admin"] }
+        "role": { "type": "string", "enum": ["user", "teacher", "admin", "super_admin", "plus"] },
+        "subscriptionTier": { "type": "string", "enum": ["free", "plus"] },
+        "isPlusSubscriber": { "type": "boolean" },
+        "subscriptionDetails": { "type": "object" }
       },
       "required": ["uid", "name", "email", "selectedTheme", "createdAt"]
     },

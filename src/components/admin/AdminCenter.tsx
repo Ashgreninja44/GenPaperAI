@@ -46,6 +46,7 @@ import { AdminDiagnostics } from './AdminDiagnostics';
 import { AdminSecurity } from './AdminSecurity';
 import { AdminAuditLog } from './AdminAuditLog';
 import { AdminAdvertisements } from './AdminAdvertisements';
+import { AdminMonetization } from './AdminMonetization';
 import { Coins } from 'lucide-react';
 
 export interface AdminCenterProps {
@@ -307,8 +308,10 @@ export const AdminCenter: React.FC<AdminCenterProps> = ({
           )}
 
           {activeTab === 'monetization' && (
-            <AdminAdvertisements
+            <AdminMonetization
               currentUser={user}
+              users={users}
+              onRefreshUsers={refreshAllData}
             />
           )}
 
