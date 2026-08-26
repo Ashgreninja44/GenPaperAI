@@ -9,7 +9,8 @@ import {
   Clock, 
   ArrowRight,
   Sparkles,
-  AlertTriangle
+  AlertTriangle,
+  Coins
 } from 'lucide-react';
 import { UserProfile, AIModelRegistry, AdminAuditLogEntry, MaintenanceConfig, AnnouncementConfig } from '../../types';
 
@@ -191,6 +192,22 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
               <div>
                 <div className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-purple-600 transition-colors">AI Routing & Models</div>
                 <div className="text-xs text-gray-500">Manage fallback & default engine</div>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+          </button>
+
+          <button
+            onClick={() => onNavigateTab('monetization')}
+            className="w-full text-left p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:border-amber-500 dark:hover:border-amber-500 transition-all flex items-center justify-between group shadow-sm"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <Coins className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-amber-600 transition-colors">Monetization & Ads</div>
+                <div className="text-xs text-gray-500">Global toggles & AdSense status</div>
               </div>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />

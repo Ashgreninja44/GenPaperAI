@@ -218,7 +218,9 @@ export interface UserPreferences {
   themeCustomization?: ThemeAnimationConfig;
 }
 
-export type UserRole = 'user' | 'teacher' | 'admin' | 'super_admin';
+export type UserRole = 'user' | 'teacher' | 'admin' | 'super_admin' | 'plus';
+
+export type SubscriptionTier = 'free' | 'plus';
 
 export interface UserProfile {
   uid: string;
@@ -233,6 +235,8 @@ export interface UserProfile {
   createdAt: number;
   lastLogin?: number;
   role: UserRole;
+  subscriptionTier?: SubscriptionTier;
+  isPlusSubscriber?: boolean;
   defaultPaperSettings?: {
     board?: string;
     grade?: string;
@@ -339,3 +343,57 @@ export interface SystemHealthReport {
   };
   lastChecked: number;
 }
+
+// ==========================================
+// ADVERTISEMENTS & MONETIZATION
+// ==========================================
+
+export type AdPlacementId = 
+  | 'dashboard_banner'
+  | 'dashboard_sidebar'
+  | 'footer_banner'
+  | 'paper_preview'
+  | 'generated_pdf'
+  | 'question_content';
+
+export interface AdPlacementConfig {
+  id: AdPlacementId;
+  name: string;
+  description: string;
+  allowed: boolean; // false for prohibited placements (immutable across entire platform)
+  enabled: boolean; // only mutable if allowed === true
+  slotId?: string; // AdSense slot ID
+  format?: 'auto' | 'rectangle' | 'horizontal' | 'vertical';
+  category: 'dashboard' | 'general' | 'prohibited';
+}
+
+export interface AdSenseConfig {
+  clientId: string; // e.g. 'ca-pub-7837168331919243'
+  isVerified: boolean;
+  testMode: boolean; // safe test mode for owner previewing without live clicks/impressions
+}
+
+export interface AdvertisementConfig {
+  enabled: boolean; // Global Master Toggle
+  adSense: AdSenseConfig;
+  placements: Record<string, AdPlacementConfig>;
+  updatedAt: number;
+  updatedBy?: string;
+}
+
+export interface AdAnalyticsSummary {
+  reportingConnected: boolean; // false if AdSense Reporting API is not connected
+  statusMessage: string;
+  totalImpressions: number;
+  totalClicks: number;
+  estimatedRevenue: string; // e.g. "AdSense reporting not connected"
+  lastUpdated: number;
+}
+
+export interface AdErrorLog {
+  id: string;
+  placementId: string;
+  errorReason: string;
+  timestamp: number;
+}
+

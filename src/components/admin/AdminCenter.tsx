@@ -45,6 +45,8 @@ import { AdminSystem } from './AdminSystem';
 import { AdminDiagnostics } from './AdminDiagnostics';
 import { AdminSecurity } from './AdminSecurity';
 import { AdminAuditLog } from './AdminAuditLog';
+import { AdminAdvertisements } from './AdminAdvertisements';
+import { Coins } from 'lucide-react';
 
 export interface AdminCenterProps {
   user: UserProfile;
@@ -52,7 +54,7 @@ export interface AdminCenterProps {
   onBackToProfile?: () => void;
 }
 
-type AdminTab = 'overview' | 'users' | 'ai-models' | 'analytics' | 'system' | 'diagnostics' | 'security' | 'audit-log';
+type AdminTab = 'overview' | 'users' | 'ai-models' | 'analytics' | 'monetization' | 'system' | 'diagnostics' | 'security' | 'audit-log';
 
 export const AdminCenter: React.FC<AdminCenterProps> = ({
   user,
@@ -154,6 +156,7 @@ export const AdminCenter: React.FC<AdminCenterProps> = ({
     { id: 'users', label: 'Users & Roles', icon: Users, badge: users.length },
     { id: 'ai-models', label: 'AI & Models', icon: Cpu },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'monetization', label: 'Monetization & Ads', icon: Coins },
     { id: 'system', label: 'System & Gates', icon: Settings },
     { id: 'diagnostics', label: 'Diagnostics', icon: Activity },
     { id: 'security', label: 'Security', icon: ShieldAlert, badge: securityEvents.length > 0 ? securityEvents.length : undefined },
@@ -300,6 +303,12 @@ export const AdminCenter: React.FC<AdminCenterProps> = ({
               users={users}
               papers={papers}
               metrics={metrics}
+            />
+          )}
+
+          {activeTab === 'monetization' && (
+            <AdminAdvertisements
+              currentUser={user}
             />
           )}
 

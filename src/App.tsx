@@ -20,10 +20,12 @@ import ThemeBackdrop from './components/ThemeBackdrop';
 import Logo from './components/Logo';
 import { GoogleIcon, MicrosoftIcon, EmailIcon } from './components/BrandIcons';
 import { SyllabusData, getLatestCurriculum, updateSyllabusFromSources } from './services/syllabusService';
-import { PaperConfig, GeneratedPaper, QuestionBank, UserProfile, MaintenanceConfig, AnnouncementConfig, ThemeAnimationConfig, DEFAULT_THEME_ANIMATION_CONFIG } from './types';
+import { PaperConfig, GeneratedPaper, QuestionBank, UserProfile, MaintenanceConfig, AnnouncementConfig, ThemeAnimationConfig, DEFAULT_THEME_ANIMATION_CONFIG, AdvertisementConfig } from './types';
 import { generateQuestionPaper } from './services/geminiService';
 import { subscribeToMaintenanceMode, isSuperAdmin, setMaintenanceMode } from './services/maintenanceService';
 import { subscribeToAnnouncement, isPlatformAdmin } from './services/adminService';
+import { subscribeToAdvertisementConfig } from './services/adService';
+import { AdPlacement } from './components/ads/AdPlacement';
 import { 
   savePaperToFirestore, 
   loadPaperFromFirestore, 
@@ -145,6 +147,7 @@ const App: React.FC = () => {
   const [maintenanceConfig, setMaintenanceConfig] = useState<MaintenanceConfig | null>(null);
   const [announcementConfig, setAnnouncementConfig] = useState<AnnouncementConfig | null>(null);
   const [isAnnouncementDismissed, setIsAnnouncementDismissed] = useState(false);
+  const [adConfig, setAdConfig] = useState<AdvertisementConfig | null>(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -165,6 +168,14 @@ const App: React.FC = () => {
       setIsAnnouncementDismissed(false);
     });
     return () => unsubscribeAnnouncement();
+  }, []);
+
+  // Subscribe to real-time advertisement configurations
+  useEffect(() => {
+    const unsubscribeAds = subscribeToAdvertisementConfig((config) => {
+      setAdConfig(config);
+    });
+    return () => unsubscribeAds();
   }, []);
 
   // Instantly reset scroll to top on in-app view changes
@@ -1385,13 +1396,20 @@ const App: React.FC = () => {
                     )}
 
                     {view === 'dashboard' && (
-                      <Dashboard 
-                        history={history} 
-                        onCreateNew={handleCreateNew} 
-                        onViewPaper={handleViewPaper} 
-                        onViewBank={() => setView('bank')}
-                        onDeletePaper={handleDeletePaper}
-                      />
+                      <div className="space-y-4">
+                        <Dashboard 
+                          history={history} 
+                          onCreateNew={handleCreateNew} 
+                          onViewPaper={handleViewPaper} 
+                          onViewBank={() => setView('bank')}
+                          onDeletePaper={handleDeletePaper}
+                        />
+                        <AdPlacement 
+                          placementId="dashboard_banner" 
+                          currentUser={userProfile} 
+                          config={adConfig} 
+                        />
+                      </div>
                     )}
 
                     {view === 'create' && (
@@ -1413,12 +1431,19 @@ const App: React.FC = () => {
                     )}
 
                     {view === 'bank' && (
+                      <div className="space-y-4">
                         <QuestionBankView
                             banks={questionBanks}
                             onUpdateBank={handleUpdateBank}
                             onDeleteBank={handleDeleteBank}
                             onBack={handleBackToDashboard}
                         />
+                        <AdPlacement 
+                          placementId="footer_banner" 
+                          currentUser={userProfile} 
+                          config={adConfig} 
+                        />
+                      </div>
                     )}
 
                     {view === 'appearance' && (
