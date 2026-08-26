@@ -595,78 +595,85 @@ export const parseQuestionsFromText = async (text: string, subjectContext: strin
 
 export const extractQuestionsFromUrl = async (url: string, subjectContext: string): Promise<{ questions: Question[], metadata: { subject?: string, topic?: string, grade?: string } }> => {
     try {
-        console.log("Fetching URL for Web Extract:", url);
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+        console.log("Fetching URL for Web Extract (First-party secure):", url);
         
-        const response = await withRetry(() => fetch(proxyUrl));
-        if (!response.ok) throw new Error(`Proxy returned ${response.status}`);
-        
-        const data = await response.json();
-        const rawHtml = data.contents;
-        
-        if (!rawHtml || typeof rawHtml !== 'string') {
-            throw new Error("Invalid content received");
-        }
+        let cleanText = '';
+        let directFetchSuccess = false;
 
-        // PART 1: HTML EXTRACTION (CLEANING)
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(rawHtml, 'text/html');
+        // Try direct server-side fetch first
+        try {
+          const res = await fetch('/api/web/fetch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+          });
 
-        // Aggressive Removal of junk
-        const junkSelectors = [
-            'script', 'style', 'noscript', 'iframe', 'header', 'footer', 'nav', 'aside', 
-            'form', 'button', 'svg', 'link', 'meta', '.ad', '.ads', '.sidebar', 
-            '#sidebar', '#footer', '.footer', '.navbar', '.nav', '.menu', '.social-share',
-            '.comments', '.related-posts', '.advertisement', 'ins.adsbygoogle', 
-            '[aria-hidden="true"]', '.breadcrumb', '.promo', '.banner'
-        ];
-        junkSelectors.forEach(selector => {
-            doc.querySelectorAll(selector).forEach(el => el.remove());
-        });
+          if (res.ok) {
+            const data = await res.json();
+            const rawHtml = data.contents;
+            if (rawHtml && typeof rawHtml === 'string') {
+              const parser = new DOMParser();
+              const doc = parser.parseFromString(rawHtml, 'text/html');
 
-        // Content Extraction: p, li, h1, h2, h3
-        const semanticSelectors = ['p', 'li', 'h1', 'h2', 'h3', 'table', 'div[class*="content"]', '.entry-content'];
-        let extractedParts: string[] = [];
-        
-        doc.querySelectorAll(semanticSelectors.join(',')).forEach(el => {
-            const text = el.textContent?.trim();
-            if (text && text.length > 10) {
-               extractedParts.push(text);
+              const junkSelectors = [
+                'script', 'style', 'noscript', 'iframe', 'header', 'footer', 'nav', 'aside', 
+                'form', 'button', 'svg', 'link', 'meta', '.ad', '.ads', '.sidebar', 
+                '#sidebar', '#footer', '.footer', '.navbar', '.nav', '.menu', '.social-share',
+                '.comments', '.related-posts', '.advertisement', 'ins.adsbygoogle', 
+                '[aria-hidden="true"]', '.breadcrumb', '.promo', '.banner'
+              ];
+              junkSelectors.forEach(s => doc.querySelectorAll(s).forEach(el => el.remove()));
+
+              const semanticSelectors = ['p', 'li', 'h1', 'h2', 'h3', 'h4', 'table', 'div[class*="content"]', '.entry-content', 'article'];
+              let extractedParts: string[] = [];
+              doc.querySelectorAll(semanticSelectors.join(',')).forEach(el => {
+                const text = el.textContent?.trim();
+                if (text && text.length > 15) {
+                  extractedParts.push(text);
+                }
+              });
+
+              cleanText = extractedParts.join('\n');
+              if (cleanText.length >= 80) {
+                directFetchSuccess = true;
+              }
             }
-        });
-
-        // Normalizing and filtering lines
-        const allText = extractedParts.join('\n');
-        const lines = allText.split(/\n+/);
-        
-        // Intelligent Filtering (PART 3)
-        const filteredLines = lines
-            .map(l => l.trim())
-            .filter(l => l.length > 15) // PART 3: length > 15
-            .filter((l, idx, arr) => arr.indexOf(l) === idx); // UNIQUE
-
-        // Heuristic Pre-Filter: Only keep lines that look educational or like questions
-        const heuristicFilteredContent = filteredLines.filter(line => {
-             // Keep questions identified by manual heuristic or generally dense sentences
-             return isQuestionHeuristic(line) || line.split(' ').length > 8;
-        });
-
-        const finalCleanText = heuristicFilteredContent.join('\n');
-
-        if (finalCleanText.length < 150) {
-            console.warn("Extraction yielded too little quality content.");
-            throw new Error("EXTRACTION_BLOCKED");
+          }
+        } catch (fetchErr) {
+          console.warn("[Web Extract] Direct fetch failed, trying Google Search grounding:", fetchErr);
         }
 
-        console.log("Extracted high-quality text length:", finalCleanText.length);
-        
-        // Limit size to avoid huge payloads (15k characters)
-        return await parseQuestionsFromText(finalCleanText.substring(0, 15000), subjectContext);
+        // If direct fetch succeeded, parse questions
+        if (directFetchSuccess && cleanText.length >= 80) {
+          return await parseQuestionsFromText(cleanText.substring(0, 15000), subjectContext);
+        }
 
-    } catch (error) {
+        // Fallback: Google Search Grounding on URL & topic
+        console.log("[Web Extract] Grounding via Google Search on URL:", url);
+        const searchPrompt = `
+          Extract and formulate academic questions from the educational resource: "${url}".
+          Context: ${subjectContext}.
+          
+          TASK: Ground and search content from this webpage. Produce high-quality curriculum examination questions with answers.
+        `;
+
+        const groundedResponse = await generateContentProxy({
+          model: 'gemini-3-flash-preview',
+          contents: searchPrompt,
+          config: {
+            tools: [{ googleSearch: {} }]
+          }
+        });
+
+        const groundedText = groundedResponse.text || '';
+        if (groundedText.length > 50) {
+          return await parseQuestionsFromText(groundedText, subjectContext);
+        }
+
+        throw new Error("EXTRACTION_BLOCKED");
+    } catch (error: any) {
         console.error("URL Extraction failed:", error);
-        // Normalize error for UI
-        if (error.message === "EXTRACTION_BLOCKED" || error.message.includes("403") || error.message.includes("401")) {
+        if (error.message === "EXTRACTION_BLOCKED" || error.message.includes("403") || error.message.includes("401") || error.message.includes("timed out")) {
              throw new Error("EXTRACTION_BLOCKED");
         }
         throw error;

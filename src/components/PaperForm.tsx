@@ -1,11 +1,14 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { PaperConfig, QuestionCounts, CustomSection, QuestionBank, Question } from '../types';
+import { PaperConfig, QuestionCounts, CustomSection, QuestionBank, Question, UserProfile, SubscriptionGlobalConfig, WebResearchConfig } from '../types';
 import { SYLLABUS_DATA, GRADES, FONT_OPTIONS, BOARDS, TEST_TYPES, QUESTION_TYPES_DROPDOWN, CBSE_EXAM_PATTERNS, PRESET_SCHOOLS } from '../constants';
 import { SyllabusData } from '../services/syllabusService';
 import { parseQuestionsFromText, extractQuestionsFromUrl } from '../services/geminiService';
+import { convertToRuntimeQuestion } from '../services/questionBankService';
 import { getSubjectPattern, SubjectPaperPattern, ACADEMIC_SESSIONS } from '../data/subjectPatterns';
 import MarkdownRenderer from './MarkdownRenderer';
+import { WebResearchModal } from './WebResearchModal';
+import { Globe, BookOpen, Sparkles, Link as LinkIcon, Database, Check, Plus, Trash2, Edit3 } from 'lucide-react';
 
 // Defined Weights and Specs (Legacy/Standard Mode Fallback)
 const QUESTION_SPECS: { label: string; key: keyof QuestionCounts; marks: number }[] = [
@@ -23,9 +26,23 @@ interface PaperFormProps {
   isGenerating: boolean;
   questionBanks?: QuestionBank[]; // Injected from App
   dynamicSyllabus?: SyllabusData | null;
+  initialSelectedQuestions?: Question[];
+  user?: UserProfile | null;
+  subscriptionConfig?: SubscriptionGlobalConfig | null;
+  webResearchConfig?: WebResearchConfig | null;
 }
 
-const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGenerating, questionBanks = [], dynamicSyllabus = null }) => {
+const PaperForm: React.FC<PaperFormProps> = ({ 
+  onGenerate, 
+  onCancel, 
+  isGenerating, 
+  questionBanks = [], 
+  dynamicSyllabus = null,
+  initialSelectedQuestions = [],
+  user = null,
+  subscriptionConfig = null,
+  webResearchConfig = null
+}) => {
   // --- Smart School Selector State ---
   const [selectedSchool, setSelectedSchool] = useState(''); 
   const [customSchoolName, setCustomSchoolName] = useState(''); 
@@ -105,18 +122,28 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
   const [currentCalculatedMarks, setCurrentCalculatedMarks] = useState<number | null>(null);
 
   // --- NEW: Hybrid Question Source State ---
-  const [sourceTab, setSourceTab] = useState<'ai' | 'bank' | 'url'>('ai');
+  const [sourceTab, setSourceTab] = useState<'ai' | 'bank' | 'research' | 'url'>('ai');
   const [extractionUrl, setExtractionUrl] = useState('');
   const [pasteText, setPasteText] = useState('');
   const [extractionError, setExtractionError] = useState<string | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
-  const [manualQuestions, setManualQuestions] = useState<Question[]>([]);
-  const [previewQuestions, setPreviewQuestions] = useState<Question[]>([]); // Extracted/Parsed but not yet confirmed
+  const [showWebResearchModal, setShowWebResearchModal] = useState(false);
+  const [manualQuestions, setManualQuestions] = useState<Question[]>(initialSelectedQuestions || []);
+  const [previewQuestions, setPreviewQuestions] = useState<Question[]>(initialSelectedQuestions || []); // Extracted/Parsed but not yet confirmed
   const [extractedMetadata, setExtractedMetadata] = useState<{ subject?: string, topic?: string, grade?: string } | null>(null);
   
   // Filter banks by current subject/grade
   const relevantBanks = questionBanks.filter(b => b.subject === selectedSubject && b.grade === selectedClass);
   const [selectedBankId, setSelectedBankId] = useState<string>('');
+
+  // Prepopulate if initial selected questions provided
+  useEffect(() => {
+    if (initialSelectedQuestions && initialSelectedQuestions.length > 0) {
+      setManualQuestions(initialSelectedQuestions);
+      setPreviewQuestions(initialSelectedQuestions);
+      setSourceTab('bank');
+    }
+  }, [initialSelectedQuestions]);
 
   // ----------------------------------------
 
@@ -285,9 +312,21 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
           setPreviewQuestions([]);
           setExtractedMetadata(null);
           try {
-              const { questions, metadata } = await parseQuestionsFromText(bank.content, selectedSubject);
-              setPreviewQuestions(questions);
-              setExtractedMetadata(metadata);
+              // If structured questions exist, use them directly without LLM re-parsing
+              if (bank.questions && bank.questions.length > 0) {
+                  const runtimeQs = bank.questions.map(convertToRuntimeQuestion);
+                  setPreviewQuestions(runtimeQs);
+                  setExtractedMetadata({
+                      subject: bank.subject,
+                      grade: bank.grade,
+                      topic: `${bank.questions.length} Structured Items`
+                  });
+              } else {
+                  // Fallback for legacy raw markdown bank
+                  const { questions, metadata } = await parseQuestionsFromText(bank.content, selectedSubject);
+                  setPreviewQuestions(questions);
+                  setExtractedMetadata(metadata);
+              }
           } catch(e) {
               console.error(e);
           } finally {
@@ -1083,42 +1122,48 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
                 {/* Visual Accent */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#8A2CB0]/5 rounded-bl-full pointer-events-none"></div>
 
-                 <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 relative z-10">
+                <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 relative z-10">
                      <div className="text-center sm:text-left">
                         <h4 className="font-bold text-gray-800">Source Mode</h4>
-                        <p className="text-xs text-gray-500">Where should questions come from?</p>
+                        <p className="text-xs text-gray-500">Select where examination questions should originate from</p>
                      </div>
-                     <div className="flex flex-wrap sm:flex-nowrap bg-gray-100 p-1 rounded-lg w-full sm:w-auto justify-center">
-                         {['ai', 'bank', 'url'].map(tab => (
+                     <div className="flex flex-wrap sm:flex-nowrap bg-gray-100 p-1 rounded-xl w-full sm:w-auto justify-center gap-1">
+                         {[
+                           { id: 'ai', label: 'AI Auto-Gen', icon: Sparkles },
+                           { id: 'bank', label: 'Question Bank', icon: Database },
+                           { id: 'research', label: 'Web Research', icon: Globe },
+                           { id: 'url', label: 'URL / Text', icon: LinkIcon },
+                         ].map(tab => {
+                           const Icon = tab.icon;
+                           return (
                              <button
-                                key={tab}
+                                key={tab.id}
                                 type="button"
-                                onClick={() => setSourceTab(tab as any)}
-                                className={`px-3 sm:px-5 py-2 rounded-md text-[10px] sm:text-xs font-bold transition-all uppercase flex items-center gap-1.5 sm:gap-2 flex-1 sm:flex-none justify-center ${sourceTab === tab ? 'bg-white shadow-sm text-[#8A2CB0] ring-1 ring-black/5' : 'text-gray-500 hover:text-gray-900'}`}
+                                onClick={() => setSourceTab(tab.id as any)}
+                                className={`px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 justify-center cursor-pointer ${
+                                  sourceTab === tab.id 
+                                    ? 'bg-white shadow-xs text-[#8A2CB0] ring-1 ring-black/5 font-black' 
+                                    : 'text-gray-500 hover:text-gray-900'
+                                }`}
                              >
-                                <span className="whitespace-nowrap">
-                                  {tab === 'ai' ? 'AI Auto-Gen' : tab === 'bank' ? 'Question Bank' : 'Web Extract'}
-                                </span>
-                                {(tab === 'bank' || tab === 'url') && (
-                                  <span className="px-1 py-0.5 rounded bg-amber-400 text-[#3C128D] text-[8px] font-black tracking-tighter shadow-sm border border-amber-500/30 flex-shrink-0">
-                                    Beta
-                                  </span>
-                                )}
+                                <Icon className="w-3.5 h-3.5" />
+                                <span>{tab.label}</span>
                              </button>
-                         ))}
+                           );
+                         })}
                      </div>
-                 </div>
-                 
-                 <div className="relative z-10 min-h-[120px]">
+                  </div>
+                  
+                  <div className="relative z-10 min-h-[120px]">
                     {sourceTab === 'ai' && (
-                        <div className="flex items-center gap-4 p-4 bg-indigo-50/50 rounded-lg border border-indigo-100">
-                            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500">
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        <div className="flex items-center gap-4 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100">
+                            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                <Sparkles className="w-5 h-5" />
                             </div>
                             <div>
-                                <h5 className="font-bold text-indigo-900 text-sm">Automatic Generation</h5>
-                                <p className="text-xs text-indigo-700 mt-1">
-                                    The AI will generate 100% of the questions based on the selected Chapter and Specs above.
+                                <h5 className="font-bold text-indigo-900 text-sm">Automatic Curriculum Generation</h5>
+                                <p className="text-xs text-indigo-700 mt-0.5">
+                                    The AI will generate questions strictly mapped to the syllabus, board, and question count specs chosen above.
                                 </p>
                             </div>
                         </div>
@@ -1126,113 +1171,114 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
 
                     {sourceTab === 'bank' && (
                         <div className="space-y-4 animate-fade-in">
-                            {/* Beta Warning Banner */}
-                            <div className="mb-4 glass-panel border-l-4 border-amber-500 p-3 flex items-start gap-3 bg-amber-50/10">
-                                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 flex-shrink-0">
-                                    <span className="text-lg">⚠️</span>
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                        <h4 className="font-bold text-amber-900 text-[11px]">Beta Feature</h4>
-                                        <span className="inline-flex items-center justify-center w-3 h-3 rounded-full bg-amber-200 text-amber-700 text-[8px] cursor-help" title="We are actively improving this feature. Full functionality coming soon.">ℹ️</span>
-                                    </div>
-                                    <p className="text-[10px] text-amber-800 mt-0.5 leading-tight">
-                                        Question Bank is in Beta. Some functions may be unstable.
-                                    </p>
-                                </div>
-                            </div>
-
                             {!selectedSubject ? (
-                                <p className="text-red-500 text-sm font-bold bg-red-50 p-3 rounded-lg border border-red-100">⚠ Please select a subject in Step 2 first.</p>
+                                <p className="text-red-500 text-xs font-bold bg-red-50 p-3 rounded-xl border border-red-100">⚠ Please select a subject in Step 2 first.</p>
                             ) : relevantBanks.length === 0 ? (
-                                <p className="text-gray-500 text-sm italic p-4 text-center border-2 border-dashed border-gray-200 rounded-lg">
+                                <p className="text-gray-500 text-xs italic p-4 text-center border-2 border-dashed border-gray-200 rounded-xl">
                                     No question banks found for {selectedSubject} ({selectedClass}). 
-                                    <br/><span className="text-xs">Go to Dashboard &gt; Question Bank to create one.</span>
+                                    <br/><span className="text-[11px] text-purple-600 font-semibold">Open Question Bank in Dashboard to create or import one.</span>
                                 </p>
                             ) : (
-                                <>
-                                    <label className="block text-xs font-bold text-gray-500 mb-1">Select Question Bank</label>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Choose Saved Question Bank</label>
                                     <select 
                                         value={selectedBankId} 
                                         onChange={(e) => handleBankSelection(e.target.value)}
-                                        className="w-full px-4 py-3 rounded-lg border dark-dropdown text-sm"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark-dropdown text-xs font-semibold"
                                     >
                                         <option value="">-- Choose a Question Bank --</option>
                                         {relevantBanks.map(b => (
-                                            <option key={b.id} value={b.id}>Question Bank ({new Date(b.lastUpdated).toLocaleDateString()})</option>
+                                            <option key={b.id} value={b.id}>
+                                              {b.subject} ({b.grade}) - {b.questions?.length ? `${b.questions.length} Questions` : 'Document Bank'} - {new Date(b.lastUpdated).toLocaleDateString()}
+                                            </option>
                                         ))}
                                     </select>
-                                </>
+                                </div>
                             )}
                         </div>
                     )}
 
-                    {sourceTab === 'url' && (
-                        <div className="space-y-4 animate-fade-in">
-                            {/* Beta Warning Banner */}
-                            <div className="mb-4 glass-panel border-l-4 border-amber-500 p-3 flex items-start gap-3 bg-amber-50/10">
-                                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 flex-shrink-0">
-                                    <span className="text-lg">⚠️</span>
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                        <h4 className="font-bold text-amber-900 text-[11px]">Beta Feature</h4>
-                                        <span className="inline-flex items-center justify-center w-3 h-3 rounded-full bg-amber-200 text-amber-700 text-[8px] cursor-help" title="We are actively improving this feature. Full functionality coming soon.">ℹ️</span>
+                    {sourceTab === 'research' && (
+                        <div className="p-5 rounded-2xl bg-indigo-50/40 border border-indigo-100/80 space-y-3 animate-fade-in">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                                        <Globe className="w-5 h-5" />
                                     </div>
-                                    <p className="text-[10px] text-amber-800 mt-0.5 leading-tight">
-                                        Web Extract is in Beta. Some websites may block extraction.
-                                    </p>
+                                    <div>
+                                        <h5 className="font-bold text-gray-900 text-xs sm:text-sm">
+                                          Intelligent Web Research & Grounding
+                                        </h5>
+                                        <p className="text-[11px] text-gray-500">
+                                          Search NCERT, CBSE, and educational portals using real-time Google Grounding.
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <p className="text-xs text-gray-500">Paste a public URL (e.g. LearnCBSE, Toppr) to extract questions. If blocked, paste text directly below.</p>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowWebResearchModal(true)}
+                                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+                                >
+                                    <Globe className="w-3.5 h-3.5" />
+                                    <span>Launch Research Engine</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {sourceTab === 'url' && (
+                        <div className="space-y-3 animate-fade-in">
+                            <p className="text-xs text-gray-500">
+                              Extract questions from educational web pages or paste raw document text.
+                            </p>
                             <div className="flex gap-2">
                                 <input 
                                     type="text" 
                                     value={extractionUrl}
                                     onChange={(e) => setExtractionUrl(e.target.value)}
-                                    className="flex-1 px-4 py-3 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-[#8A2CB0] outline-none"
-                                    placeholder="https://example.com/class-10-math-questions"
+                                    className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[#8A2CB0] outline-none"
+                                    placeholder="https://example.com/class-10-sample-questions"
                                 />
                                 <button 
                                     type="button" 
                                     onClick={handleUrlExtraction}
                                     disabled={isExtracting || !extractionUrl}
-                                    className="btn-glass btn-glass-primary px-6 py-2 rounded-lg text-xs font-bold disabled:opacity-50"
+                                    className="px-5 py-2.5 rounded-xl bg-[#8A2CB0] hover:bg-[#722393] text-white text-xs font-bold disabled:opacity-50 transition-colors cursor-pointer"
                                 >
                                     {isExtracting ? 'Scanning...' : 'Extract URL'}
                                 </button>
                             </div>
                             
                             {extractionError && (
-                                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-bold text-red-700 flex items-start gap-2 animate-fade-in">
-                                    <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-bold text-red-700 flex items-start gap-2 animate-fade-in">
+                                    <span className="shrink-0">⚠️</span>
                                     <span>{extractionError}</span>
                                 </div>
                             )}
 
                             {/* Manual Paste Fallback */}
-                            <div className="relative">
+                            <div className="relative my-2">
                                 <div className="absolute inset-0 flex items-center" aria-hidden="true">
                                     <div className="w-full border-t border-gray-200"></div>
                                 </div>
                                 <div className="relative flex justify-center">
-                                    <span className="bg-white px-2 text-xs text-gray-500 uppercase font-bold tracking-wider">OR Paste Text</span>
+                                    <span className="bg-white px-2 text-[10px] text-gray-400 uppercase font-black tracking-wider">OR Paste Document Text</span>
                                 </div>
                             </div>
 
                             <div className="relative">
                                 <textarea 
-                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-[#8A2CB0] outline-none min-h-[100px]"
-                                    placeholder="Paste raw text from any document or website here..."
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[#8A2CB0] outline-none min-h-[90px]"
+                                    placeholder="Paste questions or curriculum content here..."
                                     value={pasteText}
                                     onChange={(e) => setPasteText(e.target.value)}
                                 />
                                 <button 
-                                    type="button"
+                                    type="button" 
                                     onClick={handleTextParse}
                                     disabled={isExtracting || !pasteText.trim()}
-                                    className="absolute bottom-3 right-3 btn-glass btn-glass-secondary px-4 py-1.5 rounded-md text-xs font-bold disabled:opacity-50"
+                                    className="absolute bottom-2.5 right-2.5 px-3.5 py-1.5 rounded-lg bg-gray-800 hover:bg-black text-white text-xs font-bold disabled:opacity-50 transition-colors cursor-pointer"
                                 >
                                     {isExtracting ? 'Parsing...' : 'Parse Text'}
                                 </button>
@@ -1564,6 +1610,30 @@ const PaperForm: React.FC<PaperFormProps> = ({ onGenerate, onCancel, isGeneratin
 
         </form>
       </div>
+
+      {showWebResearchModal && (
+        <WebResearchModal
+          isOpen={showWebResearchModal}
+          onClose={() => setShowWebResearchModal(false)}
+          initialSubject={selectedSubject}
+          initialGrade={selectedClass}
+          initialBoard={selectedBoard}
+          user={user}
+          subscriptionConfig={subscriptionConfig}
+          webResearchConfig={webResearchConfig}
+          onAddQuestionsToPaper={(researchedQuestions) => {
+            setPreviewQuestions(prev => [...researchedQuestions, ...prev]);
+            setManualQuestions(prev => [...researchedQuestions, ...prev]);
+            setSourceTab('research');
+            setExtractedMetadata({
+              subject: selectedSubject,
+              grade: selectedClass,
+              topic: `${researchedQuestions.length} Researched Items`
+            });
+            setShowWebResearchModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };

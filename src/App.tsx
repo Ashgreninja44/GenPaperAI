@@ -21,12 +21,13 @@ import ThemeBackdrop from './components/ThemeBackdrop';
 import Logo from './components/Logo';
 import { GoogleIcon, MicrosoftIcon, EmailIcon } from './components/BrandIcons';
 import { SyllabusData, getLatestCurriculum, updateSyllabusFromSources } from './services/syllabusService';
-import { PaperConfig, GeneratedPaper, QuestionBank, UserProfile, MaintenanceConfig, AnnouncementConfig, ThemeAnimationConfig, DEFAULT_THEME_ANIMATION_CONFIG, AdvertisementConfig, SubscriptionGlobalConfig } from './types';
+import { PaperConfig, GeneratedPaper, QuestionBank, UserProfile, MaintenanceConfig, AnnouncementConfig, ThemeAnimationConfig, DEFAULT_THEME_ANIMATION_CONFIG, AdvertisementConfig, SubscriptionGlobalConfig, WebResearchConfig, Question, StructuredQuestion } from './types';
 import { generateQuestionPaper } from './services/geminiService';
 import { subscribeToMaintenanceMode, isSuperAdmin, setMaintenanceMode } from './services/maintenanceService';
-import { subscribeToAnnouncement, isPlatformAdmin } from './services/adminService';
+import { subscribeToAnnouncement, isPlatformAdmin, subscribeToWebResearchConfig } from './services/adminService';
 import { subscribeToAdvertisementConfig } from './services/adService';
 import { subscribeToSubscriptionConfig, isUserPlusSubscriber } from './services/subscriptionService';
+import { convertToRuntimeQuestion } from './services/questionBankService';
 import { AdPlacement } from './components/ads/AdPlacement';
 import { 
   savePaperToFirestore, 
@@ -151,6 +152,8 @@ const App: React.FC = () => {
   const [isAnnouncementDismissed, setIsAnnouncementDismissed] = useState(false);
   const [adConfig, setAdConfig] = useState<AdvertisementConfig | null>(null);
   const [subscriptionConfig, setSubscriptionConfig] = useState<SubscriptionGlobalConfig | null>(null);
+  const [webResearchConfig, setWebResearchConfig] = useState<WebResearchConfig | null>(null);
+  const [selectedQuestionsForPaper, setSelectedQuestionsForPaper] = useState<Question[]>([]);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -187,6 +190,14 @@ const App: React.FC = () => {
       setSubscriptionConfig(config);
     });
     return () => unsubscribeSubscriptions();
+  }, []);
+
+  // Subscribe to real-time web research configurations
+  useEffect(() => {
+    const unsubscribeWebResearch = subscribeToWebResearchConfig((config) => {
+      setWebResearchConfig(config);
+    });
+    return () => unsubscribeWebResearch();
   }, []);
 
   // Instantly reset scroll to top on in-app view changes
@@ -1445,10 +1456,17 @@ const App: React.FC = () => {
                     {view === 'create' && (
                       <PaperForm 
                         onGenerate={handleGenerate} 
-                        onCancel={handleCancelCreate} 
+                        onCancel={() => {
+                          setSelectedQuestionsForPaper([]);
+                          handleCancelCreate();
+                        }} 
                         isGenerating={isGenerating}
                         questionBanks={questionBanks}
                         dynamicSyllabus={dynamicSyllabus}
+                        initialSelectedQuestions={selectedQuestionsForPaper}
+                        user={userProfile}
+                        subscriptionConfig={subscriptionConfig}
+                        webResearchConfig={webResearchConfig}
                       />
                     )}
 
@@ -1467,6 +1485,13 @@ const App: React.FC = () => {
                             onUpdateBank={handleUpdateBank}
                             onDeleteBank={handleDeleteBank}
                             onBack={handleBackToDashboard}
+                            user={userProfile}
+                            subscriptionConfig={subscriptionConfig}
+                            webResearchConfig={webResearchConfig}
+                            onUseInPaper={(questions) => {
+                              setSelectedQuestionsForPaper(questions);
+                              setView('create');
+                            }}
                         />
                         <AdPlacement 
                           placementId="footer_banner" 

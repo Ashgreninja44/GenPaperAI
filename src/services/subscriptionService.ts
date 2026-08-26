@@ -7,7 +7,8 @@ import {
   SubscriptionSource, 
   SubscriptionDuration, 
   UserSubscriptionDetails,
-  SubscriptionEntitlements 
+  SubscriptionEntitlements,
+  WebResearchConfig 
 } from '../types';
 import { isSuperAdmin, isAdmin, logAdminAction, OWNER_EMAIL } from './adminService';
 
@@ -486,3 +487,86 @@ export async function extendUserSubscription(
     }
   );
 }
+
+// ==========================================
+// 5. WEB RESEARCH & EXTRACT USAGE LIMITS
+// ==========================================
+
+export function getCurrentBillingMonthKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}_${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export async function getUserMonthlyResearchCount(userUid: string): Promise<number> {
+  try {
+    const monthKey = getCurrentBillingMonthKey();
+    const usageRef = doc(db, 'users', userUid, 'usage_metrics', monthKey);
+    const snap = await getDoc(usageRef);
+    if (snap.exists()) {
+      return snap.data()?.webResearchCount || snap.data()?.webExtractCount || 0;
+    }
+  } catch (err) {
+    console.warn('[Usage Tracking] Error reading monthly count:', err);
+  }
+  return 0;
+}
+
+export async function incrementUserMonthlyResearchCount(userUid: string): Promise<void> {
+  try {
+    const monthKey = getCurrentBillingMonthKey();
+    const usageRef = doc(db, 'users', userUid, 'usage_metrics', monthKey);
+    const snap = await getDoc(usageRef);
+    const current = snap.exists() ? (snap.data()?.webResearchCount || snap.data()?.webExtractCount || 0) : 0;
+    await setDoc(usageRef, {
+      webResearchCount: current + 1,
+      webExtractCount: current + 1,
+      lastUpdated: Date.now()
+    }, { merge: true });
+  } catch (err) {
+    console.warn('[Usage Tracking] Non-blocking increment error:', err);
+  }
+}
+
+export async function canUserPerformResearch(
+  user: UserProfile | null,
+  config?: SubscriptionGlobalConfig | null,
+  webConfig?: WebResearchConfig | null
+): Promise<{ allowed: boolean; reason?: string; remaining: number | 'unlimited'; maxLimit: number | 'unlimited'; currentUsage: number }> {
+  if (!user) {
+    return { allowed: false, reason: 'Please sign in to conduct curriculum research.', remaining: 0, maxLimit: 0, currentUsage: 0 };
+  }
+
+  // Super Admins & Platform Owner have unlimited access
+  if (isSuperAdmin(user.email, user.role)) {
+    return { allowed: true, remaining: 'unlimited', maxLimit: 'unlimited', currentUsage: 0 };
+  }
+
+  // Check if Web Research feature is enabled globally
+  if (webConfig && !webConfig.enabled) {
+    return { allowed: false, reason: 'Web Research is temporarily undergoing scheduled maintenance by administrators.', remaining: 0, maxLimit: 0, currentUsage: 0 };
+  }
+
+  const status = getUserSubscriptionStatus(user, config);
+  const isPlus = status.tier === 'plus';
+
+  const maxLimit = isPlus 
+    ? (webConfig?.plusResearchLimit || status.entitlements.webExtractsPerMonth || 200)
+    : (webConfig?.freeResearchLimit || status.entitlements.webExtractsPerMonth || 10);
+
+  if (maxLimit === 'unlimited') {
+    return { allowed: true, remaining: 'unlimited', maxLimit: 'unlimited', currentUsage: 0 };
+  }
+
+  const currentUsage = await getUserMonthlyResearchCount(user.uid);
+  const remaining = Math.max(0, (maxLimit as number) - currentUsage);
+
+  if (currentUsage >= (maxLimit as number)) {
+    const upgradePrompt = isPlus 
+      ? `You have reached your monthly Web Research limit (${maxLimit} operations). Limits reset next month.`
+      : `You have reached your free Web Research limit (${maxLimit}/month). Upgrade to GenPaperAI Plus for up to 200 monthly research operations.`;
+    return { allowed: false, reason: upgradePrompt, remaining: 0, maxLimit, currentUsage };
+  }
+
+  return { allowed: true, remaining, maxLimit, currentUsage };
+}
+

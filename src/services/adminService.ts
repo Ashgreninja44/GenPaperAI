@@ -22,7 +22,8 @@ import {
   AdminAuditLogEntry, 
   SecurityEventEntry, 
   GenerationMetricEntry, 
-  SystemHealthReport 
+  SystemHealthReport,
+  WebResearchConfig 
 } from '../types';
 import { generateContentProxy } from './geminiService';
 
@@ -584,3 +585,91 @@ export function testAuthProviders(): {
     };
   }
 }
+
+// ==========================================
+// 8. WEB RESEARCH & QUESTION BANK CONFIG
+// ==========================================
+
+export const DEFAULT_WEB_RESEARCH_CONFIG: WebResearchConfig = {
+  enabled: true,
+  allowedModes: ['quick', 'deep', 'curriculum', 'url'],
+  researchModel: 'gemini-3-flash-preview',
+  fallbackModel: 'gemini-2.5-flash',
+  maxSourcesPerResearch: 6,
+  freeResearchLimit: 10,
+  plusResearchLimit: 200,
+  prioritizeOfficialCurriculum: true,
+  updatedAt: Date.now(),
+  updatedBy: 'system'
+};
+
+export async function getWebResearchConfig(): Promise<WebResearchConfig> {
+  try {
+    const docRef = doc(db, 'app_config', 'web_research');
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      return {
+        ...DEFAULT_WEB_RESEARCH_CONFIG,
+        ...(snap.data() as WebResearchConfig)
+      };
+    }
+  } catch (err) {
+    console.warn('[Get Web Research Config] Error:', err);
+  }
+  return DEFAULT_WEB_RESEARCH_CONFIG;
+}
+
+export function subscribeToWebResearchConfig(
+  callback: (config: WebResearchConfig) => void
+): () => void {
+  const docRef = doc(db, 'app_config', 'web_research');
+  return onSnapshot(
+    docRef,
+    (snapshot) => {
+      if (snapshot.exists()) {
+        callback({
+          ...DEFAULT_WEB_RESEARCH_CONFIG,
+          ...(snapshot.data() as WebResearchConfig)
+        });
+      } else {
+        callback(DEFAULT_WEB_RESEARCH_CONFIG);
+      }
+    },
+    (err) => {
+      console.warn('[Web Research Config Listener] Error:', err);
+      callback(DEFAULT_WEB_RESEARCH_CONFIG);
+    }
+  );
+}
+
+export async function saveWebResearchConfig(
+  config: WebResearchConfig,
+  adminEmail: string,
+  adminRole?: string
+): Promise<void> {
+  if (!isAdmin(adminEmail, adminRole)) {
+    throw new Error('Unauthorized: Admin access required to update Web Research configuration.');
+  }
+
+  const docRef = doc(db, 'app_config', 'web_research');
+  const payload: WebResearchConfig = {
+    ...config,
+    updatedAt: Date.now(),
+    updatedBy: adminEmail
+  };
+  await setDoc(docRef, payload, { merge: true });
+
+  await logAdminAction(
+    adminEmail,
+    'WEB_RESEARCH_CONFIG_UPDATED',
+    'app_config/web_research',
+    {
+      enabled: config.enabled,
+      allowedModes: config.allowedModes,
+      researchModel: config.researchModel,
+      prioritizeOfficialCurriculum: config.prioritizeOfficialCurriculum,
+      summary: `Updated Web Research configuration (Enabled: ${config.enabled ? 'YES' : 'NO'}, Model: ${config.researchModel})`
+    }
+  );
+}
+

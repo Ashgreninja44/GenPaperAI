@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_primary">#3C128D</color>
+    <color name="purple_secondary">#8A2CB0</color>
+    <color name="purple_dark">#240A59</color>
+    <color name="gold_accent">#F59E0B</color>
+    <color name="background_light">#F9FAFB</color>
+    <color name="surface_card">#FFFFFF</color>
+    <color name="text_primary">#111827</color>
+    <color name="text_secondary">#6B7280</color>
+</resources>

@@ -58,6 +58,105 @@ export interface PaperConfig {
   manualQuestions?: Question[];
 }
 
+export type BloomTaxonomyLevel = 
+  | 'Remember' 
+  | 'Understand' 
+  | 'Apply' 
+  | 'Analyze' 
+  | 'Evaluate' 
+  | 'Create';
+
+export type QuestionOrigin = 
+  | 'user_created' 
+  | 'question_bank' 
+  | 'web_researched' 
+  | 'ai_generated' 
+  | 'imported';
+
+export type ResearchMode = 
+  | 'quick' 
+  | 'deep' 
+  | 'curriculum' 
+  | 'url';
+
+export interface GroundingSource {
+  title: string;
+  url: string;
+  domain: string;
+  snippet?: string;
+  authority?: 'official_ncert' | 'official_cbse' | 'official_scert' | 'government_edu' | 'academic' | 'reference' | 'general';
+}
+
+export interface SourceCitationInfo {
+  title?: string;
+  url?: string;
+  domain?: string;
+  citation?: string;
+  verifiedDate?: string;
+  isOfficialNCERT?: boolean;
+  isOfficialCBSE?: boolean;
+  isOfficialSCERT?: boolean;
+  searchQuery?: string;
+}
+
+export interface StructuredQuestionDraft {
+  question_text: string;
+  options?: string[];
+  answer_type: string;
+  marks: number;
+  difficulty: number | 'Easy' | 'Medium' | 'Hard';
+  chapter?: string;
+  topic?: string;
+  subtopic?: string;
+  bloom_level?: BloomTaxonomyLevel;
+  solution?: string;
+  origin?: QuestionOrigin;
+  source_info?: SourceCitationInfo;
+  tags?: string[];
+}
+
+export interface StructuredQuestion {
+  id: string;
+  text: string;
+  subject: string;
+  grade: string;
+  board?: string;
+  chapter?: string;
+  topic?: string;
+  subtopic?: string;
+  type: string; // MCQ | Assertion-Reason | VSAQ | SAQ | LAQ | Case Study | Short | Long
+  options?: string[];
+  answer?: string;
+  solution?: string;
+  marks: number;
+  difficulty: number | 'Easy' | 'Medium' | 'Hard'; // 1-5 or label
+  bloomLevel?: BloomTaxonomyLevel;
+  origin: QuestionOrigin;
+  sourceInfo?: SourceCitationInfo;
+  tags: string[];
+  createdAt: number;
+  updatedAt?: number;
+  diagramPrompt?: string;
+  imageUrl?: string;
+  isVerified?: boolean;
+}
+
+export interface ResearchFinding {
+  topic: string;
+  summary: string;
+  keyConcepts: string[];
+  learningObjectives?: string[];
+  suggestedQuestions?: Question[];
+  sources: GroundingSource[];
+  searchQueries?: string[];
+  groundingScore?: number;
+  mode: ResearchMode;
+  timestamp: number;
+  subject?: string;
+  grade?: string;
+  board?: string;
+}
+
 export interface Question {
   question_id: string;
   section: string; // e.g., "Section A"
@@ -71,6 +170,14 @@ export interface Question {
   diagram_prompt?: string; // Description of the diagram needed
   image_url?: string; // The generated base64 image
   is_manually_edited?: boolean; // Track if user edited it
+  // Extended fields for Phase 2 modernization
+  bloom_level?: BloomTaxonomyLevel;
+  origin?: QuestionOrigin;
+  source_info?: SourceCitationInfo;
+  chapter?: string;
+  subtopic?: string;
+  solution?: string;
+  tags?: string[];
 }
 
 export interface GeneratedPaper {
@@ -89,8 +196,23 @@ export interface QuestionBank {
   subject: string;
   grade: string;
   lastUpdated: number;
-  content: string;
+  content: string; // Preserved for backwards-compatibility
+  questions?: StructuredQuestion[]; // Modern structured questions array
+  version?: number; // schema version (e.g. 2)
   uid?: string; // Owner UID
+}
+
+export interface WebResearchConfig {
+  enabled: boolean;
+  allowedModes: ResearchMode[];
+  researchModel: string;
+  fallbackModel: string;
+  maxSourcesPerResearch: number;
+  freeResearchLimit: number;
+  plusResearchLimit: number;
+  prioritizeOfficialCurriculum: boolean;
+  updatedAt?: number;
+  updatedBy?: string;
 }
 
 export interface HistoryStats {
