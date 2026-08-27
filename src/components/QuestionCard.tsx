@@ -10,6 +10,8 @@ interface QuestionCardProps {
   onRegenerate: (id: string, newDiff: number, instruction: string) => Promise<void>;
   onUpdateText: (id: string, newText: string) => void;
   onUpdateOption: (id: string, optionIndex: number, newText: string) => void;
+  onRetryDiagram?: (id: string) => Promise<void>;
+  onRemoveDiagram?: (id: string) => void;
   isEditingEnabled: boolean;
 }
 
@@ -29,11 +31,21 @@ const DIFFICULTY_LABELS: Record<number, string> = {
   5: 'HOTS'
 };
 
-const QuestionCard: React.FC<QuestionCardProps> = ({ question, index, onRegenerate, onUpdateText, onUpdateOption, isEditingEnabled }) => {
+const QuestionCard: React.FC<QuestionCardProps> = ({ 
+  question, 
+  index, 
+  onRegenerate, 
+  onUpdateText, 
+  onUpdateOption, 
+  onRetryDiagram,
+  onRemoveDiagram,
+  isEditingEnabled 
+}) => {
   const [difficulty, setDifficulty] = useState(question.difficulty);
   const [instruction, setInstruction] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isImproving, setIsImproving] = useState(false);
+  const [isRetryingDiagramLocal, setIsRetryingDiagramLocal] = useState(false);
   
   // Floating Toolbar State
   const [toolbarPos, setToolbarPos] = useState<{ top: number; left: number } | null>(null);
@@ -126,7 +138,22 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, index, onRegenera
     }
   };
 
-  const hasPendingDiagram = question.diagram_prompt && !question.image_url;
+  const isGeneratingDiagram = !question.image_url && (
+    question.diagram_status === 'generating' || 
+    (!question.diagram_status && Boolean(question.diagram_prompt))
+  );
+  const isRetryingDiagram = !question.image_url && question.diagram_status === 'retrying';
+  const isFailedDiagram = !question.image_url && question.diagram_status === 'failed';
+
+  const handleManualRetryDiagram = async () => {
+    if (!onRetryDiagram) return;
+    setIsRetryingDiagramLocal(true);
+    try {
+      await onRetryDiagram(question.question_id);
+    } finally {
+      setIsRetryingDiagramLocal(false);
+    }
+  };
 
   const handleRegenerate = async () => {
     setIsRegenerating(true);
@@ -212,20 +239,150 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, index, onRegenera
         
         {/* Diagram / Image Section */}
         {question.image_url && (
-            <div className="my-4 border border-gray-200 rounded-lg p-2 bg-white w-fit max-w-full">
-                <img 
-                    src={question.image_url} 
-                    alt="Question Diagram" 
-                    className="max-h-64 object-contain mx-auto"
-                />
+          <div className="my-4 border border-gray-200 rounded-lg p-2.5 bg-white w-fit max-w-full shadow-sm relative group/img">
+            <div className="flex items-center justify-between gap-2 mb-1.5 pb-1 border-b border-gray-100">
+              <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                Nano-Banana Diagram
+              </span>
+              {isEditingEnabled && (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={handleManualRetryDiagram}
+                    disabled={isRetryingDiagramLocal}
+                    className="text-[10px] font-medium text-gray-500 hover:text-purple-600 px-1.5 py-0.5 rounded hover:bg-purple-50 transition-colors"
+                    title="Regenerate this diagram"
+                  >
+                    {isRetryingDiagramLocal ? 'Generating...' : 'Regenerate'}
+                  </button>
+                  {onRemoveDiagram && (
+                    <button
+                      onClick={() => onRemoveDiagram(question.question_id)}
+                      className="text-[10px] font-medium text-gray-400 hover:text-red-600 px-1.5 py-0.5 rounded hover:bg-red-50 transition-colors"
+                      title="Remove diagram"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
+            <img 
+              src={question.image_url} 
+              alt="Question Diagram" 
+              className="max-h-64 object-contain mx-auto rounded"
+            />
+          </div>
+        )}
+
+        {/* Retrying State for Diagram */}
+        {isRetryingDiagram && (
+          <div className="my-4 p-3.5 border border-amber-200 rounded-lg bg-amber-50/70 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-xs font-semibold text-amber-800">
+                  Retrying diagram generation (Attempt {question.diagram_retry_count || 2} of 3)...
+                </span>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 bg-amber-100/80 px-2 py-0.5 rounded">
+                Auto-Retrying
+              </span>
+            </div>
+            {question.diagram_prompt && (
+              <p className="text-[11px] text-amber-700 italic border-l-2 border-amber-300 pl-2">
+                "{question.diagram_prompt.slice(0, 120)}{question.diagram_prompt.length > 120 ? '...' : ''}"
+              </p>
+            )}
+          </div>
         )}
         
-        {/* Loading State for Diagram */}
-        {hasPendingDiagram && (
-            <div className="my-4 p-4 border border-dashed border-gray-300 rounded-lg bg-gray-50 text-center animate-pulse">
-                <span className="text-xs text-gray-500 font-medium">Generating Nano-Banana Diagram...</span>
+        {/* Initial Generating State for Diagram */}
+        {isGeneratingDiagram && !isRetryingDiagram && !isFailedDiagram && (
+          <div className="my-4 p-3.5 border border-dashed border-purple-300 rounded-lg bg-purple-50/50 flex flex-col gap-2 animate-pulse">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-3.5 h-3.5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-xs font-semibold text-purple-900">
+                  Generating Nano-Banana Diagram...
+                </span>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 bg-purple-100 px-2 py-0.5 rounded">
+                In Progress
+              </span>
             </div>
+            {question.diagram_prompt && (
+              <p className="text-[11px] text-purple-700 italic border-l-2 border-purple-300 pl-2">
+                "{question.diagram_prompt.slice(0, 120)}{question.diagram_prompt.length > 120 ? '...' : ''}"
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Failed State for Diagram with Fallback & Recovery Controls */}
+        {isFailedDiagram && (
+          <div className="my-4 p-3.5 border border-red-200 rounded-lg bg-red-50/60 flex flex-col gap-2.5">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <div>
+                  <span className="text-xs font-bold text-red-900 block">
+                    Diagram generation failed
+                  </span>
+                  <span className="text-[11px] text-red-700 block">
+                    {question.diagram_error || "The diagram could not be rendered automatically. You can retry or proceed with text only."}
+                  </span>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-red-600 bg-red-100 px-2 py-0.5 rounded shrink-0">
+                Failed
+              </span>
+            </div>
+
+            {question.diagram_prompt && (
+              <div className="text-[11px] text-gray-600 bg-white/80 p-2 rounded border border-red-100">
+                <span className="font-semibold text-gray-700">Prompt: </span>
+                <span className="italic">{question.diagram_prompt}</span>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleManualRetryDiagram}
+                disabled={isRetryingDiagramLocal}
+                className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors disabled:opacity-50"
+              >
+                {isRetryingDiagramLocal ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Retrying...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    <span>Retry Diagram Generation</span>
+                  </>
+                )}
+              </button>
+
+              {onRemoveDiagram && (
+                <button
+                  type="button"
+                  onClick={() => onRemoveDiagram(question.question_id)}
+                  className="px-3 py-1 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded text-xs font-medium transition-colors"
+                >
+                  Dismiss / Use Text Only
+                </button>
+              )}
+            </div>
+          </div>
         )}
 
         {/* MCQ Options */}

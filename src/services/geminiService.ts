@@ -449,7 +449,11 @@ export const generateQuestionBankUpdate = async (subject: string, grade: string,
     return response.text || "Failed to generate content.";
 };
 
-export const generateDiagramImage = async (diagramPrompt: string): Promise<string> => {
+export const generateDiagramImage = async (
+  diagramPrompt: string,
+  onProgress?: (status: 'generating' | 'retrying', attempt: number, maxAttempts: number) => void
+): Promise<string> => {
+  const maxAttempts = 3;
   const imagePrompt = `
     Generate a Nano-Banana style academic diagram.
     Subject: School Exam (Math/Science).
@@ -459,31 +463,72 @@ export const generateDiagramImage = async (diagramPrompt: string): Promise<strin
     Use thick, clear lines suitable for printing.
   `;
 
-  try {
-    const response = await withRetry(() => generateContentProxy({
+  let lastError: any = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const attemptStartTime = performance.now();
+    try {
+      if (attempt > 1) {
+        if (onProgress) onProgress('retrying', attempt, maxAttempts);
+        const backoffMs = Math.min(2000 * Math.pow(2, attempt - 2) + Math.random() * 1000, 8000);
+        console.log(`[Nano Banana Diagram] Retrying attempt ${attempt}/${maxAttempts} after ${Math.round(backoffMs)}ms backoff...`);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
+      } else {
+        if (onProgress) onProgress('generating', 1, maxAttempts);
+        console.log(`[Nano Banana Diagram] Starting diagram generation (attempt 1/${maxAttempts})...`);
+      }
+
+      // 25-second timeout guard per attempt to prevent infinite hanging
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        const timer = setTimeout(() => reject(new Error("Diagram generation timed out after 25s")), 25000);
+        // Clean up timer if promise resolves first
+        if (typeof timer === 'object' && 'unref' in timer) {
+          (timer as any).unref();
+        }
+      });
+
+      const fetchPromise = generateContentProxy({
         model: 'gemini-2.5-flash-image', // Nano Banana model
         contents: {
-            parts: [{ text: imagePrompt }]
-        },
-        config: {
-           // No responseMimeType for image generation
+          parts: [{ text: imagePrompt }]
         }
-    }));
+      });
 
-    if (response.candidates?.[0]?.content?.parts) {
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
+
+      if (response.candidates?.[0]?.content?.parts) {
         for (const part of response.candidates[0].content.parts) {
-            if (part.inlineData && part.inlineData.data) {
-                return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-            }
+          if (part.inlineData && part.inlineData.data) {
+            const mimeType = part.inlineData.mimeType || 'image/png';
+            const duration = Math.round(performance.now() - attemptStartTime);
+            console.log(`[Nano Banana Diagram] Successfully generated diagram in ${duration}ms (attempt ${attempt}/${maxAttempts}).`);
+            return `data:${mimeType};base64,${part.inlineData.data}`;
+          }
         }
-    }
-    
-    throw new Error("No image data returned.");
 
-  } catch (error) {
-    console.error("Image generation failed:", error);
-    throw error;
+        // If candidates returned text instead of inlineData
+        const textParts = response.candidates[0].content.parts
+          .filter((p: any) => p.text)
+          .map((p: any) => p.text)
+          .join(' ');
+        if (textParts) {
+          throw new Error(`Model returned text response instead of image: "${textParts.slice(0, 100)}..."`);
+        }
+      }
+
+      throw new Error("No image data returned from AI model response.");
+    } catch (err: any) {
+      lastError = err;
+      const duration = Math.round(performance.now() - attemptStartTime);
+      const isRetryable = attempt < maxAttempts;
+      console.warn(`[Nano Banana Diagram] Attempt ${attempt}/${maxAttempts} failed in ${duration}ms:`, err?.message || String(err));
+      if (!isRetryable) break;
+    }
   }
+
+  const finalMsg = lastError?.message || "Diagram generation failed after maximum retries.";
+  console.error(`[Nano Banana Diagram] Exhausted all ${maxAttempts} attempts. Final error:`, finalMsg);
+  throw new Error(finalMsg);
 };
 
 // --- ROBUST EXTRACTION & PARSING LOGIC ---

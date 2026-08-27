@@ -105,65 +105,164 @@ const PaperPreview: React.FC<PaperPreviewProps> = ({ paper, onBack, onUpdatePape
 
   // --- Background Image Generation Logic ---
   useEffect(() => {
-    const questionsNeedingImages = questions.filter(q => q.diagram_prompt && !q.image_url);
+    // Only target questions that have a diagram prompt, no image yet, and are not marked as permanently failed
+    const questionsNeedingImages = questions.filter(
+      q => q.diagram_prompt && !q.image_url && q.diagram_status !== 'failed'
+    );
     
     if (questionsNeedingImages.length > 0) {
-        let isMounted = true;
-        
-        const generateImages = async () => {
-            // Use a local copy of questions to batch updates
-            let currentQuestions = [...questions];
-            let hasChanged = false;
+      let isMounted = true;
+      
+      const generateImages = async () => {
+        let currentQuestions = [...questions];
+        let hasChanged = false;
 
-            for (const q of questionsNeedingImages) {
-                if (!isMounted) break;
+        for (const q of questionsNeedingImages) {
+          if (!isMounted) break;
 
-                try {
-                    // Add a small delay between requests to avoid burst rate limits
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                    
-                    const base64Image = await generateDiagramImage(q.diagram_prompt!);
-                    
-                    currentQuestions = currentQuestions.map(item => 
-                        item.question_id === q.question_id 
-                           ? { ...item, image_url: base64Image } 
-                           : item
-                    );
-                    hasChanged = true;
-                    
-                    // Update local state frequently for feedback
-                    if (isMounted) {
-                        setQuestions([...currentQuestions]);
-                    }
-                } catch (e) {
-                    console.error("Failed to generate diagram for Q", q.question_id, e);
-                    // Mark as failed/retried to prevent infinite retry loop
-                    currentQuestions = currentQuestions.map(item => 
-                        item.question_id === q.question_id 
-                           ? { ...item, diagram_prompt: undefined } 
-                           : item
-                    );
-                    hasChanged = true;
-                    if (isMounted) {
-                        setQuestions([...currentQuestions]);
-                    }
-                }
+          try {
+            // Set initial generating status
+            currentQuestions = currentQuestions.map(item =>
+              item.question_id === q.question_id
+                ? { ...item, diagram_status: 'generating' as const, diagram_retry_count: 1 }
+                : item
+            );
+            if (isMounted) setQuestions([...currentQuestions]);
+
+            // Gentle delay between requests to avoid rate limits
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            if (!isMounted) break;
+
+            const base64Image = await generateDiagramImage(
+              q.diagram_prompt!,
+              (status, attempt) => {
+                if (!isMounted) return;
+                currentQuestions = currentQuestions.map(item =>
+                  item.question_id === q.question_id
+                    ? { ...item, diagram_status: status, diagram_retry_count: attempt }
+                    : item
+                );
+                setQuestions([...currentQuestions]);
+              }
+            );
+            
+            currentQuestions = currentQuestions.map(item => 
+              item.question_id === q.question_id 
+                ? { 
+                    ...item, 
+                    image_url: base64Image, 
+                    diagram_status: 'success' as const,
+                    diagram_error: undefined 
+                  } 
+                : item
+            );
+            hasChanged = true;
+            
+            if (isMounted) {
+              setQuestions([...currentQuestions]);
             }
-
-            // Final sync to Firestore only once after batch is complete
-            if (hasChanged && isMounted) {
-                try {
-                    await onUpdatePaper({ ...paper, questions: currentQuestions });
-                } catch (err) {
-                    console.error("Firestore batch update failed during image generation", err);
-                }
+          } catch (e: any) {
+            console.error("Diagram generation failed for Q", q.question_id, e);
+            // Mark as failed while PRESERVING diagram_prompt so user can manually retry
+            currentQuestions = currentQuestions.map(item => 
+              item.question_id === q.question_id 
+                ? { 
+                    ...item, 
+                    diagram_status: 'failed' as const,
+                    diagram_error: e?.message || "Failed to generate diagram image" 
+                  } 
+                : item
+            );
+            hasChanged = true;
+            if (isMounted) {
+              setQuestions([...currentQuestions]);
             }
-        };
+          }
+        }
 
-        generateImages();
-        return () => { isMounted = false; };
+        // Final sync to Firestore only once after batch is complete
+        if (hasChanged && isMounted) {
+          try {
+            await onUpdatePaper({ ...paper, questions: currentQuestions });
+          } catch (err) {
+            console.error("Firestore batch update failed during image generation", err);
+          }
+        }
+      };
+
+      generateImages();
+      return () => { isMounted = false; };
     }
   }, [paper.id]); // Only run when paper changes or on mount
+
+  // --- Logic to Manually Retry a Diagram ---
+  const handleRetryDiagram = async (id: string) => {
+    const qIndex = questions.findIndex(q => q.question_id === id);
+    if (qIndex === -1) return;
+
+    const targetQuestion = questions[qIndex];
+    if (!targetQuestion.diagram_prompt) return;
+
+    try {
+      // Set to generating in UI
+      const updatedQuestions = [...questions];
+      updatedQuestions[qIndex] = {
+        ...targetQuestion,
+        diagram_status: 'generating',
+        diagram_error: undefined,
+        diagram_retry_count: 1
+      };
+      setQuestions(updatedQuestions);
+
+      const base64Image = await generateDiagramImage(
+        targetQuestion.diagram_prompt,
+        (status, attempt) => {
+          setQuestions(prev => prev.map(item =>
+            item.question_id === id
+              ? { ...item, diagram_status: status, diagram_retry_count: attempt }
+              : item
+          ));
+        }
+      );
+
+      const finalQuestions = questions.map(item =>
+        item.question_id === id
+          ? {
+              ...item,
+              image_url: base64Image,
+              diagram_status: 'success' as const,
+              diagram_error: undefined
+            }
+          : item
+      );
+      setQuestions(finalQuestions);
+      await onUpdatePaper({ ...paper, questions: finalQuestions });
+    } catch (err: any) {
+      console.error("Manual diagram retry failed for Q", id, err);
+      const failedQuestions = questions.map(item =>
+        item.question_id === id
+          ? {
+              ...item,
+              diagram_status: 'failed' as const,
+              diagram_error: err?.message || "Diagram generation failed on retry."
+            }
+          : item
+      );
+      setQuestions(failedQuestions);
+      await onUpdatePaper({ ...paper, questions: failedQuestions });
+    }
+  };
+
+  // --- Logic to Remove Diagram from a Question ---
+  const handleRemoveDiagram = async (id: string) => {
+    const updatedQuestions = questions.map(item => {
+      if (item.question_id !== id) return item;
+      const { diagram_prompt, image_url, diagram_status, diagram_error, diagram_retry_count, ...rest } = item;
+      return rest as Question;
+    });
+    setQuestions(updatedQuestions);
+    await onUpdatePaper({ ...paper, questions: updatedQuestions });
+  };
 
 
   // --- Logic to Regenerate a single question ---
@@ -571,6 +670,8 @@ const PaperPreview: React.FC<PaperPreviewProps> = ({ paper, onBack, onUpdatePape
                                         onRegenerate={handleRegenerateQuestion} 
                                         onUpdateText={handleUpdateQuestionText}
                                         onUpdateOption={handleUpdateQuestionOption}
+                                        onRetryDiagram={handleRetryDiagram}
+                                        onRemoveDiagram={handleRemoveDiagram}
                                         isEditingEnabled={isEditingEnabled}
                                     />
                                   );

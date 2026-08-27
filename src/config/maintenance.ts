@@ -56,6 +56,6 @@ export function isMaintenanceModeActive(
     }
   }
 
-  // In production builds / Cloudflare by default
-  return Boolean(import.meta.env.PROD);
+  // Default is OFF unless explicitly enabled via Firestore, code override, or VITE_MAINTENANCE_MODE
+  return false;
 }

@@ -29,13 +29,14 @@ export function subscribeToMaintenanceMode(
       if (snapshot.exists()) {
         callback(snapshot.data() as MaintenanceConfig);
       } else {
-        callback(null);
+        // Document does not exist: maintenance is officially inactive
+        callback({ enabled: false, message: '', updatedAt: 0, updatedBy: '' });
       }
     },
     (error) => {
-      console.warn('[Maintenance Mode] Firestore subscription error:', error);
-      // Non-blocking fallback
-      callback(null);
+      console.warn('[Maintenance Mode] Firestore subscription fallback (maintenance inactive):', error);
+      // Non-blocking fallback: default to inactive so legitimate users aren't locked out
+      callback({ enabled: false, message: '', updatedAt: 0, updatedBy: '' });
     }
   );
 }

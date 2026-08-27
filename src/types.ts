@@ -169,6 +169,9 @@ export interface Question {
   can_regenerate: boolean;
   diagram_prompt?: string; // Description of the diagram needed
   image_url?: string; // The generated base64 image
+  diagram_status?: 'idle' | 'generating' | 'retrying' | 'success' | 'failed';
+  diagram_error?: string;
+  diagram_retry_count?: number;
   is_manually_edited?: boolean; // Track if user edited it
   // Extended fields for Phase 2 modernization
   bloom_level?: BloomTaxonomyLevel;

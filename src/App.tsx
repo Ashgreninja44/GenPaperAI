@@ -148,6 +148,7 @@ const App: React.FC = () => {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [maintenanceConfig, setMaintenanceConfig] = useState<MaintenanceConfig | null>(null);
+  const [isMaintenanceReady, setIsMaintenanceReady] = useState(false);
   const [announcementConfig, setAnnouncementConfig] = useState<AnnouncementConfig | null>(null);
   const [isAnnouncementDismissed, setIsAnnouncementDismissed] = useState(false);
   const [adConfig, setAdConfig] = useState<AdvertisementConfig | null>(null);
@@ -163,6 +164,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const unsubscribeMaintenance = subscribeToMaintenanceMode((config) => {
       setMaintenanceConfig(config);
+      setIsMaintenanceReady(true);
     });
     return () => unsubscribeMaintenance();
   }, []);
@@ -865,9 +867,9 @@ const App: React.FC = () => {
   const isSuper = isSuperAdmin(user?.email, userProfile?.role);
   const isUserAdmin = isPlatformAdmin(user?.email, userProfile?.role);
   const isAdmin = isSuper;
-  const maintenanceActive = isMaintenanceModeActive(maintenanceConfig, user?.email, userProfile?.role);
+  const maintenanceActive = isMaintenanceReady && isMaintenanceModeActive(maintenanceConfig, user?.email, userProfile?.role);
 
-  if (maintenanceActive && !isAdmin) {
+  if (isMaintenanceReady && maintenanceActive && !isAdmin) {
     return (
       <Maintenance 
         config={maintenanceConfig} 
