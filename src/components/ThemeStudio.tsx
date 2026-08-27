@@ -259,18 +259,6 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset Theme Defaults</span>
           </button>
-          <button
-            onClick={() => handleApplyTheme()}
-            disabled={isApplying}
-            className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-gray-950 text-xs sm:text-sm font-black shadow-lg hover:shadow-amber-400/25 transition-all flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
-          >
-            {isApplying ? (
-              <div className="w-4 h-4 border-2 border-gray-950 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Check className="w-4 h-4 stroke-[3]" />
-            )}
-            <span>Apply Changes</span>
-          </button>
         </div>
       </div>
 
@@ -330,7 +318,7 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                   onChange={(e) => updateGlobal('enableAnimations', e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-13 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[3px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-[#3C128D] peer-checked:to-[#8A2CB0]"></div>
+                <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-7 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all after:shadow-sm peer-checked:bg-gradient-to-r peer-checked:from-[#3C128D] peer-checked:to-[#8A2CB0]"></div>
               </label>
             </div>
 

@@ -19,6 +19,7 @@ import ScrollToTop from './components/ScrollToTop';
 import BackgroundAnimation from './components/BackgroundAnimation';
 import ThemeBackdrop from './components/ThemeBackdrop';
 import Logo from './components/Logo';
+import BrandWordmark from './components/BrandWordmark';
 import { GoogleIcon, MicrosoftIcon, EmailIcon } from './components/BrandIcons';
 import { SyllabusData, getLatestCurriculum, updateSyllabusFromSources } from './services/syllabusService';
 import { PaperConfig, GeneratedPaper, QuestionBank, UserProfile, MaintenanceConfig, AnnouncementConfig, ThemeAnimationConfig, DEFAULT_THEME_ANIMATION_CONFIG, AdvertisementConfig, SubscriptionGlobalConfig, WebResearchConfig, Question, StructuredQuestion } from './types';
@@ -929,7 +930,11 @@ const App: React.FC = () => {
         <nav className="liquid-nav sticky top-4 z-50 w-full max-w-full px-2 sm:px-6 py-2 sm:py-3 flex justify-between items-center transition-all duration-300 rounded-2xl mx-2 sm:mx-4 mb-4">
           <div className="flex items-center gap-1 sm:gap-3 cursor-pointer" onClick={handleBackToDashboard}>
               <Logo className="w-5 h-5 md:w-9 md:h-9 shadow-lg" />
-              <span className="inline text-lg md:text-xl font-bold tracking-tight text-white drop-shadow-md">GenPaper<span className="text-amber-400 drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">AI</span></span>
+              <BrandWordmark 
+                user={user} 
+                userProfile={userProfile} 
+                className="inline-flex items-center text-lg md:text-xl font-bold tracking-tight text-white drop-shadow-md select-none"
+              />
           </div>
           <div className="flex items-center gap-0.5 md:gap-3 flex-nowrap">
                {user ? (
