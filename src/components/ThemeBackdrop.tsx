@@ -192,34 +192,34 @@ export const ThemeBackdrop: React.FC<ThemeBackdropProps> = ({
           <div className={`absolute inset-0 bg-gradient-to-t ${horizonColor} to-transparent pointer-events-none transition-all duration-700`} />
         )}
 
-        {/* Ambient Sun Corona */}
+        {/* Ambient Top-Right Sun & Atmospheric Corona (Golden Sunset ONLY) */}
         {suns.showSun && (
           <>
+            {/* Deep Atmospheric Bloom in Top-Right Corner */}
             <div 
               className="absolute pointer-events-none rounded-full transition-all duration-500"
               style={{
-                bottom: '12%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: `${sunSize * 2.8}px`,
-                height: `${sunSize * 1.6}px`,
-                background: `radial-gradient(circle, rgba(255, 170, 50, ${0.45 * glow * globalIntensity}) 0%, transparent 70%)`,
+                top: isInteractivePreview ? '-30px' : '-50px',
+                right: isInteractivePreview ? '-30px' : '-50px',
+                width: `${sunSize * 3.2}px`,
+                height: `${sunSize * 3.2}px`,
+                background: `radial-gradient(circle at 60% 40%, rgba(255, 190, 60, ${0.45 * glow * globalIntensity}) 0%, rgba(249, 115, 22, ${0.25 * glow * globalIntensity}) 40%, rgba(225, 29, 72, ${0.1 * glow * globalIntensity}) 65%, transparent 80%)`,
                 filter: 'blur(35px)',
               }}
             />
 
-            {/* Radiant Sun Disc */}
+            {/* Radiant Sun Disc in Top-Right Corner (Partially off-screen for natural atmosphere) */}
             <div 
               className="absolute pointer-events-none rounded-full transition-all duration-300"
               style={{
-                bottom: '18%',
-                left: '50%',
+                top: isInteractivePreview ? '-10px' : '-18px',
+                right: isInteractivePreview ? '-10px' : '-18px',
                 width: `${sunSize}px`,
                 height: `${sunSize}px`,
-                transform: 'translateX(-50%)',
-                background: 'radial-gradient(circle at 40% 40%, #fff6cc 0%, #ffbb33 45%, #ff5500 100%)',
-                boxShadow: `0 0 ${Math.round(sunSize * 0.6 * glow)}px rgba(255, 160, 40, ${0.7 * glow * globalIntensity}), 0 0 ${Math.round(sunSize * 1.2 * glow)}px rgba(255, 80, 20, ${0.4 * glow * globalIntensity})`,
-                animation: isAnimEnabled ? `sunFloat ${Math.max(25 / globalSpeed, 8)}s ease-in-out infinite` : 'none',
+                background: 'radial-gradient(circle at 45% 45%, #ffffff 0%, #fff7b2 20%, #ffbb33 50%, #ff6b00 80%, rgba(255, 80, 0, 0.5) 95%, transparent 100%)',
+                boxShadow: `0 0 ${Math.round(sunSize * 0.5 * glow)}px rgba(255, 200, 60, ${0.8 * glow * globalIntensity}), 0 0 ${Math.round(sunSize * 1.0 * glow)}px rgba(255, 120, 30, ${0.5 * glow * globalIntensity}), 0 0 ${Math.round(sunSize * 1.6 * glow)}px rgba(255, 60, 10, ${0.25 * glow * globalIntensity})`,
+                filter: 'blur(1px)',
+                animation: isAnimEnabled ? `sunFloatTopRight ${Math.max(25 / globalSpeed, 8)}s ease-in-out infinite` : 'none',
               }}
             />
           </>
@@ -443,14 +443,19 @@ export const ThemeBackdrop: React.FC<ThemeBackdropProps> = ({
   const renderThemeElements = () => {
     switch (theme) {
       case 'midnight':
+      case 'Midnight Sky':
         return renderMidnight();
       case 'sunset':
+      case 'Golden Sunset':
         return renderSunset();
       case 'ocean':
+      case 'Deep Ocean':
         return renderOcean();
       case 'forest':
+      case 'Emerald Forest':
         return renderForest();
       case 'default':
+      case 'Premium Vibrant':
       default:
         return renderDefaultVibrant();
     }
