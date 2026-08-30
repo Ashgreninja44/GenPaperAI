@@ -332,7 +332,7 @@ export const AdminAIModels: React.FC<AdminAIModelsProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. gemini-2.5-pro or gemini-2.5-flash"
+                  placeholder="e.g. gemini-3.7-flash or gemini-3.1-pro-preview"
                   value={newModel.id}
                   onChange={(e) => setNewModel({ ...newModel, id: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none"
@@ -346,7 +346,7 @@ export const AdminAIModels: React.FC<AdminAIModelsProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Gemini 2.5 Pro High Reasoning"
+                  placeholder="e.g. Gemini 3.7 Flash High Performance"
                   value={newModel.name}
                   onChange={(e) => setNewModel({ ...newModel, name: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:outline-none"

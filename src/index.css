@@ -147,3 +147,83 @@ body {
   opacity: 0.6;
   pointer-events: none;
 }
+
+/* ========================================================
+   LIQUID GLASS SYSTEM OVERRIDES (WHEN LIQUID GLASS IS OFF)
+   ======================================================== */
+.liquid-glass-disabled .glass-panel,
+body.liquid-glass-disabled .glass-panel,
+.liquid-glass-disabled.glass-panel {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04) !important;
+}
+
+.liquid-glass-disabled .glass-card,
+body.liquid-glass-disabled .glass-card,
+.liquid-glass-disabled.glass-card {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.liquid-glass-disabled .liquid-nav,
+body.liquid-glass-disabled .liquid-nav,
+.liquid-glass-disabled.liquid-nav {
+  background: #250954 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+}
+
+.liquid-glass-disabled .btn-glass,
+body.liquid-glass-disabled .btn-glass,
+.liquid-glass-disabled.btn-glass {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.liquid-glass-disabled .btn-glass-primary,
+body.liquid-glass-disabled .btn-glass-primary {
+  background: linear-gradient(135deg, #3C128D 0%, #8A2CB0 100%) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 4px 12px rgba(60, 18, 141, 0.3) !important;
+}
+
+.liquid-glass-disabled .btn-glass-secondary,
+body.liquid-glass-disabled .btn-glass-secondary {
+  background: #ffffff !important;
+  color: #3C128D !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.liquid-glass-disabled .btn-glass-accent,
+body.liquid-glass-disabled .btn-glass-accent {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+  border-color: #fcd34d !important;
+}
+
+/* Also disable backdrop blur on translucent white containers when glass is OFF */
+.liquid-glass-disabled [class*="backdrop-blur-"],
+body.liquid-glass-disabled [class*="backdrop-blur-"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.liquid-glass-disabled .bg-white\/10,
+body.liquid-glass-disabled .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+.liquid-glass-disabled .bg-white\/95,
+body.liquid-glass-disabled .bg-white\/95 {
+  background-color: #ffffff !important;
+}
+

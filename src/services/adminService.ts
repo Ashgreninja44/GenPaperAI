@@ -297,53 +297,53 @@ export async function setAnnouncementConfig(
 
 export const DEFAULT_AI_MODELS: AIModelConfig[] = [
   {
-    id: 'gemini-3-flash-preview',
-    name: 'Gemini 3 Flash Preview',
+    id: 'gemini-3.7-flash',
+    name: 'Gemini 3.7 Flash',
     provider: 'Google DeepMind',
     enabled: true,
     isDefault: true,
     priority: 1,
-    intendedUse: 'Primary CBSE & SCERT Question Paper Generation (Fast, High Alignment)',
-    qualityNotes: 'Optimal reasoning latency & adherence to Unicode Math and Bloom taxonomy.',
+    intendedUse: 'Primary CBSE & SCERT Question Paper Generation (Fast, High Alignment, Default)',
+    qualityNotes: 'Optimal reasoning latency, high speed, and strict adherence to Unicode Math and Bloom taxonomy.',
     dateAdded: 1716000000000
   },
   {
-    id: 'gemini-2.5-pro',
-    name: 'Gemini 2.5 Pro',
+    id: 'gemini-3.1-pro-preview',
+    name: 'Gemini 3.1 Pro',
     provider: 'Google DeepMind',
     enabled: true,
     isDefault: false,
     priority: 2,
-    intendedUse: 'HOTS & Complex Subject Blueprints (Physics, Math proofs, High Depth)',
-    qualityNotes: 'Deep multi-step reasoning capabilities for high difficulty questions.',
+    intendedUse: 'HOTS & Complex Subject Blueprints (Physics, Math proofs, High Depth Reasoning)',
+    qualityNotes: 'Deep multi-step reasoning capabilities for advanced examination questions.',
     dateAdded: 1718000000000
   },
   {
-    id: 'gemini-2.5-flash',
-    name: 'Gemini 2.5 Flash',
+    id: 'gemini-3.1-flash-lite-image',
+    name: 'Gemini 3.1 Flash Lite Image',
     provider: 'Google DeepMind',
     enabled: true,
     isDefault: false,
     priority: 3,
-    intendedUse: 'High-Throughput Fast Fallback & Syllabus parsing',
-    qualityNotes: 'Ultra-low latency for quick regeneration and text enhancement.',
-    dateAdded: 1715000000000
+    intendedUse: 'Nano-Banana Diagram & Vector Image Generation',
+    qualityNotes: 'Generates clean monochrome diagrams for Math and Science examination figures.',
+    dateAdded: 1717000000000
   },
   {
-    id: 'gemini-2.5-flash-image',
-    name: 'Gemini 2.5 Flash Image',
+    id: 'gemini-3.1-flash-image',
+    name: 'Gemini 3.1 Flash Image',
     provider: 'Google DeepMind',
     enabled: true,
     isDefault: false,
     priority: 4,
-    intendedUse: 'Nano-Banana Diagram & Vector Image Generation',
-    qualityNotes: 'Generates clean monochrome diagrams for Math and Science.',
-    dateAdded: 1717000000000
+    intendedUse: 'High-Fidelity Complex Scientific Diagrams',
+    qualityNotes: 'Detailed vector renderings for high-definition diagrams.',
+    dateAdded: 1719000000000
   }
 ];
 
 export const DEFAULT_MODEL_REGISTRY: AIModelRegistry = {
-  defaultModel: 'gemini-3-flash-preview',
+  defaultModel: 'gemini-3.7-flash',
   models: DEFAULT_AI_MODELS,
   updatedAt: Date.now()
 };

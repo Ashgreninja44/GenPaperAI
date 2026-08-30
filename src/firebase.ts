@@ -75,15 +75,35 @@ export interface FirestoreErrorInfo {
   }
 }
 
+export function isTransientDatabaseError(error: unknown): boolean {
+  if (!error) return false;
+  const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  const code = ((error as any)?.code || '').toLowerCase();
+  return (
+    msg.includes('database is closing') ||
+    msg.includes('closing/hidden') ||
+    msg.includes('closing') ||
+    msg.includes('hidden') ||
+    msg.includes('the client is offline') ||
+    msg.includes('client is offline') ||
+    msg.includes('offline') ||
+    msg.includes('indexeddb') ||
+    msg.includes('idbdatabase') ||
+    msg.includes('connection is closing') ||
+    msg.includes('network-request-failed') ||
+    msg.includes('aborted') ||
+    code === 'unavailable' ||
+    code === 'auth/network-request-failed' ||
+    code === 'auth/web-storage-unsupported' ||
+    (code === 'auth/internal-error' && (msg.includes('closing') || msg.includes('hidden') || msg.includes('database')))
+  );
+}
+
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errorMessage = error instanceof Error ? error.message : String(error);
 
-  // Filter transient IndexedDB / window closing / hidden states
-  if (
-    errorMessage.includes('Database is closing') ||
-    errorMessage.includes('closing/hidden') ||
-    errorMessage.includes('The client is offline')
-  ) {
+  // Filter transient IndexedDB / window closing / hidden / offline states
+  if (isTransientDatabaseError(error)) {
     console.warn(`[Firestore Transient State] (${operationType} at ${path}):`, errorMessage);
     return;
   }

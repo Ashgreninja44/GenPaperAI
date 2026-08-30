@@ -6,7 +6,14 @@ import { GoogleGenAI } from '@google/genai';
 let cachedAi: GoogleGenAI | null = null;
 function getAiInstance(apiKey: string): GoogleGenAI {
   if (!cachedAi) {
-    cachedAi = new GoogleGenAI({ apiKey });
+    cachedAi = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
   }
   return cachedAi;
 }
@@ -34,9 +41,10 @@ async function startServer() {
         ...(generationConfig || {})
       };
 
+      const targetModel = model || 'gemini-3.7-flash';
       const ai = getAiInstance(key);
       const response = await ai.models.generateContent({
-        model: model || 'gemini-2.5-flash',
+        model: targetModel,
         contents,
         config: effectiveConfig
       });
@@ -47,7 +55,16 @@ async function startServer() {
       });
     } catch (err: any) {
       console.error("[Backend Gemini Proxy Error]:", err);
-      res.status(500).json({ error: err.message || String(err) });
+      const isQuota = err?.status === 429 || 
+                      err?.message?.includes('429') || 
+                      err?.message?.includes('RESOURCE_EXHAUSTED') ||
+                      err?.message?.includes('quota');
+      const statusCode = isQuota ? 429 : (err.status || err.statusCode || 500);
+      res.status(statusCode).json({ 
+        error: err.message || String(err),
+        code: statusCode,
+        status: isQuota ? 'RESOURCE_EXHAUSTED' : 'INTERNAL_ERROR'
+      });
     }
   });
 

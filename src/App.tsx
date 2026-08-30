@@ -22,7 +22,23 @@ import Logo from './components/Logo';
 import BrandWordmark from './components/BrandWordmark';
 import { GoogleIcon, MicrosoftIcon, EmailIcon } from './components/BrandIcons';
 import { SyllabusData, getLatestCurriculum, updateSyllabusFromSources } from './services/syllabusService';
-import { PaperConfig, GeneratedPaper, QuestionBank, UserProfile, MaintenanceConfig, AnnouncementConfig, ThemeAnimationConfig, DEFAULT_THEME_ANIMATION_CONFIG, AdvertisementConfig, SubscriptionGlobalConfig, WebResearchConfig, Question, StructuredQuestion } from './types';
+import { 
+  PaperConfig, 
+  GeneratedPaper, 
+  QuestionBank, 
+  UserProfile, 
+  MaintenanceConfig, 
+  AnnouncementConfig, 
+  ThemeAnimationConfig, 
+  DEFAULT_THEME_ANIMATION_CONFIG, 
+  AdvertisementConfig, 
+  SubscriptionGlobalConfig, 
+  WebResearchConfig, 
+  Question, 
+  StructuredQuestion,
+  BackgroundMode,
+  CustomBackgroundConfig
+} from './types';
 import { generateQuestionPaper } from './services/geminiService';
 import { subscribeToMaintenanceMode, isSuperAdmin, setMaintenanceMode } from './services/maintenanceService';
 import { subscribeToAnnouncement, isPlatformAdmin, subscribeToWebResearchConfig } from './services/adminService';
@@ -120,6 +136,27 @@ const App: React.FC = () => {
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return DEFAULT_THEME_ANIMATION_CONFIG;
+  });
+  const [liquidGlassEnabled, setLiquidGlassEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('genpaper_liquid_glass_enabled');
+      if (saved !== null) return saved !== 'false';
+    } catch (e) {}
+    return true;
+  });
+  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(() => {
+    try {
+      const saved = localStorage.getItem('genpaper_background_mode');
+      if (saved === 'custom' || saved === 'preset') return saved;
+    } catch (e) {}
+    return 'preset';
+  });
+  const [customBackground, setCustomBackground] = useState<CustomBackgroundConfig | null>(() => {
+    try {
+      const saved = localStorage.getItem('genpaper_custom_background');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return null;
   });
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' | 'warning' } | null>(null);
 
@@ -419,7 +456,21 @@ const App: React.FC = () => {
     }
   };
 
-  // Apply Theme
+  // Apply Liquid Glass Global DOM Class
+  useEffect(() => {
+    if (liquidGlassEnabled) {
+      document.body.classList.remove('liquid-glass-disabled');
+      document.documentElement.classList.remove('liquid-glass-disabled');
+    } else {
+      document.body.classList.add('liquid-glass-disabled');
+      document.documentElement.classList.add('liquid-glass-disabled');
+    }
+    try {
+      localStorage.setItem('genpaper_liquid_glass_enabled', JSON.stringify(liquidGlassEnabled));
+    } catch (e) {}
+  }, [liquidGlassEnabled]);
+
+  // Apply Theme & Visual Preferences from User Profile
   useEffect(() => {
     if (!userProfile) {
       console.log("No user profile, applying stored/default theme");
@@ -429,6 +480,23 @@ const App: React.FC = () => {
 
     const theme = userProfile.preferences?.themeColor || userProfile.selectedTheme || currentTheme || 'default';
     const customConfig = userProfile.preferences?.themeCustomization || themeConfig || DEFAULT_THEME_ANIMATION_CONFIG;
+    
+    if (userProfile.preferences?.liquidGlassEnabled !== undefined) {
+      setLiquidGlassEnabled(userProfile.preferences.liquidGlassEnabled);
+    }
+    if (userProfile.preferences?.backgroundMode !== undefined) {
+      setBackgroundMode(userProfile.preferences.backgroundMode);
+      try {
+        localStorage.setItem('genpaper_background_mode', userProfile.preferences.backgroundMode);
+      } catch (e) {}
+    }
+    if (userProfile.preferences?.customBackground !== undefined) {
+      setCustomBackground(userProfile.preferences.customBackground);
+      try {
+        localStorage.setItem('genpaper_custom_background', JSON.stringify(userProfile.preferences.customBackground));
+      } catch (e) {}
+    }
+
     console.log("Fetched preferences:", userProfile.preferences);
     console.log("Applying theme:", theme);
     applyTheme(theme, customConfig);
@@ -477,12 +545,100 @@ const App: React.FC = () => {
             themeColor: newThemeId,
             background: newThemeId,
             themeCustomization: newConfig,
+            liquidGlassEnabled: liquidGlassEnabled,
+            backgroundMode: backgroundMode,
+            customBackground: customBackground ?? undefined
           }
         };
         const sanitizedUpdates = sanitizeForFirestore(updates);
         await updateDoc(doc(db, 'users', user.uid), sanitizedUpdates);
       } catch (err: any) {
         console.error("Error saving theme to Firestore:", err);
+      }
+    }
+  };
+
+  const handleUpdateLiquidGlass = async (enabled: boolean) => {
+    setLiquidGlassEnabled(enabled);
+    try {
+      localStorage.setItem('genpaper_liquid_glass_enabled', JSON.stringify(enabled));
+    } catch (e) {}
+
+    if (user) {
+      try {
+        const updates: Partial<UserProfile> = {
+          preferences: {
+            themeColor: currentTheme,
+            background: currentTheme,
+            themeCustomization: themeConfig,
+            liquidGlassEnabled: enabled,
+            backgroundMode: backgroundMode,
+            customBackground: customBackground ?? undefined
+          }
+        };
+        const sanitizedUpdates = sanitizeForFirestore(updates);
+        await updateDoc(doc(db, 'users', user.uid), sanitizedUpdates);
+      } catch (err: any) {
+        console.error("Error saving liquid glass preference:", err);
+      }
+    }
+  };
+
+  const handleUpdateBackgroundMode = async (mode: BackgroundMode, customBg?: CustomBackgroundConfig | null) => {
+    setBackgroundMode(mode);
+    try {
+      localStorage.setItem('genpaper_background_mode', mode);
+    } catch (e) {}
+
+    if (customBg !== undefined) {
+      setCustomBackground(customBg);
+      try {
+        localStorage.setItem('genpaper_custom_background', JSON.stringify(customBg));
+      } catch (e) {}
+    }
+
+    if (user) {
+      try {
+        const updates: Partial<UserProfile> = {
+          preferences: {
+            themeColor: currentTheme,
+            background: currentTheme,
+            themeCustomization: themeConfig,
+            liquidGlassEnabled: liquidGlassEnabled,
+            backgroundMode: mode,
+            customBackground: (customBg !== undefined ? customBg : customBackground) ?? undefined
+          }
+        };
+        const sanitizedUpdates = sanitizeForFirestore(updates);
+        await updateDoc(doc(db, 'users', user.uid), sanitizedUpdates);
+      } catch (err: any) {
+        console.error("Error saving background mode preference:", err);
+      }
+    }
+  };
+
+  const handleUpdateCustomBackgroundConfig = async (newConfig: CustomBackgroundConfig) => {
+    setCustomBackground(newConfig);
+    try {
+      localStorage.setItem('genpaper_custom_background', JSON.stringify(newConfig));
+    } catch (e) {}
+
+    if (user) {
+      try {
+        const updates: Partial<UserProfile> = {
+          preferences: {
+            themeColor: currentTheme,
+            background: currentTheme,
+            themeCustomization: themeConfig,
+            liquidGlassEnabled: liquidGlassEnabled,
+            backgroundMode: 'custom',
+            customBackground: newConfig
+          }
+        };
+        const sanitizedUpdates = sanitizeForFirestore(updates);
+        await updateDoc(doc(db, 'users', user.uid), sanitizedUpdates);
+      } catch (err: any) {
+        console.error("Error saving custom background config:", err);
       }
     }
   };
@@ -499,7 +655,11 @@ const App: React.FC = () => {
       const papers = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as GeneratedPaper));
       setHistory(papers.sort((a, b) => b.timestamp - a.timestamp));
     }, (err) => {
+      try {
         handleFirestoreError(err, OperationType.GET, 'papers');
+      } catch (error) {
+        console.warn('[Firestore papers sync notice]:', error);
+      }
     });
 
     return () => unsubscribe();
@@ -517,7 +677,11 @@ const App: React.FC = () => {
       const banks = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as QuestionBank));
       setQuestionBanks(banks);
     }, (err) => {
+      try {
         handleFirestoreError(err, OperationType.GET, 'banks');
+      } catch (error) {
+        console.warn('[Firestore banks sync notice]:', error);
+      }
     });
 
     return () => unsubscribe();
@@ -1184,7 +1348,12 @@ const App: React.FC = () => {
       </AnimatePresence>
 
       {/* Background Animations */}
-      <ThemeBackdrop theme={currentTheme} config={themeConfig} />
+      <ThemeBackdrop 
+        theme={currentTheme} 
+        config={themeConfig} 
+        backgroundMode={backgroundMode} 
+        customBackground={customBackground} 
+      />
 
       {/* Main Content Area */}
       <main className="container mx-auto py-4 px-4 relative z-10 flex-grow">
@@ -1513,7 +1682,13 @@ const App: React.FC = () => {
                             profile={userProfile}
                             currentTheme={currentTheme}
                             themeConfig={themeConfig}
+                            backgroundMode={backgroundMode}
+                            customBackground={customBackground}
+                            liquidGlassEnabled={liquidGlassEnabled}
                             onUpdateTheme={handleApplyTheme}
+                            onUpdateBackgroundMode={handleUpdateBackgroundMode}
+                            onUpdateLiquidGlass={handleUpdateLiquidGlass}
+                            onUpdateCustomBackgroundConfig={handleUpdateCustomBackgroundConfig}
                             onBack={handleBackToDashboard}
                             showToast={showToast}
                         />
@@ -1524,7 +1699,11 @@ const App: React.FC = () => {
                             profile={userProfile}
                             currentTheme={currentTheme}
                             themeConfig={themeConfig}
+                            backgroundMode={backgroundMode}
+                            customBackground={customBackground}
+                            liquidGlassEnabled={liquidGlassEnabled}
                             onUpdateProfile={handleUpdateProfile}
+                            onUpdateLiquidGlass={handleUpdateLiquidGlass}
                             onNavigateToThemeStudio={() => setView('appearance')}
                             onBack={handleBackToDashboard}
                         />

@@ -20,6 +20,18 @@ class ErrorBoundary extends React.Component<any, any> {
   }
 
   public static getDerivedStateFromError(error: Error): State {
+    const msg = (error?.message || String(error || '')).toLowerCase();
+    // Do not crash component tree for transient indexedDB / closing / hidden / offline events
+    if (
+      msg.includes('database is closing') ||
+      msg.includes('closing/hidden') ||
+      msg.includes('indexeddb') ||
+      msg.includes('connection is closing') ||
+      msg.includes('the client is offline')
+    ) {
+      console.warn('[ErrorBoundary] Ignored transient database state:', error?.message);
+      return { hasError: false, error: null };
+    }
     return { hasError: true, error };
   }
 

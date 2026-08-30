@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserProfile, ThemeAnimationConfig } from '../types';
+import { 
+  UserProfile, 
+  ThemeAnimationConfig, 
+  BackgroundMode, 
+  CustomBackgroundConfig 
+} from '../types';
 import { 
   Globe, 
   Shield, 
@@ -15,7 +20,8 @@ import {
   Image as ImageIcon,
   AlertCircle,
   UploadCloud,
-  CheckCircle2
+  CheckCircle2,
+  Sparkle
 } from 'lucide-react';
 import { GoogleIcon, MicrosoftIcon, EmailIcon } from './BrandIcons';
 import { ImageCropModal } from './ImageCropModal';
@@ -31,7 +37,11 @@ interface SettingsProps {
   profile: UserProfile;
   currentTheme?: string;
   themeConfig?: ThemeAnimationConfig;
+  backgroundMode?: BackgroundMode;
+  customBackground?: CustomBackgroundConfig | null;
+  liquidGlassEnabled?: boolean;
   onUpdateProfile: (updates: Partial<UserProfile>) => Promise<void> | void;
+  onUpdateLiquidGlass?: (enabled: boolean) => Promise<void> | void;
   onNavigateToThemeStudio: () => void;
   onBack: () => void;
 }
@@ -48,7 +58,11 @@ export const Settings: React.FC<SettingsProps> = ({
   profile, 
   currentTheme,
   themeConfig,
+  backgroundMode = 'preset',
+  customBackground = null,
+  liquidGlassEnabled = true,
   onUpdateProfile, 
+  onUpdateLiquidGlass,
   onNavigateToThemeStudio,
   onBack 
 }) => {
@@ -448,38 +462,94 @@ export const Settings: React.FC<SettingsProps> = ({
             </div>
           </div>
 
-          {/* Appearance & Theme Independent Section Banner */}
-          <div className="p-6 rounded-3xl bg-gradient-to-br from-purple-950 via-[#3C128D] to-indigo-950 text-white border-2 border-purple-400/30 shadow-xl relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div className="space-y-2 z-10">
-              <div className="flex items-center gap-2">
-                <span className="p-2 rounded-xl bg-amber-400 text-gray-950 font-black shadow-md">
+          {/* Appearance & Customization Section */}
+          <div className="glass-panel p-6 sm:p-8 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 rounded-xl bg-purple-50 text-[#8A2CB0]">
                   <Palette className="w-5 h-5" />
                 </span>
-                <h3 className="text-lg font-black text-white">
-                  Appearance & Theme Studio
-                </h3>
+                <div>
+                  <h2 className="text-lg font-black text-gray-900">Appearance & Customization</h2>
+                  <p className="text-xs text-gray-500 font-medium">Control Liquid Glass materials, themes, and wallpaper</p>
+                </div>
               </div>
-              <p className="text-xs text-purple-200 leading-relaxed max-w-md">
-                Customize your visual theme, fine-tune celestial moon/sun sizes, starfield density, glowing fireflies, ocean bubbles, and animation speeds in a dedicated workspace.
-              </p>
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="px-2.5 py-1 rounded-lg bg-white/15 text-white text-[11px] font-bold backdrop-blur-md flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                  Active: {activeThemeName}
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-white/10 text-purple-200 text-[11px] font-medium">
-                  {isAnimOn ? 'Animations Active' : 'Static Theme'}
-                </span>
-              </div>
+
+              <button
+                type="button"
+                onClick={onNavigateToThemeStudio}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] text-white font-bold text-xs transition-all shadow-md hover:shadow-purple-900/20 active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Open Theme Studio</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
 
-            <button
-              onClick={onNavigateToThemeStudio}
-              className="px-5 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-gray-950 font-black text-xs sm:text-sm transition-all shadow-lg hover:shadow-amber-400/25 active:scale-95 flex items-center justify-center gap-2 shrink-0 cursor-pointer z-10"
-            >
-              <span>Customize Theme</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            {/* Liquid Glass Toggle */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-50/70 to-indigo-50/50 border border-purple-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                  liquidGlassEnabled 
+                    ? 'bg-[#8A2CB0] text-amber-300 shadow-md' 
+                    : 'bg-gray-200 text-gray-400'
+                }`}>
+                  <Sparkle className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-black text-gray-900">Liquid Glass Material</h3>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                      liquidGlassEnabled ? 'bg-purple-100 text-[#8A2CB0]' : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      {liquidGlassEnabled ? 'ON' : 'OFF'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-0.5 max-w-lg">
+                    {liquidGlassEnabled 
+                      ? 'Luminous translucent frosted glass and specular sheen are active across all UI surfaces.' 
+                      : 'Disabled. Interface surfaces use clean, solid opaque materials with high contrast.'}
+                  </p>
+                </div>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer shrink-0 self-end sm:self-center">
+                <input 
+                  type="checkbox" 
+                  checked={liquidGlassEnabled} 
+                  onChange={(e) => onUpdateLiquidGlass && onUpdateLiquidGlass(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-7 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all after:shadow-sm peer-checked:bg-gradient-to-r peer-checked:from-[#3C128D] peer-checked:to-[#8A2CB0]"></div>
+              </label>
+            </div>
+
+            {/* Current Background Status Banner */}
+            <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-700 shadow-sm shrink-0">
+                  {backgroundMode === 'custom' ? <ImageIcon className="w-4 h-4 text-amber-500" /> : <Sparkles className="w-4 h-4 text-[#8A2CB0]" />}
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-gray-800">
+                    {backgroundMode === 'custom' ? 'Custom Wallpaper Background' : `Preset Environment: ${activeThemeName}`}
+                  </h4>
+                  <p className="text-[11px] text-gray-500">
+                    {backgroundMode === 'custom' 
+                      ? (customBackground?.fileName ? `Image: ${customBackground.fileName}` : 'Personal uploaded wallpaper active')
+                      : (isAnimOn ? 'Dynamic celestial & particle animations active' : 'Static background theme')}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={onNavigateToThemeStudio}
+                className="text-xs font-black text-[#8A2CB0] hover:text-[#3C128D] flex items-center gap-1 cursor-pointer"
+              >
+                <span>{backgroundMode === 'custom' ? 'Adjust Wallpaper' : 'Customize Environment'}</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
           </div>
 
           {/* Default Paper Settings */}

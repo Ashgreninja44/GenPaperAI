@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { GeneratedPaper, HistoryStats } from '../types';
+import { GeneratedPaper } from '../types';
 import { Search, X, ArrowUpDown } from 'lucide-react';
 
 interface DashboardProps {
@@ -26,11 +26,6 @@ const normalizeClass = (str: string): string => {
 const Dashboard: React.FC<DashboardProps> = ({ history, onCreateNew, onViewPaper, onViewBank, onDeletePaper }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<string>('newest');
-
-  const stats: HistoryStats = {
-    totalGenerated: history.length,
-    topics: Array.from(new Set(history.map(p => p.config?.subject).filter(Boolean))) as string[],
-  };
 
   const filteredAndSortedHistory = useMemo(() => {
     const queryLower = searchQuery.toLowerCase().trim();
@@ -101,52 +96,49 @@ const Dashboard: React.FC<DashboardProps> = ({ history, onCreateNew, onViewPaper
 
   return (
     <div className="max-w-6xl mx-auto animate-fade-in">
-      <header className="mb-10 text-center md:text-left relative z-10">
-        <h1 className="text-4xl font-extrabold text-white tracking-tight mb-2 drop-shadow-md">Dashboard</h1>
-        <p className="text-lg text-white/90 font-medium max-w-2xl drop-shadow-sm">Manage your academic content and generate new papers with AI.</p>
+      <header className="mb-8 text-center md:text-left relative z-10">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-2 drop-shadow-md">Dashboard</h1>
+        <p className="text-sm sm:text-base text-white/90 font-medium max-w-2xl drop-shadow-sm">Manage your academic content and generate new papers with AI.</p>
       </header>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-        <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between h-full transform hover:scale-[1.02] transition-transform">
-            <div>
-                <h3 className="text-xs uppercase tracking-wider text-[#8A2CB0] font-bold mb-1">Total Papers</h3>
-                <p className="text-5xl font-bold text-gray-900 mt-2">{stats.totalGenerated}</p>
-            </div>
-            <div className="mt-4 text-xs font-medium text-gray-500">All time generated</div>
+      {/* Stats & Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between transform hover:scale-[1.01] transition-transform">
+          <div>
+            <h3 className="text-xs uppercase tracking-wider text-[#8A2CB0] font-bold mb-1">Total Papers</h3>
+            <p className="text-4xl sm:text-5xl font-extrabold text-gray-900 mt-2">{history.length}</p>
+          </div>
+          <div className="mt-4 text-xs font-semibold text-gray-500 flex items-center justify-between">
+            <span>All time generated</span>
+            <span className="text-[#3C128D] font-bold bg-[#f3e8ff] px-2.5 py-0.5 rounded-full border border-[#d8b4fe] text-[11px]">
+              {history.length} {history.length === 1 ? 'Paper' : 'Papers'}
+            </span>
+          </div>
         </div>
 
-        <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between md:col-span-2 h-full">
-            <div>
-                <h3 className="text-xs uppercase tracking-wider text-[#8A2CB0] font-bold mb-3">Recent Subjects</h3>
-                <div className="flex flex-wrap gap-2">
-                    {stats.topics.slice(0, 5).map((topic, i) => (
-                        <span key={i} className="px-3 py-1.5 bg-[#f3e8ff] border border-[#d8b4fe] text-[#3C128D] text-sm rounded-lg font-bold shadow-sm">
-                            {topic}
-                        </span>
-                    ))}
-                    {stats.topics.length === 0 && <span className="text-gray-400 text-sm italic">No subjects yet. Generate a paper to see topics here.</span>}
-                </div>
-            </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl shadow-xl shadow-[#3C128D]/10 text-gray-800 flex flex-col gap-4 justify-center border border-white/40">
-            <h3 className="font-bold text-xl mb-2 text-[#3C128D] px-1">Quick Actions</h3>
+        <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between md:col-span-2 text-gray-800 border border-white/40">
+          <div>
+            <h3 className="font-bold text-lg text-[#3C128D] mb-1">Quick Actions</h3>
+            <p className="text-xs text-gray-500 font-medium mb-4">Create comprehensive question papers or access curated question banks</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <button 
-                onClick={onCreateNew}
-                className="btn-glass btn-glass-primary px-5 py-3 rounded-lg font-bold text-sm w-full flex items-center justify-center gap-3 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
+              onClick={onCreateNew}
+              className="btn-glass btn-glass-primary px-5 py-3 rounded-xl font-bold text-sm w-full flex items-center justify-center gap-2.5 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all cursor-pointer"
             >
-                <span className="text-lg">+</span> Create New Paper
+              <span className="text-lg font-black leading-none">+</span> 
+              <span>Create New Paper</span>
             </button>
             <button 
-                onClick={onViewBank}
-                className="btn-glass btn-glass-accent px-5 py-3 rounded-lg font-bold text-sm w-full flex items-center justify-center gap-3 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 transition-all relative group/btn"
+              onClick={onViewBank}
+              className="btn-glass btn-glass-accent px-5 py-3 rounded-xl font-bold text-sm w-full flex items-center justify-center gap-2 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 transition-all relative group/btn cursor-pointer"
             >
-                <span>Open Question Bank</span>
-                <span className="px-1.5 py-0.5 rounded bg-amber-400 text-[#3C128D] text-[9px] font-black uppercase tracking-tighter shadow-sm border border-amber-500/30 transition-transform group-hover/btn:scale-110">
-                  🚧 Beta
-                </span>
+              <span>Open Question Bank</span>
+              <span className="px-1.5 py-0.5 rounded bg-amber-400 text-[#3C128D] text-[9px] font-black uppercase tracking-tighter shadow-sm border border-amber-500/30 transition-transform group-hover/btn:scale-110">
+                🚧 Beta
+              </span>
             </button>
+          </div>
         </div>
       </div>
 

@@ -53,8 +53,8 @@ export const generateContentProxy = async (params: {
 };
 
 /**
- * Helper to retry a function if it fails with a 503 error.
- * Retries up to 3 times with a 2-3 second delay.
+ * Helper to retry a function if it fails with a 503 or transient rate limit error.
+ * Retries up to 3 times with exponential backoff.
  */
 const withRetry = async <T>(fn: () => Promise<T>, retries = 3): Promise<T> => {
   for (let i = 0; i <= retries; i++) {
@@ -64,7 +64,7 @@ const withRetry = async <T>(fn: () => Promise<T>, retries = 3): Promise<T> => {
       // Handle fetch Response objects (sometimes SDK returns them)
       if (result instanceof Response && (result.status === 503 || result.status === 429) && i < retries) {
         const is429 = result.status === 429;
-        const delay = is429 ? (5000 * Math.pow(2, i)) : (2000 + Math.random() * 1000);
+        const delay = is429 ? (4000 * Math.pow(2, i)) : (2000 + Math.random() * 1000);
         console.warn(`Service returned ${result.status}. Retrying in ${Math.round(delay)}ms... (${retries - i} left)`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
@@ -72,30 +72,37 @@ const withRetry = async <T>(fn: () => Promise<T>, retries = 3): Promise<T> => {
       
       return result;
     } catch (error: any) {
+      const errorMsg = error?.message || String(error);
+      
+      // If quota limit is 0 (free tier doesn't support this model or metric), retrying will never succeed
+      if (errorMsg.includes('limit: 0') || (errorMsg.includes('RESOURCE_EXHAUSTED') && errorMsg.includes('limit: 0'))) {
+        throw new Error(`AI Quota limit is 0 for this model on your current tier. Please use a supported standard model (e.g. Gemini 3.7 Flash) or upgrade your Gemini billing tier.`);
+      }
+
       const is503 = error?.status === 503 || 
-                    error?.message?.includes('503') || 
+                    errorMsg.includes('503') || 
                     error?.code === 503 ||
-                    error?.message?.includes('Service Unavailable');
+                    errorMsg.includes('Service Unavailable');
       
       const is429 = error?.status === 429 ||
-                    error?.message?.includes('429') ||
-                    error?.message?.includes('RESOURCE_EXHAUSTED') ||
-                    error?.message?.includes('quota');
+                    errorMsg.includes('429') ||
+                    errorMsg.includes('RESOURCE_EXHAUSTED') ||
+                    errorMsg.includes('quota');
 
       if ((is503 || is429) && i < retries) {
         // Longer base delay for 429 with exponential backoff
-        const delay = is429 ? (5000 * Math.pow(2, i) + Math.random() * 2000) : (2000 + Math.random() * 1000);
-        console.warn(`AI Service returned ${is429 ? '429 (Quota)' : '503 (Overloaded)'}. Retrying in ${Math.round(delay)}ms... (${retries - i} left)`);
+        const delay = is429 ? (3000 * Math.pow(2, i) + Math.random() * 1500) : (2000 + Math.random() * 1000);
+        console.warn(`AI Service returned ${is429 ? '429 (Quota/Rate-Limit)' : '503 (Overloaded)'}. Retrying in ${Math.round(delay)}ms... (${retries - i} left)`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
 
       if (is503) {
-        throw new Error("The AI service is currently overloaded (503). We tried to reconnect but it's still busy. Please try again in a few moments.");
+        throw new Error("The AI service is currently overloaded (503). Please try again in a few moments.");
       }
       
       if (is429) {
-        throw new Error("API Quota exceeded (429). We are retrying with backoff, but if this persists, please check your Gemini API plan or try again later.");
+        throw new Error("API Quota/Rate-limit exceeded (429). Please check your Gemini API plan or try again shortly.");
       }
 
       throw error;
@@ -149,7 +156,7 @@ const paperResponseSchema: Schema = {
 
 export const generateQuestionPaper = async (
   config: PaperConfig, 
-  modelId: string = 'gemini-3-flash-preview',
+  modelId: string = 'gemini-3.7-flash',
   uid?: string
 ): Promise<GeneratedPaper> => {
   const genStartTime = performance.now();
@@ -404,7 +411,7 @@ export const regenerateSingleQuestion = async (
 
   try {
     const response = await withRetry(() => generateContentProxy({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.7-flash',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -443,7 +450,7 @@ export const generateQuestionBankUpdate = async (subject: string, grade: string,
     Format as clear Markdown with headers.`;
 
     const response = await withRetry(() => generateContentProxy({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.7-flash',
       contents: prompt
     }));
     return response.text || "Failed to generate content.";
@@ -453,7 +460,7 @@ export const generateDiagramImage = async (
   diagramPrompt: string,
   onProgress?: (status: 'generating' | 'retrying', attempt: number, maxAttempts: number) => void
 ): Promise<string> => {
-  const maxAttempts = 3;
+  const maxAttempts = 2;
   const imagePrompt = `
     Generate a Nano-Banana style academic diagram.
     Subject: School Exam (Math/Science).
@@ -470,7 +477,7 @@ export const generateDiagramImage = async (
     try {
       if (attempt > 1) {
         if (onProgress) onProgress('retrying', attempt, maxAttempts);
-        const backoffMs = Math.min(2000 * Math.pow(2, attempt - 2) + Math.random() * 1000, 8000);
+        const backoffMs = Math.min(2000 * Math.pow(2, attempt - 2) + Math.random() * 1000, 6000);
         console.log(`[Nano Banana Diagram] Retrying attempt ${attempt}/${maxAttempts} after ${Math.round(backoffMs)}ms backoff...`);
         await new Promise(resolve => setTimeout(resolve, backoffMs));
       } else {
@@ -481,14 +488,13 @@ export const generateDiagramImage = async (
       // 25-second timeout guard per attempt to prevent infinite hanging
       const timeoutPromise = new Promise<never>((_, reject) => {
         const timer = setTimeout(() => reject(new Error("Diagram generation timed out after 25s")), 25000);
-        // Clean up timer if promise resolves first
         if (typeof timer === 'object' && 'unref' in timer) {
           (timer as any).unref();
         }
       });
 
       const fetchPromise = generateContentProxy({
-        model: 'gemini-2.5-flash-image', // Nano Banana model
+        model: 'gemini-3.1-flash-lite-image', // Gemini Image model
         contents: {
           parts: [{ text: imagePrompt }]
         }
@@ -520,14 +526,21 @@ export const generateDiagramImage = async (
     } catch (err: any) {
       lastError = err;
       const duration = Math.round(performance.now() - attemptStartTime);
-      const isRetryable = attempt < maxAttempts;
-      console.warn(`[Nano Banana Diagram] Attempt ${attempt}/${maxAttempts} failed in ${duration}ms:`, err?.message || String(err));
-      if (!isRetryable) break;
+      const errMsg = err?.message || String(err);
+      
+      // If quota is exhausted or limit is 0, do not keep retrying in vain
+      const isZeroQuota = errMsg.includes('limit: 0') || errMsg.includes('RESOURCE_EXHAUSTED');
+      console.warn(`[Nano Banana Diagram] Attempt ${attempt}/${maxAttempts} failed in ${duration}ms:`, errMsg);
+      
+      if (isZeroQuota) {
+        throw new Error("Image model quota unavailable (limit: 0 on current tier). Diagram prompt preserved for reference.");
+      }
+      if (attempt >= maxAttempts) break;
     }
   }
 
-  const finalMsg = lastError?.message || "Diagram generation failed after maximum retries.";
-  console.error(`[Nano Banana Diagram] Exhausted all ${maxAttempts} attempts. Final error:`, finalMsg);
+  const finalMsg = lastError?.message || "Diagram generation failed after retry attempts.";
+  console.error(`[Nano Banana Diagram] Error:`, finalMsg);
   throw new Error(finalMsg);
 };
 
@@ -596,7 +609,7 @@ export const parseQuestionsFromText = async (text: string, subjectContext: strin
 
     try {
         const response = await withRetry(() => generateContentProxy({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3.7-flash',
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
@@ -703,7 +716,7 @@ export const extractQuestionsFromUrl = async (url: string, subjectContext: strin
         `;
 
         const groundedResponse = await generateContentProxy({
-          model: 'gemini-3-flash-preview',
+          model: 'gemini-3.7-flash',
           contents: searchPrompt,
           config: {
             tools: [{ googleSearch: {} }]
@@ -733,7 +746,7 @@ export const fetchSchoolLogoUrl = async (schoolName: string, branchName: string)
 
     try {
         const response = await withRetry(() => generateContentProxy({
-            model: "gemini-3-flash-preview",
+            model: "gemini-3.7-flash",
             contents: query,
             config: {
                 tools: [{ googleSearch: {} }],
@@ -781,7 +794,7 @@ export const improveSelectedText = async (selectedText: string, context: string)
 
     try {
         const response = await withRetry(() => generateContentProxy({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3.7-flash',
             contents: prompt,
             config: {
                 temperature: 0.7,

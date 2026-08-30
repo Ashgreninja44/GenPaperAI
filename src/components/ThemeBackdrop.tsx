@@ -1,16 +1,20 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ThemeAnimationConfig, DEFAULT_THEME_ANIMATION_CONFIG } from '../types';
+import { ThemeAnimationConfig, DEFAULT_THEME_ANIMATION_CONFIG, CustomBackgroundConfig, BackgroundMode } from '../types';
 
 interface ThemeBackdropProps {
   theme: string;
   config?: ThemeAnimationConfig;
+  backgroundMode?: BackgroundMode;
+  customBackground?: CustomBackgroundConfig | null;
   isInteractivePreview?: boolean;
 }
 
 export const ThemeBackdrop: React.FC<ThemeBackdropProps> = ({ 
   theme, 
   config = DEFAULT_THEME_ANIMATION_CONFIG,
+  backgroundMode = 'preset',
+  customBackground = null,
   isInteractivePreview = false 
 }) => {
   const currentConfig = config || DEFAULT_THEME_ANIMATION_CONFIG;
@@ -440,7 +444,48 @@ export const ThemeBackdrop: React.FC<ThemeBackdropProps> = ({
     );
   };
 
+  const renderCustomBackground = () => {
+    if (!customBackground || !customBackground.url) {
+      return (
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 pointer-events-none" />
+      );
+    }
+
+    const brightness = customBackground.brightness ?? 100;
+    const blur = customBackground.blur ?? 0;
+    const opacity = (customBackground.opacity ?? 100) / 100;
+    const overlayDarkness = (customBackground.overlayDarkness ?? 25) / 100;
+    const position = customBackground.position || 'center';
+
+    return (
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <img
+          src={customBackground.url}
+          alt="Custom User Background"
+          className="absolute inset-0 w-full h-full object-cover transition-all duration-300 pointer-events-none select-none"
+          style={{
+            filter: `brightness(${brightness}%) blur(${blur}px)`,
+            opacity: opacity,
+            objectPosition: position,
+          }}
+          referrerPolicy="no-referrer"
+        />
+        {/* Subtle Semi-Translucent Contrast / Readability Shield */}
+        <div
+          className="absolute inset-0 pointer-events-none transition-all duration-300"
+          style={{
+            backgroundColor: `rgba(0, 0, 0, ${overlayDarkness})`,
+          }}
+        />
+      </div>
+    );
+  };
+
   const renderThemeElements = () => {
+    if (backgroundMode === 'custom' && customBackground?.url) {
+      return renderCustomBackground();
+    }
+
     switch (theme) {
       case 'midnight':
       case 'Midnight Sky':
@@ -461,19 +506,23 @@ export const ThemeBackdrop: React.FC<ThemeBackdropProps> = ({
     }
   };
 
+  const activeKey = backgroundMode === 'custom' && customBackground?.url
+    ? `custom-${customBackground.url}-${customBackground.brightness}-${customBackground.blur}-${customBackground.opacity}-${customBackground.overlayDarkness}`
+    : `${theme}-${isAnimEnabled ? 'anim-on' : 'anim-off'}`;
+
   return (
     <div className={`fixed inset-0 z-0 pointer-events-none ${isInteractivePreview ? 'relative h-full w-full' : ''}`}>
       <AnimatePresence mode="wait">
         <motion.div
-          key={`${theme}-${isAnimEnabled ? 'anim-on' : 'anim-off'}`}
+          key={activeKey}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.8, ease: "easeInOut" }}
+          transition={{ duration: 0.5, ease: "easeInOut" }}
           className="absolute inset-0"
         >
           {renderThemeElements()}
-          {!isInteractivePreview && <div className="blur-overlay" />}
+          {!isInteractivePreview && backgroundMode !== 'custom' && <div className="blur-overlay" />}
         </motion.div>
       </AnimatePresence>
     </div>

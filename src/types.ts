@@ -337,9 +337,36 @@ export const DEFAULT_THEME_ANIMATION_CONFIG: ThemeAnimationConfig = {
   },
 };
 
+export interface CustomBackgroundConfig {
+  url: string;
+  storagePath?: string;
+  fileName?: string;
+  fileSize?: number;
+  uploadedAt?: number;
+  brightness?: number; // 50 to 150 %, default 100
+  blur?: number; // 0 to 20 px, default 0
+  opacity?: number; // 20 to 100 %, default 100
+  overlayDarkness?: number; // 0 to 80 %, default 25
+  position?: 'center' | 'top' | 'bottom';
+}
+
+export const DEFAULT_CUSTOM_BACKGROUND_CONFIG: CustomBackgroundConfig = {
+  url: '',
+  brightness: 100,
+  blur: 0,
+  opacity: 100,
+  overlayDarkness: 25,
+  position: 'center'
+};
+
+export type BackgroundMode = 'preset' | 'custom';
+
 export interface UserPreferences {
   themeColor: string;
   background: string;
+  backgroundMode?: BackgroundMode;
+  customBackground?: CustomBackgroundConfig | null;
+  liquidGlassEnabled?: boolean;
   themeCustomization?: ThemeAnimationConfig;
 }
 

@@ -1,5 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { UserProfile, ThemeAnimationConfig, DEFAULT_THEME_ANIMATION_CONFIG } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  UserProfile, 
+  ThemeAnimationConfig, 
+  DEFAULT_THEME_ANIMATION_CONFIG,
+  CustomBackgroundConfig,
+  DEFAULT_CUSTOM_BACKGROUND_CONFIG,
+  BackgroundMode
+} from '../types';
 import { 
   Palette, 
   Sparkles, 
@@ -7,26 +14,43 @@ import {
   Sun, 
   Waves, 
   Trees, 
-  Flame, 
   RotateCcw, 
   Check, 
   Sliders, 
-  Eye, 
   Zap, 
-  ShieldCheck, 
-  Layers,
   ArrowLeft,
   Stars,
   Compass,
-  Maximize2
+  Maximize2,
+  Image as ImageIcon,
+  UploadCloud,
+  Trash2,
+  SlidersHorizontal,
+  Layers,
+  Sparkle,
+  Eye,
+  CheckCircle2,
+  AlertCircle,
+  HelpCircle
 } from 'lucide-react';
 import ThemeBackdrop from './ThemeBackdrop';
+import { 
+  uploadCustomBackgroundImage, 
+  deletePreviousCustomBackground, 
+  validateBackgroundImageFile 
+} from '../services/customBackgroundService';
 
 interface ThemeStudioProps {
   profile: UserProfile | null;
   currentTheme: string;
   themeConfig: ThemeAnimationConfig;
+  backgroundMode?: BackgroundMode;
+  customBackground?: CustomBackgroundConfig | null;
+  liquidGlassEnabled?: boolean;
   onUpdateTheme: (themeId: string, newConfig: ThemeAnimationConfig) => Promise<void>;
+  onUpdateBackgroundMode?: (mode: BackgroundMode, customBg?: CustomBackgroundConfig | null) => Promise<void> | void;
+  onUpdateLiquidGlass?: (enabled: boolean) => Promise<void> | void;
+  onUpdateCustomBackgroundConfig?: (config: CustomBackgroundConfig) => Promise<void> | void;
   onBack: () => void;
   showToast: (message: string, type?: 'success' | 'error' | 'warning') => void;
 }
@@ -67,7 +91,7 @@ const THEME_OPTIONS: ThemeOption[] = [
     icon: Sun,
     colors: 'from-[#FF512F] via-[#F09819] to-[#DD2476]',
     badgeColor: 'bg-amber-500/20 text-amber-200 border-amber-400/30',
-    primaryDescription: 'Radiant sunset horizon with glowing solar disc, warm coronal glow, and floating solar dust particles.'
+    primaryDescription: 'Radiant sunset horizon with glowing solar disc (exclusive to Golden Sunset), warm coronal glow, and floating solar dust particles.'
   },
   {
     id: 'ocean',
@@ -93,56 +117,220 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
   profile,
   currentTheme,
   themeConfig,
+  backgroundMode = 'preset',
+  customBackground = null,
+  liquidGlassEnabled = true,
   onUpdateTheme,
+  onUpdateBackgroundMode,
+  onUpdateLiquidGlass,
+  onUpdateCustomBackgroundConfig,
   onBack,
   showToast
 }) => {
   const [selectedThemeId, setSelectedThemeId] = useState<string>(currentTheme || 'default');
   const [config, setConfig] = useState<ThemeAnimationConfig>(themeConfig || DEFAULT_THEME_ANIMATION_CONFIG);
-  const [isApplying, setIsApplying] = useState<boolean>(false);
+  const [activeBgMode, setActiveBgMode] = useState<BackgroundMode>(backgroundMode || 'preset');
+  const [activeCustomBg, setActiveCustomBg] = useState<CustomBackgroundConfig | null>(customBackground || null);
+  const [isGlassOn, setIsGlassOn] = useState<boolean>(liquidGlassEnabled !== false);
+  
+  // Custom Background Upload & Editing State
+  const [isUploadingBg, setIsUploadingBg] = useState<boolean>(false);
+  const [bgUploadError, setBgUploadError] = useState<string | null>(null);
+  const [isDraggingFile, setIsDraggingFile] = useState<boolean>(false);
   const [appliedMessage, setAppliedMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'theme' | 'celestial' | 'particles' | 'global'>('theme');
+  const bgFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Keep internal state synced if external themeConfig changes
+  // Sync with incoming props
   useEffect(() => {
-    if (themeConfig) {
-      setConfig(themeConfig);
-    }
+    if (themeConfig) setConfig(themeConfig);
   }, [themeConfig]);
 
   useEffect(() => {
-    if (currentTheme) {
-      setSelectedThemeId(currentTheme);
-    }
+    if (currentTheme) setSelectedThemeId(currentTheme);
   }, [currentTheme]);
+
+  useEffect(() => {
+    if (backgroundMode) setActiveBgMode(backgroundMode);
+  }, [backgroundMode]);
+
+  useEffect(() => {
+    if (customBackground !== undefined) setActiveCustomBg(customBackground);
+  }, [customBackground]);
+
+  useEffect(() => {
+    if (liquidGlassEnabled !== undefined) setIsGlassOn(liquidGlassEnabled);
+  }, [liquidGlassEnabled]);
 
   const currentThemeObj = THEME_OPTIONS.find(t => t.id === selectedThemeId) || THEME_OPTIONS[0];
 
+  // Apply Theme & Configurations
   const handleApplyTheme = async (themeToApply: string = selectedThemeId, configToApply: ThemeAnimationConfig = config) => {
-    setIsApplying(true);
     try {
       await onUpdateTheme(themeToApply, configToApply);
       const appliedTheme = THEME_OPTIONS.find(t => t.id === themeToApply)?.name || 'Theme';
-      const msg = `✨ Theme "${appliedTheme}" and animation settings successfully applied!`;
+      const msg = `✨ Theme "${appliedTheme}" and visual settings saved!`;
       setAppliedMessage(msg);
       showToast(msg, 'success');
-      setTimeout(() => {
-        setAppliedMessage(null);
-      }, 5000);
+      setTimeout(() => setAppliedMessage(null), 4000);
     } catch (err: any) {
       console.error("Failed to apply theme:", err);
       showToast("Failed to apply theme: " + (err.message || String(err)), "error");
-    } finally {
-      setIsApplying(false);
     }
   };
 
-  const handleSelectThemeCard = (themeId: string) => {
-    setSelectedThemeId(themeId);
-    // Instant live preview & application
-    handleApplyTheme(themeId, config);
+  // Toggle Liquid Glass ON / OFF
+  const handleToggleLiquidGlass = async (checked: boolean) => {
+    setIsGlassOn(checked);
+    if (onUpdateLiquidGlass) {
+      await onUpdateLiquidGlass(checked);
+    }
+    showToast(
+      checked ? "✨ Liquid Glass styling activated across all surfaces!" : "⚪ Solid clean interface styling enabled.",
+      'success'
+    );
   };
 
+  // Switch Background Mode (Preset Themes vs Custom Image)
+  const handleSelectBackgroundMode = async (mode: BackgroundMode) => {
+    setActiveBgMode(mode);
+    if (onUpdateBackgroundMode) {
+      await onUpdateBackgroundMode(mode, activeCustomBg);
+    }
+    showToast(
+      mode === 'custom' 
+        ? "🖼️ Custom Background active. Upload or fine-tune your wallpaper below."
+        : `🎨 Returned to Preset Atmospheric Theme (${currentThemeObj.name}).`,
+      'success'
+    );
+  };
+
+  // Select Preset Theme Card
+  const handleSelectThemeCard = async (themeId: string) => {
+    setSelectedThemeId(themeId);
+    setActiveBgMode('preset');
+    if (onUpdateBackgroundMode) {
+      await onUpdateBackgroundMode('preset', activeCustomBg);
+    }
+    await handleApplyTheme(themeId, config);
+  };
+
+  // Upload Custom Background Image File
+  const handleProcessBgFile = async (file: File) => {
+    if (!file) return;
+
+    setBgUploadError(null);
+    const validation = validateBackgroundImageFile(file);
+    if (!validation.valid) {
+      setBgUploadError(validation.error || 'Invalid image file.');
+      showToast(validation.error || 'Invalid image file.', 'error');
+      return;
+    }
+
+    setIsUploadingBg(true);
+    try {
+      const uid = profile?.uid || 'anonymous_user';
+      const oldStoragePath = activeCustomBg?.storagePath;
+
+      const uploadedBg = await uploadCustomBackgroundImage(uid, file);
+      
+      // Preserve existing adjustments if replacing
+      const mergedBg: CustomBackgroundConfig = {
+        ...uploadedBg,
+        brightness: activeCustomBg?.brightness ?? 100,
+        blur: activeCustomBg?.blur ?? 0,
+        opacity: activeCustomBg?.opacity ?? 100,
+        overlayDarkness: activeCustomBg?.overlayDarkness ?? 25,
+        position: activeCustomBg?.position ?? 'center'
+      };
+
+      setActiveCustomBg(mergedBg);
+      setActiveBgMode('custom');
+
+      if (onUpdateBackgroundMode) {
+        await onUpdateBackgroundMode('custom', mergedBg);
+      }
+
+      // Cleanup previous uploaded storage image in background
+      if (oldStoragePath && oldStoragePath !== mergedBg.storagePath) {
+        deletePreviousCustomBackground(oldStoragePath).catch(() => {});
+      }
+
+      showToast("🎉 Custom background image successfully set!", "success");
+    } catch (err: any) {
+      console.error("Custom background upload failed:", err);
+      const errMsg = err?.message || 'Failed to upload background image.';
+      setBgUploadError(errMsg);
+      showToast(errMsg, 'error');
+    } finally {
+      setIsUploadingBg(false);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (e.target) e.target.value = '';
+    if (file) handleProcessBgFile(file);
+  };
+
+  // Drag & Drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingFile(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingFile(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingFile(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleProcessBgFile(file);
+  };
+
+  // Update Custom Background Adjustments (Sliders)
+  const handleUpdateCustomBgProp = (prop: keyof CustomBackgroundConfig, value: any) => {
+    if (!activeCustomBg) return;
+    const updated: CustomBackgroundConfig = {
+      ...activeCustomBg,
+      [prop]: value
+    };
+    setActiveCustomBg(updated);
+    if (onUpdateCustomBackgroundConfig) {
+      onUpdateCustomBackgroundConfig(updated);
+    }
+  };
+
+  // Remove Custom Background
+  const handleRemoveCustomBackground = async () => {
+    const prevStoragePath = activeCustomBg?.storagePath;
+    setActiveCustomBg(null);
+    setActiveBgMode('preset');
+    if (onUpdateBackgroundMode) {
+      await onUpdateBackgroundMode('preset', null);
+    }
+    if (prevStoragePath) {
+      deletePreviousCustomBackground(prevStoragePath).catch(() => {});
+    }
+    showToast("Custom background removed. Returned to preset theme.", "success");
+  };
+
+  // Reset Background to Default Preset
+  const handleResetBackgroundToDefault = async () => {
+    setActiveBgMode('preset');
+    setSelectedThemeId('default');
+    const defaults = DEFAULT_THEME_ANIMATION_CONFIG;
+    setConfig(defaults);
+    if (onUpdateBackgroundMode) {
+      await onUpdateBackgroundMode('preset', activeCustomBg);
+    }
+    await handleApplyTheme('default', defaults);
+    showToast("Background reset to default Signature Royal theme.", "success");
+  };
+
+  // Reset fine-grained theme defaults
   const handleResetCurrentThemeDefaults = () => {
     const defaults = DEFAULT_THEME_ANIMATION_CONFIG;
     let newConfig = { ...config };
@@ -164,7 +352,7 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
     showToast(`Reset ${currentThemeObj.name} animation settings to default!`, 'success');
   };
 
-  // Helper updater functions for nested config
+  // Updaters for preset themes
   const updateGlobal = (key: keyof ThemeAnimationConfig, value: any) => {
     const next = { ...config, [key]: value };
     setConfig(next);
@@ -172,61 +360,31 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
   };
 
   const updateMidnight = (key: keyof ThemeAnimationConfig['midnight'], value: any) => {
-    const next = {
-      ...config,
-      midnight: {
-        ...config.midnight,
-        [key]: value
-      }
-    };
+    const next = { ...config, midnight: { ...config.midnight, [key]: value } };
     setConfig(next);
     handleApplyTheme(selectedThemeId, next);
   };
 
   const updateSunset = (key: keyof ThemeAnimationConfig['sunset'], value: any) => {
-    const next = {
-      ...config,
-      sunset: {
-        ...config.sunset,
-        [key]: value
-      }
-    };
+    const next = { ...config, sunset: { ...config.sunset, [key]: value } };
     setConfig(next);
     handleApplyTheme(selectedThemeId, next);
   };
 
   const updateOcean = (key: keyof ThemeAnimationConfig['ocean'], value: any) => {
-    const next = {
-      ...config,
-      ocean: {
-        ...config.ocean,
-        [key]: value
-      }
-    };
+    const next = { ...config, ocean: { ...config.ocean, [key]: value } };
     setConfig(next);
     handleApplyTheme(selectedThemeId, next);
   };
 
   const updateForest = (key: keyof ThemeAnimationConfig['forest'], value: any) => {
-    const next = {
-      ...config,
-      forest: {
-        ...config.forest,
-        [key]: value
-      }
-    };
+    const next = { ...config, forest: { ...config.forest, [key]: value } };
     setConfig(next);
     handleApplyTheme(selectedThemeId, next);
   };
 
   const updateVibrant = (key: keyof ThemeAnimationConfig['default'], value: any) => {
-    const next = {
-      ...config,
-      default: {
-        ...config.default,
-        [key]: value
-      }
-    };
+    const next = { ...config, default: { ...config.default, [key]: value } };
     setConfig(next);
     handleApplyTheme(selectedThemeId, next);
   };
@@ -246,18 +404,18 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
           <div className="hidden sm:block h-6 w-px bg-white/20" />
           <span className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-white border border-white/15 backdrop-blur-md">
             <Palette className="w-3.5 h-3.5 text-amber-300" />
-            Theme & Animation Studio
+            Appearance & Customization Studio
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           <button
-            onClick={handleResetCurrentThemeDefaults}
+            onClick={handleResetBackgroundToDefault}
             className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-bold border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer backdrop-blur-md active:scale-95"
-            title="Reset active theme customizations to default"
+            title="Reset to default theme & settings"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Theme Defaults</span>
+            <span>Reset Background</span>
           </button>
         </div>
       </div>
@@ -287,561 +445,864 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
       <div className="mb-8">
         <h1 className="text-3xl sm:text-4xl font-black text-white drop-shadow-md flex items-center gap-3">
           <Palette className="w-8 h-8 text-amber-300 drop-shadow-md" />
-          Appearance & Theme Studio
+          Appearance & Customization
         </h1>
-        <p className="text-white/80 text-sm sm:text-base mt-2 max-w-2xl leading-relaxed">
-          Select an atmospheric theme and customize every visual element: celestial objects, star counts, firefly glowing radiuses, solar dust, bubble dynamics, and motion speeds.
+        <p className="text-white/80 text-sm sm:text-base mt-2 max-w-3xl leading-relaxed">
+          Personalize your workspace experience with GenPaperAI Liquid Glass material styling, switch between atmospheric preset themes or upload your own custom background image.
         </p>
       </div>
 
-      {/* Main Grid: Theme Selection + Live Preview + Deep Controls */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Theme Picker Cards & Global Master Animation Controls */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Global Master Animation Switch Card */}
-          <div className="glass-panel p-6 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2.5">
-                <span className={`p-2 rounded-xl ${config.enableAnimations ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-400'}`}>
-                  <Zap className="w-5 h-5" />
-                </span>
-                <div>
-                  <h3 className="text-base font-black text-gray-900">Background Animations</h3>
-                  <p className="text-xs text-gray-500 font-medium">Master toggle for live motion & particles</p>
-                </div>
-              </div>
-
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={config.enableAnimations} 
-                  onChange={(e) => updateGlobal('enableAnimations', e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-7 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all after:shadow-sm peer-checked:bg-gradient-to-r peer-checked:from-[#3C128D] peer-checked:to-[#8A2CB0]"></div>
-              </label>
+      {/* ========================================================
+          FEATURE 1: LIQUID GLASS MASTER TOGGLE CARD
+          ======================================================== */}
+      <div className="mb-8 glass-panel p-6 sm:p-7 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-4">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md shrink-0 ${
+              isGlassOn 
+                ? 'bg-gradient-to-br from-[#3C128D] to-[#8A2CB0] text-amber-300 ring-2 ring-purple-300/50' 
+                : 'bg-gray-100 text-gray-400'
+            }`}>
+              <Sparkle className={`w-6 h-6 ${isGlassOn ? 'animate-pulse' : ''}`} />
             </div>
-
-            <div className="pt-4 border-t border-gray-100 space-y-4">
-              {/* Animation Speed Slider */}
-              <div>
-                <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <Compass className="w-3.5 h-3.5 text-[#8A2CB0]" />
-                    Animation Motion Speed
-                  </span>
-                  <span className="text-[#8A2CB0] font-black px-2 py-0.5 rounded-md bg-purple-50">
-                    {config.animationSpeed.toFixed(1)}x
-                  </span>
-                </div>
-                <input 
-                  type="range" 
-                  min="0.4" 
-                  max="2.0" 
-                  step="0.1"
-                  disabled={!config.enableAnimations}
-                  value={config.animationSpeed} 
-                  onChange={(e) => updateGlobal('animationSpeed', parseFloat(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#8A2CB0] disabled:opacity-40"
-                />
-                <div className="flex justify-between text-[10px] text-gray-400 font-bold mt-1">
-                  <span>Serene (0.5x)</span>
-                  <span>Normal (1.0x)</span>
-                  <span>Dynamic (2.0x)</span>
-                </div>
+            <div>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h2 className="text-xl font-black text-gray-900">Liquid Glass</h2>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${
+                  isGlassOn 
+                    ? 'bg-purple-100 text-[#8A2CB0] border border-purple-200' 
+                    : 'bg-gray-100 text-gray-600 border border-gray-200'
+                }`}>
+                  {isGlassOn ? 'ON — Liquid Glass Active' : 'OFF — Solid UI Material'}
+                </span>
               </div>
-
-              {/* Atmosphere Intensity Slider */}
-              <div>
-                <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <Sliders className="w-3.5 h-3.5 text-amber-600" />
-                    Atmosphere & Glow Intensity
-                  </span>
-                  <span className="text-amber-700 font-black px-2 py-0.5 rounded-md bg-amber-50">
-                    {Math.round(config.animationIntensity * 100)}%
-                  </span>
-                </div>
-                <input 
-                  type="range" 
-                  min="0.2" 
-                  max="1.0" 
-                  step="0.05"
-                  value={config.animationIntensity} 
-                  onChange={(e) => updateGlobal('animationIntensity', parseFloat(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
-                />
-                <div className="flex justify-between text-[10px] text-gray-400 font-bold mt-1">
-                  <span>Subtle (20%)</span>
-                  <span>Balanced (60%)</span>
-                  <span>Vivid (100%)</span>
-                </div>
-              </div>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1 max-w-2xl leading-relaxed">
+                {isGlassOn 
+                  ? 'Luminous frosted glass surfaces, specular highlights, and translucent blur are applied across navigation, panels, and cards.'
+                  : 'Liquid Glass material is disabled. UI surfaces use crisp, high-contrast solid materials without background blur.'}
+              </p>
             </div>
           </div>
 
-          {/* Theme Preset Selection Cards */}
-          <div className="glass-panel p-6 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-black text-gray-900 flex items-center gap-2">
-                <Palette className="w-4 h-4 text-[#8A2CB0]" />
-                Select Atmospheric Theme
-              </h3>
-              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                5 Themes
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {THEME_OPTIONS.map((theme) => {
-                const isSelected = selectedThemeId === theme.id;
-                const IconComponent = theme.icon;
-
-                return (
-                  <div
-                    key={theme.id}
-                    onClick={() => handleSelectThemeCard(theme.id)}
-                    className={`p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer relative overflow-hidden group ${
-                      isSelected
-                        ? 'border-[#3C128D] bg-gradient-to-br from-white to-purple-50/60 shadow-lg scale-[1.01]'
-                        : 'border-transparent bg-gray-50/80 hover:bg-white hover:border-gray-200 hover:shadow-md'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3">
-                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${theme.colors} flex items-center justify-center text-white shadow-md shrink-0 mt-0.5`}>
-                          <IconComponent className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className={`font-black text-sm ${isSelected ? 'text-[#3C128D]' : 'text-gray-800'}`}>
-                              {theme.name}
-                            </h4>
-                            {isSelected && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#3C128D] text-white flex items-center gap-1 shadow-sm">
-                                <Check className="w-3 h-3 stroke-[3]" />
-                                Active
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-gray-500 font-medium mt-0.5 leading-snug">
-                            {theme.tagline}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Gradient preview ribbon */}
-                    <div className={`mt-3 h-2 w-full rounded-full bg-gradient-to-r ${theme.colors}`} />
-                  </div>
-                );
-              })}
-            </div>
+          {/* Toggle Switch */}
+          <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider hidden sm:inline">
+              {isGlassOn ? 'ON' : 'OFF'}
+            </span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={isGlassOn} 
+                onChange={(e) => handleToggleLiquidGlass(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-16 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-8 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-7 after:w-7 after:transition-all after:shadow-md peer-checked:bg-gradient-to-r peer-checked:from-[#3C128D] peer-checked:to-[#8A2CB0]"></div>
+            </label>
           </div>
         </div>
+      </div>
 
-        {/* Right Column: Interactive Live Preview + Deep Theme-Specific Controls */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Live Mini Preview Box */}
-          <div className="glass-panel p-6 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl overflow-hidden">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-gray-600" />
-                <h3 className="text-sm font-black text-gray-800 uppercase tracking-wider">
-                  Live Viewport Preview
-                </h3>
-              </div>
-              <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
-                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                Real-Time Synchronized
-              </div>
-            </div>
-
-            {/* Embedded Live Backdrop Container */}
-            <div className="relative w-full h-48 sm:h-56 rounded-2xl overflow-hidden shadow-inner border border-black/10 bg-slate-950 flex flex-col justify-between p-4">
-              {/* Actual live rendering of custom elements */}
-              <div 
-                className="absolute inset-0 z-0"
-                style={{
-                  background: selectedThemeId === 'ocean'
-                    ? 'linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%)'
-                    : selectedThemeId === 'sunset'
-                    ? 'linear-gradient(135deg, #FF512F 0%, #DD2476 100%)'
-                    : selectedThemeId === 'forest'
-                    ? 'linear-gradient(135deg, #134E5E 0%, #71B280 100%)'
-                    : selectedThemeId === 'midnight'
-                    ? 'linear-gradient(135deg, #232526 0%, #414345 100%)'
-                    : 'linear-gradient(135deg, #3C128D 0%, #8A2CB0 60%, #EEA727 100%)'
-                }}
-              >
-                <ThemeBackdrop 
-                  theme={selectedThemeId} 
-                  config={config} 
-                  isInteractivePreview={true} 
-                />
-              </div>
-
-              {/* Sample Glass Card floating inside preview */}
-              <div className="relative z-10 flex justify-between items-start">
-                <div className="px-3 py-1.5 rounded-xl bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-black shadow-md flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                  <span>{currentThemeObj.name}</span>
-                </div>
-                <div className="px-2.5 py-1 rounded-lg bg-black/40 backdrop-blur-md text-white/90 text-[10px] font-bold border border-white/15">
-                  {config.enableAnimations ? 'Motion Active' : 'Static Visuals'}
-                </div>
-              </div>
-
-              <div className="relative z-10 flex justify-between items-end">
-                <div className="text-white/90 text-[11px] font-medium backdrop-blur-sm bg-black/30 px-3 py-1.5 rounded-xl border border-white/10 max-w-[80%] truncate">
-                  {currentThemeObj.primaryDescription}
-                </div>
-                <div className="w-6 h-6 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
-                  <Maximize2 className="w-3.5 h-3.5" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Theme-Specific Fine-Grained Controls Card */}
-          <div className="glass-panel p-6 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl">
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
-              <div className="flex items-center gap-2.5">
-                <span className="p-2 rounded-xl bg-purple-50 text-[#8A2CB0]">
-                  <Sliders className="w-5 h-5" />
-                </span>
-                <div>
-                  <h3 className="text-lg font-black text-gray-900">
-                    {currentThemeObj.name} Customization
-                  </h3>
-                  <p className="text-xs text-gray-500 font-medium">Fine-tune individual elements and atmospheric layers</p>
-                </div>
-              </div>
-
-              <span className={`px-3 py-1 rounded-full text-xs font-black border ${currentThemeObj.badgeColor}`}>
-                Active Preset
-              </span>
-            </div>
-
-            {/* MIDNIGHT SKY CONTROLS */}
-            {selectedThemeId === 'midnight' && (
-              <div className="space-y-6">
-                {/* Celestial Moon Controls */}
-                <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Moon className="w-4 h-4 text-slate-700" />
-                      <span className="text-sm font-black text-gray-800">Celestial Moon</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={config.midnight.showMoon} 
-                        onChange={(e) => updateMidnight('showMoon', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-800"></div>
-                    </label>
-                  </div>
-
-                  {config.midnight.showMoon && (
-                    <div className="space-y-4 pt-2 border-t border-gray-200/60">
-                      <div>
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
-                          <span>Moon Scale / Diameter</span>
-                          <span className="text-slate-900 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
-                            {config.midnight.moonSize} px
-                          </span>
-                        </div>
-                        <input 
-                          type="range" 
-                          min="40" 
-                          max="180" 
-                          step="5"
-                          value={config.midnight.moonSize} 
-                          onChange={(e) => updateMidnight('moonSize', parseInt(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-slate-800"
-                        />
-                        <div className="flex justify-between text-[10px] text-gray-400 font-bold mt-1">
-                          <span>Crescent (40px)</span>
-                          <span>Default (65px)</span>
-                          <span>Supermoon (180px)</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
-                          <span>Moon Glow Radiance</span>
-                          <span className="text-slate-900 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
-                            {Math.round(config.midnight.moonGlowIntensity * 100)}%
-                          </span>
-                        </div>
-                        <input 
-                          type="range" 
-                          min="0.2" 
-                          max="1.0" 
-                          step="0.05"
-                          value={config.midnight.moonGlowIntensity} 
-                          onChange={(e) => updateMidnight('moonGlowIntensity', parseFloat(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-slate-800"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Starfield Controls */}
-                <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Stars className="w-4 h-4 text-purple-700" />
-                      <span className="text-sm font-black text-gray-800">Twinkling Starfield</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={config.midnight.showStars} 
-                        onChange={(e) => updateMidnight('showStars', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-700"></div>
-                    </label>
-                  </div>
-
-                  {config.midnight.showStars && (
-                    <div className="space-y-4 pt-2 border-t border-gray-200/60">
-                      <div>
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
-                          <span>Star Count</span>
-                          <span className="text-purple-700 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
-                            {config.midnight.starCount} Stars
-                          </span>
-                        </div>
-                        <input 
-                          type="range" 
-                          min="10" 
-                          max="120" 
-                          step="5"
-                          value={config.midnight.starCount} 
-                          onChange={(e) => updateMidnight('starCount', parseInt(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-700"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
-                          <span>Twinkle Pulse Speed</span>
-                          <span className="text-purple-700 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
-                            {config.midnight.starTwinkleSpeed.toFixed(1)}x
-                          </span>
-                        </div>
-                        <input 
-                          type="range" 
-                          min="0.5" 
-                          max="2.0" 
-                          step="0.1"
-                          value={config.midnight.starTwinkleSpeed} 
-                          onChange={(e) => updateMidnight('starTwinkleSpeed', parseFloat(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-700"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Extras & Meteors */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-black text-gray-800 block">Shooting Stars / Meteors</span>
-                      <span className="text-[11px] text-gray-500 font-medium">Occasional meteor trails</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={config.midnight.showShootingStars} 
-                        onChange={(e) => updateMidnight('showShootingStars', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-700"></div>
-                    </label>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-black text-gray-800 block">Nebula Cosmic Dust</span>
-                      <span className="text-[11px] text-gray-500 font-medium">Ambient purple space glow</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={config.midnight.nebulaGlow} 
-                        onChange={(e) => updateMidnight('nebulaGlow', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-700"></div>
-                    </label>
-                  </div>
-                </div>
-              </div>
+      {/* ========================================================
+          FEATURE 2: BACKGROUND SELECTOR (PRESETS VS CUSTOM IMAGE)
+          ======================================================== */}
+      <div className="mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 p-2 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => handleSelectBackgroundMode('preset')}
+            className={`flex-1 sm:flex-initial px-5 py-3 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              activeBgMode === 'preset'
+                ? 'bg-white text-gray-900 shadow-lg scale-100'
+                : 'text-white/80 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-purple-600" />
+            <span>Preset Atmospheric Themes</span>
+            {activeBgMode === 'preset' && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 ml-1"></span>
             )}
+          </button>
 
-            {/* GOLDEN SUNSET CONTROLS */}
-            {selectedThemeId === 'sunset' && (
-              <div className="space-y-6">
-                {/* Sun Controls */}
-                <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sun className="w-4 h-4 text-amber-600" />
-                      <span className="text-sm font-black text-gray-800">Solar Disc & Corona</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={config.sunset.showSun} 
-                        onChange={(e) => updateSunset('showSun', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                    </label>
-                  </div>
+          <button
+            onClick={() => handleSelectBackgroundMode('custom')}
+            className={`flex-1 sm:flex-initial px-5 py-3 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              activeBgMode === 'custom'
+                ? 'bg-white text-gray-900 shadow-lg scale-100'
+                : 'text-white/80 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <ImageIcon className="w-4 h-4 text-amber-500" />
+            <span>Custom Background Image</span>
+            {activeBgMode === 'custom' && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 ml-1"></span>
+            )}
+          </button>
+        </div>
 
-                  {config.sunset.showSun && (
-                    <div className="space-y-4 pt-2 border-t border-gray-200/60">
-                      <div>
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
-                          <span>Sun Diameter / Size</span>
-                          <span className="text-amber-700 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
-                            {config.sunset.sunSize} px
-                          </span>
-                        </div>
-                        <input 
-                          type="range" 
-                          min="50" 
-                          max="220" 
-                          step="5"
-                          value={config.sunset.sunSize} 
-                          onChange={(e) => updateSunset('sunSize', parseInt(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
-                        />
-                      </div>
+        <div className="text-xs text-white/90 font-medium px-3 text-center sm:text-right">
+          {activeBgMode === 'custom' ? 'Custom Wallpaper Active' : `Preset Theme: ${currentThemeObj.name}`}
+        </div>
+      </div>
 
-                      <div>
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
-                          <span>Solar Flare & Glow</span>
-                          <span className="text-amber-700 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
-                            {Math.round(config.sunset.sunGlowIntensity * 100)}%
-                          </span>
-                        </div>
-                        <input 
-                          type="range" 
-                          min="0.2" 
-                          max="1.0" 
-                          step="0.05"
-                          value={config.sunset.sunGlowIntensity} 
-                          onChange={(e) => updateSunset('sunGlowIntensity', parseFloat(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
-                        />
-                      </div>
-                    </div>
+      {/* ========================================================
+          MODE A: CUSTOM BACKGROUND IMAGE UPLOADER & CONTROLS
+          ======================================================== */}
+      {activeBgMode === 'custom' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12 animate-fade-in">
+          {/* Left: Upload Dropzone & Controls */}
+          <div className="lg:col-span-6 space-y-6">
+            {/* Upload Dropzone Card */}
+            <div className="glass-panel p-6 sm:p-7 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                  <UploadCloud className="w-5 h-5 text-[#8A2CB0]" />
+                  Upload Custom Image
+                </h3>
+                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-purple-50 text-[#8A2CB0] border border-purple-100">
+                  Firebase Cloud Storage
+                </span>
+              </div>
+
+              <p className="text-xs text-gray-500 mb-5 leading-relaxed">
+                Upload your preferred wallpaper or aesthetic image (JPG, PNG, WebP up to 8MB). The image securely uploads to your user storage and spans seamlessly across your screen.
+              </p>
+
+              {/* Hidden File Input */}
+              <input 
+                type="file" 
+                ref={bgFileInputRef}
+                onChange={handleFileInputChange}
+                accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                className="hidden"
+              />
+
+              {/* Interactive Drag & Drop Box */}
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => bgFileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-3 ${
+                  isDraggingFile 
+                    ? 'border-[#8A2CB0] bg-purple-50/80 scale-[0.99]' 
+                    : 'border-gray-300 hover:border-[#8A2CB0] bg-gray-50/70 hover:bg-purple-50/30'
+                }`}
+              >
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-100 to-amber-50 text-[#8A2CB0] flex items-center justify-center shadow-inner">
+                  {isUploadingBg ? (
+                    <div className="w-6 h-6 border-3 border-[#8A2CB0] border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <UploadCloud className="w-7 h-7" />
                   )}
                 </div>
 
-                {/* Solar Dust & Horizon Controls */}
-                <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Flame className="w-4 h-4 text-orange-600" />
-                      <span className="text-sm font-black text-gray-800">Floating Solar Dust Particles</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={config.sunset.showFloatingSolarDust} 
-                        onChange={(e) => updateSunset('showFloatingSolarDust', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
-                    </label>
-                  </div>
-
-                  {config.sunset.showFloatingSolarDust && (
-                    <div className="pt-2 border-t border-gray-200/60">
-                      <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
-                        <span>Dust Particle Count</span>
-                        <span className="text-orange-700 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
-                          {config.sunset.solarDustCount} Particles
-                        </span>
-                      </div>
-                      <input 
-                        type="range" 
-                        min="5" 
-                        max="40" 
-                        step="1"
-                        value={config.sunset.solarDustCount} 
-                        onChange={(e) => updateSunset('solarDustCount', parseInt(e.target.value))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
-                      />
-                    </div>
-                  )}
+                <div>
+                  <h4 className="text-sm font-black text-gray-800">
+                    {isUploadingBg 
+                      ? 'Uploading & Optimizing Wallpaper...' 
+                      : isDraggingFile 
+                      ? 'Drop image file here' 
+                      : 'Click to browse or drop an image file'}
+                  </h4>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Supports JPG, PNG, and WebP formats (Max 8MB)
+                  </p>
                 </div>
 
-                {/* Horizon Warmth Tint */}
-                <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70">
-                  <label className="block text-xs font-black text-gray-700 mb-2">Horizon Gradient Tint</label>
+                <button
+                  type="button"
+                  disabled={isUploadingBg}
+                  className="mt-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] text-white text-xs font-black shadow-md hover:shadow-purple-900/20 active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <UploadCloud className="w-4 h-4" />
+                  <span>{activeCustomBg?.url ? 'Change / Replace Image' : 'Select Image File'}</span>
+                </button>
+              </div>
+
+              {/* Error Message if any */}
+              {bgUploadError && (
+                <div className="mt-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2 animate-fade-in">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{bgUploadError}</span>
+                </div>
+              )}
+
+              {/* Action Toolbar */}
+              {activeCustomBg?.url && (
+                <div className="mt-5 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-xs text-gray-500">
+                    <span className="font-bold text-gray-700">{activeCustomBg.fileName || 'Custom Wallpaper'}</span>
+                    {activeCustomBg.fileSize && (
+                      <span className="ml-1 text-[11px] text-gray-400">({(activeCustomBg.fileSize / (1024 * 1024)).toFixed(2)} MB)</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleRemoveCustomBackground}
+                      className="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remove Image</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSelectBackgroundMode('preset')}
+                      className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs border border-gray-200 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Return to Presets</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Fine-Tuning Adjustments for Custom Image */}
+            {activeCustomBg?.url && (
+              <div className="glass-panel p-6 sm:p-7 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                  <h3 className="text-base font-black text-gray-900 flex items-center gap-2">
+                    <SlidersHorizontal className="w-4 h-4 text-amber-600" />
+                    Fine-Tune Image Display & Readability
+                  </h3>
+                  <button
+                    onClick={() => {
+                      if (!activeCustomBg) return;
+                      const resetProps: CustomBackgroundConfig = {
+                        ...activeCustomBg,
+                        brightness: 100,
+                        blur: 0,
+                        opacity: 100,
+                        overlayDarkness: 25,
+                        position: 'center'
+                      };
+                      setActiveCustomBg(resetProps);
+                      if (onUpdateCustomBackgroundConfig) onUpdateCustomBackgroundConfig(resetProps);
+                    }}
+                    className="text-xs text-gray-500 hover:text-gray-800 font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Reset Sliders
+                  </button>
+                </div>
+
+                {/* Brightness Slider */}
+                <div>
+                  <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
+                    <span>Brightness</span>
+                    <span className="text-[#8A2CB0] font-black px-2 py-0.5 rounded-md bg-purple-50">
+                      {activeCustomBg.brightness ?? 100}%
+                    </span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="50" 
+                    max="150" 
+                    step="5"
+                    value={activeCustomBg.brightness ?? 100} 
+                    onChange={(e) => handleUpdateCustomBgProp('brightness', parseInt(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#8A2CB0]"
+                  />
+                  <div className="flex justify-between text-[10px] text-gray-400 font-bold mt-1">
+                    <span>Dim (50%)</span>
+                    <span>Standard (100%)</span>
+                    <span>Vibrant (150%)</span>
+                  </div>
+                </div>
+
+                {/* Blur Softness Slider */}
+                <div>
+                  <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
+                    <span>Background Blur Filter</span>
+                    <span className="text-[#8A2CB0] font-black px-2 py-0.5 rounded-md bg-purple-50">
+                      {activeCustomBg.blur ?? 0} px
+                    </span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="20" 
+                    step="1"
+                    value={activeCustomBg.blur ?? 0} 
+                    onChange={(e) => handleUpdateCustomBgProp('blur', parseInt(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#8A2CB0]"
+                  />
+                  <div className="flex justify-between text-[10px] text-gray-400 font-bold mt-1">
+                    <span>Sharp (0px)</span>
+                    <span>Soft (6px)</span>
+                    <span>Deep Blur (20px)</span>
+                  </div>
+                </div>
+
+                {/* Readability / Dark Overlay Slider */}
+                <div>
+                  <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
+                    <span>Text Readability & Contrast Shield</span>
+                    <span className="text-amber-700 font-black px-2 py-0.5 rounded-md bg-amber-50">
+                      {activeCustomBg.overlayDarkness ?? 25}%
+                    </span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="70" 
+                    step="5"
+                    value={activeCustomBg.overlayDarkness ?? 25} 
+                    onChange={(e) => handleUpdateCustomBgProp('overlayDarkness', parseInt(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
+                  />
+                  <div className="flex justify-between text-[10px] text-gray-400 font-bold mt-1">
+                    <span>None (0%)</span>
+                    <span>Recommended (25%)</span>
+                    <span>High Contrast (70%)</span>
+                  </div>
+                </div>
+
+                {/* Focal Alignment Selector */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-2">Image Alignment</label>
                   <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: 'amber', name: 'Amber Gold', desc: 'Warm Radiant' },
-                      { id: 'crimson', name: 'Crimson Sunset', desc: 'Deep Scarlet' },
-                      { id: 'golden', name: 'Golden Glow', desc: 'Vibrant Solar' }
-                    ].map((w) => (
+                    {(['top', 'center', 'bottom'] as const).map((pos) => (
                       <button
-                        key={w.id}
+                        key={pos}
                         type="button"
-                        onClick={() => updateSunset('horizonWarmth', w.id)}
-                        className={`p-2.5 rounded-xl border text-left transition-all ${
-                          config.sunset.horizonWarmth === w.id
-                            ? 'border-orange-500 bg-orange-50 text-orange-950 font-bold shadow-sm'
-                            : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                        onClick={() => handleUpdateCustomBgProp('position', pos)}
+                        className={`py-2 px-3 rounded-xl font-bold text-xs capitalize transition-all border cursor-pointer ${
+                          (activeCustomBg.position || 'center') === pos
+                            ? 'bg-[#3C128D] text-white border-[#3C128D] shadow-sm'
+                            : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
                         }`}
                       >
-                        <span className="text-xs block">{w.name}</span>
-                        <span className="text-[10px] text-gray-400 font-medium">{w.desc}</span>
+                        {pos} Focus
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
             )}
+          </div>
 
-            {/* DEEP OCEAN CONTROLS */}
-            {selectedThemeId === 'ocean' && (
-              <div className="space-y-6">
-                {/* Marine Bubbles */}
-                <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 space-y-4">
-                  <div className="flex items-center justify-between">
+          {/* Right: Live Interactive Simulation Stage */}
+          <div className="lg:col-span-6 space-y-6">
+            <div className="glass-panel p-6 sm:p-7 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-black text-gray-900 flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-emerald-600" />
+                  Live Preview on Custom Background
+                </h3>
+                <span className="text-[11px] font-bold text-gray-500">
+                  {isGlassOn ? 'Liquid Glass ON' : 'Solid Material ON'}
+                </span>
+              </div>
+
+              {/* Realistic Simulated Viewport */}
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-300 aspect-[16/10] flex items-center justify-center p-6 bg-slate-900">
+                {/* Background Image Layer */}
+                {activeCustomBg?.url ? (
+                  <>
+                    <img 
+                      src={activeCustomBg.url}
+                      alt="Custom Preview"
+                      className="absolute inset-0 w-full h-full object-cover select-none"
+                      style={{
+                        filter: `brightness(${activeCustomBg.brightness ?? 100}%) blur(${activeCustomBg.blur ?? 0}px)`,
+                        opacity: (activeCustomBg.opacity ?? 100) / 100,
+                        objectPosition: activeCustomBg.position || 'center'
+                      }}
+                      referrerPolicy="no-referrer"
+                    />
+                    <div 
+                      className="absolute inset-0 transition-all duration-300"
+                      style={{ backgroundColor: `rgba(0, 0, 0, ${(activeCustomBg.overlayDarkness ?? 25) / 100})` }}
+                    />
+                  </>
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-white/60">
+                    <ImageIcon className="w-12 h-12 mb-2 text-white/30" />
+                    <p className="text-xs font-medium">No custom background image uploaded yet.</p>
+                  </div>
+                )}
+
+                {/* Simulated UI Surface demonstrating Liquid Glass or Solid material */}
+                <div className={`relative z-10 w-full max-w-sm rounded-2xl p-5 shadow-2xl transition-all ${
+                  isGlassOn 
+                    ? 'bg-white/80 backdrop-blur-xl border border-white/60 text-gray-900' 
+                    : 'bg-white text-gray-900 border border-gray-200'
+                }`}>
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Waves className="w-4 h-4 text-cyan-700" />
-                      <span className="text-sm font-black text-gray-800">Bioluminescent Rising Bubbles</span>
+                      <div className="w-7 h-7 rounded-lg bg-[#8A2CB0] text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                        G
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black text-gray-900">GenPaperAI Surface</h4>
+                        <p className="text-[10px] text-gray-500">{isGlassOn ? 'Liquid Glass Frosted Material' : 'Solid Opaque Material'}</p>
+                      </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={config.ocean.showBubbles} 
-                        onChange={(e) => updateOcean('showBubbles', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-700"></div>
-                    </label>
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-purple-100 text-[#8A2CB0]">
+                      Sample
+                    </span>
                   </div>
 
-                  {config.ocean.showBubbles && (
-                    <div className="space-y-4 pt-2 border-t border-gray-200/60">
+                  <p className="text-[11px] text-gray-700 leading-relaxed mb-3 font-medium">
+                    This sample card demonstrates how your custom background looks with the current <strong>{isGlassOn ? 'Liquid Glass' : 'Solid Material'}</strong> setting.
+                  </p>
+
+                  <div className="flex items-center gap-2">
+                    <button 
+                      type="button"
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-black text-center ${
+                        isGlassOn
+                          ? 'bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] text-white shadow-md'
+                          : 'bg-[#3C128D] text-white'
+                      }`}
+                    >
+                      Primary Action
+                    </button>
+                    <button 
+                      type="button"
+                      className="py-1.5 px-3 rounded-lg text-xs font-bold border border-gray-300 text-gray-700 bg-white/70"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Information Note */}
+              <div className="mt-4 p-3 rounded-xl bg-purple-50/70 border border-purple-100 text-purple-950 text-xs flex items-start gap-2.5">
+                <HelpCircle className="w-4 h-4 text-[#8A2CB0] shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  <strong>Atmospheric preset elements disabled:</strong> When a custom background image is active, animated celestial elements (such as the Golden Sunset sun, forest fireflies, or ocean rays) are cleanly omitted to prioritize your wallpaper.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          MODE B: PRESET ATMOSPHERIC THEMES & DEEP CONTROLS
+          ======================================================== */}
+      {activeBgMode === 'preset' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in">
+          {/* Left Column: Theme Picker Cards & Global Master Animation Controls */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* Global Master Animation Switch Card */}
+            <div className="glass-panel p-6 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <span className={`p-2 rounded-xl ${config.enableAnimations ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-400'}`}>
+                    <Zap className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-base font-black text-gray-900">Background Animations</h3>
+                    <p className="text-xs text-gray-500 font-medium">Master toggle for live motion & particles</p>
+                  </div>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={config.enableAnimations} 
+                    onChange={(e) => updateGlobal('enableAnimations', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-7 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all after:shadow-sm peer-checked:bg-gradient-to-r peer-checked:from-[#3C128D] peer-checked:to-[#8A2CB0]"></div>
+                </label>
+              </div>
+
+              <div className="pt-4 border-t border-gray-100 space-y-4">
+                {/* Animation Speed Slider */}
+                <div>
+                  <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
+                    <span className="flex items-center gap-1.5">
+                      <Compass className="w-3.5 h-3.5 text-[#8A2CB0]" />
+                      Animation Motion Speed
+                    </span>
+                    <span className="text-[#8A2CB0] font-black px-2 py-0.5 rounded-md bg-purple-50">
+                      {config.animationSpeed.toFixed(1)}x
+                    </span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="0.4" 
+                    max="2.0" 
+                    step="0.1"
+                    disabled={!config.enableAnimations}
+                    value={config.animationSpeed} 
+                    onChange={(e) => updateGlobal('animationSpeed', parseFloat(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#8A2CB0] disabled:opacity-40"
+                  />
+                  <div className="flex justify-between text-[10px] text-gray-400 font-bold mt-1">
+                    <span>Serene (0.5x)</span>
+                    <span>Normal (1.0x)</span>
+                    <span>Dynamic (2.0x)</span>
+                  </div>
+                </div>
+
+                {/* Atmosphere Intensity Slider */}
+                <div>
+                  <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
+                    <span className="flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-amber-600" />
+                      Atmosphere & Glow Intensity
+                    </span>
+                    <span className="text-amber-700 font-black px-2 py-0.5 rounded-md bg-amber-50">
+                      {Math.round(config.animationIntensity * 100)}%
+                    </span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="0.2" 
+                    max="1.0" 
+                    step="0.05"
+                    disabled={!config.enableAnimations}
+                    value={config.animationIntensity} 
+                    onChange={(e) => updateGlobal('animationIntensity', parseFloat(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-600 disabled:opacity-40"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Atmospheric Themes List */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-black uppercase tracking-wider text-white/90 px-1">
+                Choose Atmospheric Environment
+              </h3>
+
+              {THEME_OPTIONS.map((theme) => {
+                const IconComponent = theme.icon;
+                const isSelected = selectedThemeId === theme.id && activeBgMode === 'preset';
+
+                return (
+                  <div
+                    key={theme.id}
+                    onClick={() => handleSelectThemeCard(theme.id)}
+                    className={`p-4 rounded-2xl transition-all cursor-pointer border flex items-center justify-between gap-4 ${
+                      isSelected
+                        ? 'bg-white shadow-2xl scale-[1.02] border-amber-300 ring-2 ring-amber-300/60'
+                        : 'bg-white/85 hover:bg-white border-white/40 hover:scale-[1.01] shadow-md'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${theme.colors} flex items-center justify-center text-white shadow-md shrink-0`}>
+                        <IconComponent className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-black text-sm text-gray-900">{theme.name}</h4>
+                          {isSelected && (
+                            <span className="p-0.5 rounded-full bg-emerald-500 text-white">
+                              <Check className="w-3 h-3 stroke-[3]" />
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 font-medium mt-0.5">{theme.tagline}</p>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${theme.badgeColor}`}>
+                        {isSelected ? 'Active Theme' : 'Select'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right Column: Theme-Specific Fine-Grained Controls */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Live Interactive Preview Box */}
+            <div className="glass-panel p-6 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-[#8A2CB0]" />
+                  <h3 className="text-sm font-black text-gray-900">Live Atmospheric Simulation</h3>
+                </div>
+                <span className="text-xs text-gray-500 font-medium">Real-time dynamic canvas</span>
+              </div>
+
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-300 aspect-[16/8] flex items-center justify-center p-6 bg-slate-950">
+                <ThemeBackdrop 
+                  theme={selectedThemeId} 
+                  config={config} 
+                  backgroundMode="preset"
+                  isInteractivePreview={true} 
+                />
+
+                <div className="relative z-10 text-center text-white pointer-events-none drop-shadow-md">
+                  <h4 className="text-xl font-black">{currentThemeObj.name}</h4>
+                  <p className="text-xs text-white/80 mt-1 max-w-sm">{currentThemeObj.primaryDescription}</p>
+                </div>
+
+                <div className="absolute bottom-2 right-2 text-white/50 text-[10px] font-bold px-2 py-1 bg-black/40 rounded-lg backdrop-blur-sm pointer-events-none flex items-center gap-1">
+                  <span>Interactive Stage</span>
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </div>
+              </div>
+            </div>
+
+            {/* Theme-Specific Fine-Grained Controls Card */}
+            <div className="glass-panel p-6 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-2 rounded-xl bg-purple-50 text-[#8A2CB0]">
+                    <Sliders className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-lg font-black text-gray-900">
+                      {currentThemeObj.name} Customization
+                    </h3>
+                    <p className="text-xs text-gray-500 font-medium">Fine-tune individual elements and atmospheric layers</p>
+                  </div>
+                </div>
+
+                <span className={`px-3 py-1 rounded-full text-xs font-black border ${currentThemeObj.badgeColor}`}>
+                  Active Preset
+                </span>
+              </div>
+
+              {/* MIDNIGHT SKY CONTROLS */}
+              {selectedThemeId === 'midnight' && (
+                <div className="space-y-6">
+                  {/* Celestial Moon Controls */}
+                  <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Moon className="w-4 h-4 text-slate-700" />
+                        <span className="text-sm font-black text-gray-800">Celestial Moon</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={config.midnight.showMoon} 
+                          onChange={(e) => updateMidnight('showMoon', e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-800"></div>
+                      </label>
+                    </div>
+
+                    {config.midnight.showMoon && (
+                      <div className="space-y-4 pt-2 border-t border-gray-200/60">
+                        <div>
+                          <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
+                            <span>Moon Scale / Diameter</span>
+                            <span className="text-slate-900 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
+                              {config.midnight.moonSize} px
+                            </span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="40" 
+                            max="180" 
+                            step="5"
+                            value={config.midnight.moonSize} 
+                            onChange={(e) => updateMidnight('moonSize', parseInt(e.target.value))}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-slate-800"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
+                            <span>Moon Glow Radiance</span>
+                            <span className="text-slate-900 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
+                              {Math.round(config.midnight.moonGlowIntensity * 100)}%
+                            </span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="0.2" 
+                            max="1.0" 
+                            step="0.05"
+                            value={config.midnight.moonGlowIntensity} 
+                            onChange={(e) => updateMidnight('moonGlowIntensity', parseFloat(e.target.value))}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-slate-800"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Starfield Controls */}
+                  <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Stars className="w-4 h-4 text-purple-700" />
+                        <span className="text-sm font-black text-gray-800">Twinkling Starfield</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={config.midnight.showStars} 
+                          onChange={(e) => updateMidnight('showStars', e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-700"></div>
+                      </label>
+                    </div>
+
+                    {config.midnight.showStars && (
+                      <div>
+                        <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
+                          <span>Visible Star Count</span>
+                          <span className="text-purple-700 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
+                            {config.midnight.starCount} Stars
+                          </span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="20" 
+                          max="120" 
+                          step="10"
+                          value={config.midnight.starCount} 
+                          onChange={(e) => updateMidnight('starCount', parseInt(e.target.value))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-700"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* GOLDEN SUNSET CONTROLS */}
+              {selectedThemeId === 'sunset' && (
+                <div className="space-y-6">
+                  {/* Animated Top-Right Sun Controls (Exclusive to Golden Sunset) */}
+                  <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/70 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sun className="w-4 h-4 text-amber-600" />
+                        <div>
+                          <span className="text-sm font-black text-gray-800">Top-Right Radiant Sun</span>
+                          <p className="text-[11px] text-amber-800 font-medium">Atmospheric corona & solar disc (exclusive to Golden Sunset)</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={config.sunset.showSun} 
+                          onChange={(e) => updateSunset('showSun', e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                      </label>
+                    </div>
+
+                    {config.sunset.showSun && (
+                      <div className="space-y-4 pt-2 border-t border-amber-200/60">
+                        <div>
+                          <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
+                            <span>Sun Disc Diameter</span>
+                            <span className="text-amber-800 font-black px-2 py-0.5 rounded-md bg-white border border-amber-200">
+                              {config.sunset.sunSize} px
+                            </span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="60" 
+                            max="200" 
+                            step="10"
+                            value={config.sunset.sunSize} 
+                            onChange={(e) => updateSunset('sunSize', parseInt(e.target.value))}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
+                            <span>Coronal Glow Radiance</span>
+                            <span className="text-amber-800 font-black px-2 py-0.5 rounded-md bg-white border border-amber-200">
+                              {Math.round(config.sunset.sunGlowIntensity * 100)}%
+                            </span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="0.3" 
+                            max="1.0" 
+                            step="0.05"
+                            value={config.sunset.sunGlowIntensity} 
+                            onChange={(e) => updateSunset('sunGlowIntensity', parseFloat(e.target.value))}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Solar Dust Particles */}
+                  <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-orange-500" />
+                        <span className="text-sm font-black text-gray-800">Floating Solar Dust Particles</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={config.sunset.showFloatingSolarDust} 
+                          onChange={(e) => updateSunset('showFloatingSolarDust', e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                      </label>
+                    </div>
+
+                    {config.sunset.showFloatingSolarDust && (
+                      <div>
+                        <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
+                          <span>Solar Dust Density</span>
+                          <span className="text-orange-600 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
+                            {config.sunset.solarDustCount} particles
+                          </span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="5" 
+                          max="40" 
+                          step="5"
+                          value={config.sunset.solarDustCount} 
+                          onChange={(e) => updateSunset('solarDustCount', parseInt(e.target.value))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* DEEP OCEAN CONTROLS */}
+              {selectedThemeId === 'ocean' && (
+                <div className="space-y-6">
+                  {/* Bioluminescent Bubbles */}
+                  <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Waves className="w-4 h-4 text-cyan-600" />
+                        <span className="text-sm font-black text-gray-800">Rising Ocean Bubbles</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={config.ocean.showBubbles} 
+                          onChange={(e) => updateOcean('showBubbles', e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                      </label>
+                    </div>
+
+                    {config.ocean.showBubbles && (
                       <div>
                         <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
                           <span>Bubble Count</span>
-                          <span className="text-cyan-800 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
+                          <span className="text-cyan-700 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
                             {config.ocean.bubbleCount} Bubbles
                           </span>
                         </div>
@@ -852,320 +1313,85 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                           step="2"
                           value={config.ocean.bubbleCount} 
                           onChange={(e) => updateOcean('bubbleCount', parseInt(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-cyan-700"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
-                          <span>Bubble Rising Velocity</span>
-                          <span className="text-cyan-800 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
-                            {config.ocean.bubbleRiseSpeed.toFixed(1)}x
-                          </span>
-                        </div>
-                        <input 
-                          type="range" 
-                          min="0.5" 
-                          max="2.0" 
-                          step="0.1"
-                          value={config.ocean.bubbleRiseSpeed} 
-                          onChange={(e) => updateOcean('bubbleRiseSpeed', parseFloat(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-cyan-700"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Light Rays & Wave Shimmer */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-gray-800">Piercing Light Rays</span>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={config.ocean.showLightRays} 
-                          onChange={(e) => updateOcean('showLightRays', e.target.checked)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-700"></div>
-                      </label>
-                    </div>
-
-                    {config.ocean.showLightRays && (
-                      <div>
-                        <input 
-                          type="range" 
-                          min="0.2" 
-                          max="1.0" 
-                          step="0.05"
-                          value={config.ocean.rayIntensity} 
-                          onChange={(e) => updateOcean('rayIntensity', parseFloat(e.target.value))}
-                          className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-cyan-700"
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-cyan-600"
                         />
                       </div>
                     )}
                   </div>
-
-                  <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-black text-gray-800 block">Surface Wave Shimmer</span>
-                      <span className="text-[11px] text-gray-500 font-medium">Dynamic gradient motion</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={config.ocean.showWaveShimmer} 
-                        onChange={(e) => updateOcean('showWaveShimmer', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-700"></div>
-                    </label>
-                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* EMERALD FOREST CONTROLS */}
-            {selectedThemeId === 'forest' && (
-              <div className="space-y-6">
-                {/* Fireflies Controls */}
-                <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Trees className="w-4 h-4 text-emerald-700" />
-                      <span className="text-sm font-black text-gray-800">Glowing Fireflies</span>
+              {/* EMERALD FOREST CONTROLS */}
+              {selectedThemeId === 'forest' && (
+                <div className="space-y-6">
+                  {/* Glowing Fireflies */}
+                  <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Trees className="w-4 h-4 text-emerald-600" />
+                        <span className="text-sm font-black text-gray-800">Glowing Fireflies</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={config.forest.showFireflies} 
+                          onChange={(e) => updateForest('showFireflies', e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                      </label>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={config.forest.showFireflies} 
-                        onChange={(e) => updateForest('showFireflies', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                    </label>
-                  </div>
 
-                  {config.forest.showFireflies && (
-                    <div className="space-y-4 pt-2 border-t border-gray-200/60">
+                    {config.forest.showFireflies && (
                       <div>
                         <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
-                          <span>Firefly Population</span>
-                          <span className="text-emerald-800 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
+                          <span>Firefly Density</span>
+                          <span className="text-emerald-700 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
                             {config.forest.fireflyCount} Fireflies
                           </span>
                         </div>
                         <input 
                           type="range" 
-                          min="10" 
-                          max="60" 
+                          min="6" 
+                          max="40" 
                           step="2"
                           value={config.forest.fireflyCount} 
                           onChange={(e) => updateForest('fireflyCount', parseInt(e.target.value))}
                           className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
                         />
                       </div>
-
-                      <div>
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
-                          <span>Glow Halo Size / Radius</span>
-                          <span className="text-emerald-800 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
-                            {config.forest.fireflyGlowSize} px
-                          </span>
-                        </div>
-                        <input 
-                          type="range" 
-                          min="3" 
-                          max="14" 
-                          step="1"
-                          value={config.forest.fireflyGlowSize} 
-                          onChange={(e) => updateForest('fireflyGlowSize', parseInt(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-                        />
-                      </div>
-
-                      {/* Firefly Color Palette */}
-                      <div>
-                        <label className="block text-xs font-black text-gray-700 mb-2">Firefly Light Hue</label>
-                        <div className="grid grid-cols-3 gap-2">
-                          {[
-                            { id: 'emerald', name: 'Emerald Glow', color: 'bg-emerald-400' },
-                            { id: 'gold', name: 'Golden Lantern', color: 'bg-amber-300' },
-                            { id: 'mint', name: 'Mint Aurora', color: 'bg-teal-300' }
-                          ].map((c) => (
-                            <button
-                              key={c.id}
-                              type="button"
-                              onClick={() => updateForest('fireflyColor', c.id)}
-                              className={`p-2 rounded-xl border text-center transition-all flex items-center justify-center gap-2 ${
-                                config.forest.fireflyColor === c.id
-                                  ? 'border-emerald-600 bg-emerald-50 text-emerald-950 font-bold shadow-sm'
-                                  : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                              }`}
-                            >
-                              <span className={`w-3 h-3 rounded-full ${c.color} shadow-sm`} />
-                              <span className="text-xs">{c.name}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Canopy Mist & Leaves */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-black text-gray-800 block">Floating Botanical Leaves</span>
-                      <span className="text-[11px] text-gray-500 font-medium">Gentle drifting foliage</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={config.forest.showFloatingLeaves} 
-                        onChange={(e) => updateForest('showFloatingLeaves', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
-                    </label>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-black text-gray-800 block">Forest Canopy Mist</span>
-                      <span className="text-[11px] text-gray-500 font-medium">Soft enchanted overlay</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={config.forest.forestMistOverlay} 
-                        onChange={(e) => updateForest('forestMistOverlay', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
-                    </label>
+                    )}
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* PREMIUM VIBRANT CONTROLS */}
-            {selectedThemeId === 'default' && (
-              <div className="space-y-6">
-                {/* Luminous Orbs Controls */}
-                <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-purple-700" />
-                      <span className="text-sm font-black text-gray-800">Luminous Ambient Orbs</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={config.default.showOrbs} 
-                        onChange={(e) => updateVibrant('showOrbs', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-[#3C128D] peer-checked:to-[#8A2CB0]"></div>
-                    </label>
-                  </div>
-
-                  {config.default.showOrbs && (
-                    <div className="space-y-4 pt-2 border-t border-gray-200/60">
-                      <div>
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
-                          <span>Orb Scale / Diameter</span>
-                          <span className="text-purple-800 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
-                            {config.default.orbSizeScale.toFixed(1)}x
-                          </span>
-                        </div>
-                        <input 
-                          type="range" 
-                          min="0.5" 
-                          max="1.8" 
-                          step="0.1"
-                          value={config.default.orbSizeScale} 
-                          onChange={(e) => updateVibrant('orbSizeScale', parseFloat(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#8A2CB0]"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
-                          <span>Active Orb Count</span>
-                          <span className="text-purple-800 font-black px-2 py-0.5 rounded-md bg-white border border-gray-200">
-                            {config.default.orbCount} Orbs
-                          </span>
-                        </div>
-                        <input 
-                          type="range" 
-                          min="1" 
-                          max="6" 
-                          step="1"
-                          value={config.default.orbCount} 
-                          onChange={(e) => updateVibrant('orbCount', parseInt(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#8A2CB0]"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Stardust & Center Glow */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 space-y-3">
+              {/* PREMIUM VIBRANT CONTROLS */}
+              {selectedThemeId === 'default' && (
+                <div className="space-y-6">
+                  {/* Floating Luminous Orbs */}
+                  <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-gray-800">Sparkling Golden Stardust</span>
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-purple-600" />
+                        <span className="text-sm font-black text-gray-800">Luminous Floating Orbs</span>
+                      </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input 
                           type="checkbox" 
-                          checked={config.default.showStardustParticles} 
-                          onChange={(e) => updateVibrant('showStardustParticles', e.target.checked)}
+                          checked={config.default.showOrbs} 
+                          onChange={(e) => updateVibrant('showOrbs', e.target.checked)}
                           className="sr-only peer"
                         />
-                        <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#8A2CB0]"></div>
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#8A2CB0]"></div>
                       </label>
                     </div>
-
-                    {config.default.showStardustParticles && (
-                      <div>
-                        <input 
-                          type="range" 
-                          min="5" 
-                          max="30" 
-                          step="2"
-                          value={config.default.particleDensity} 
-                          onChange={(e) => updateVibrant('particleDensity', parseInt(e.target.value))}
-                          className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#8A2CB0]"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/70 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-black text-gray-800 block">Radial Center Aura</span>
-                      <span className="text-[11px] text-gray-500 font-medium">Warm luminous central glow</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={config.default.showCenterGlow} 
-                        onChange={(e) => updateVibrant('showCenterGlow', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#8A2CB0]"></div>
-                    </label>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
