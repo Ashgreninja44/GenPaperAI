@@ -18,13 +18,86 @@ function getAiInstance(apiKey: string): GoogleGenAI {
   return cachedAi;
 }
 
+const PUBLIC_ROUTES = [
+  { path: '', priority: '1.0', changefreq: 'daily' },
+  { path: '/guide', priority: '0.9', changefreq: 'weekly' },
+  { path: '/curriculum', priority: '0.9', changefreq: 'weekly' },
+  { path: '/faq', priority: '0.8', changefreq: 'weekly' },
+  { path: '/about', priority: '0.8', changefreq: 'monthly' },
+  { path: '/contact', priority: '0.7', changefreq: 'monthly' },
+  { path: '/privacy', priority: '0.6', changefreq: 'monthly' },
+  { path: '/terms', priority: '0.6', changefreq: 'monthly' },
+];
+
+function getBaseUrl(req: express.Request): string {
+  // If APP_URL or PUBLIC_URL is explicitly set in deployment environment
+  const envUrl = (process.env.APP_URL || process.env.PUBLIC_URL || process.env.VITE_APP_URL || '').trim().replace(/\/+$/, '');
+  if (envUrl && !envUrl.includes('ais-dev-') && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    return envUrl;
+  }
+
+  // Derive dynamically from request headers (supports custom domains, Cloud Run, reverse proxies)
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  const proto = (typeof forwardedProto === 'string' ? forwardedProto.split(',')[0].trim() : req.protocol) || 'https';
+  const forwardedHost = req.headers['x-forwarded-host'];
+  const host = (typeof forwardedHost === 'string' ? forwardedHost.split(',')[0].trim() : req.get('host')) || 'localhost:3000';
+  
+  return `${proto}://${host}`.replace(/\/+$/, '');
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
   app.use(express.json({ limit: '10mb' }));
 
-  // Serve static files from public (ads.txt, robots.txt, sitemap.xml, assets, icons)
+  // Dynamic, production-aware sitemap.xml
+  app.get('/sitemap.xml', (req, res) => {
+    const baseUrl = getBaseUrl(req);
+    const today = new Date().toISOString().split('T')[0];
+    const urlsXml = PUBLIC_ROUTES.map(r => `  <url>
+    <loc>${baseUrl}${r.path ? r.path : '/'}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${r.changefreq}</changefreq>
+    <priority>${r.priority}</priority>
+  </url>`).join('\n');
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urlsXml}
+</urlset>`;
+
+    res.header('Content-Type', 'application/xml');
+    res.send(xml);
+  });
+
+  // Dynamic, production-aware robots.txt
+  app.get('/robots.txt', (req, res) => {
+    const baseUrl = getBaseUrl(req);
+    const robots = `User-agent: *
+Allow: /
+Allow: /about
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+Allow: /faq
+Allow: /guide
+Allow: /curriculum
+
+# Disallow private application, admin, and backend endpoints
+Disallow: /api/
+Disallow: /admin
+Disallow: /admin-portal
+Disallow: /settings
+Disallow: /reset-password
+
+Sitemap: ${baseUrl}/sitemap.xml
+`;
+    res.header('Content-Type', 'text/plain');
+    res.send(robots);
+  });
+
+  // Serve static files from public (ads.txt, assets, icons)
   app.use(express.static(path.join(process.cwd(), 'public')));
   app.use('/assets', express.static(path.join(process.cwd(), 'public', 'assets')));
 

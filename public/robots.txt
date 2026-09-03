@@ -1,3 +1,4 @@
+# GenPaperAI Production Robots Configuration
 User-agent: *
 Allow: /
 Allow: /about
@@ -15,4 +16,5 @@ Disallow: /admin-portal
 Disallow: /settings
 Disallow: /reset-password
 
-Sitemap: https://ais-dev-ha4tzqhkafm5jkwgucql4m-324148928305.asia-east1.run.app/sitemap.xml
+Sitemap: /sitemap.xml
+

@@ -1,9 +1,25 @@
 /**
  * SEO & Page Metadata utility for GenPaperAI
- * Updates document.title, meta descriptions, and canonical links per route.
+ * Updates document.title, meta descriptions, canonical links, and Open Graph tags per route.
  */
 
-const BASE_URL = "https://ais-dev-ha4tzqhkafm5jkwgucql4m-324148928305.asia-east1.run.app";
+export function getBaseUrl(): string {
+  // Check client-accessible environment variable (if explicitly configured)
+  const envUrl = (import.meta as any).env?.VITE_APP_URL || (import.meta as any).env?.VITE_PUBLIC_URL;
+  if (envUrl && typeof envUrl === 'string' && !envUrl.includes('ais-dev-') && !envUrl.includes('localhost')) {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
+
+  // Derive dynamically from browser origin
+  if (typeof window !== 'undefined' && window.location && window.location.origin) {
+    const origin = window.location.origin;
+    if (!origin.includes('localhost') && !origin.includes('127.0.0.1')) {
+      return origin.replace(/\/+$/, '');
+    }
+  }
+
+  return envUrl ? String(envUrl).trim().replace(/\/+$/, '') : '';
+}
 
 export function setPageMetadata(title: string, description?: string, pathname?: string) {
   // Update Document Title
@@ -34,7 +50,10 @@ export function setPageMetadata(title: string, description?: string, pathname?: 
 
   // Update Canonical Link & Open Graph URL
   if (pathname !== undefined) {
-    const fullUrl = `${BASE_URL}${pathname.startsWith('/') ? pathname : `/${pathname}`}`;
+    const baseUrl = getBaseUrl();
+    const cleanPath = pathname.startsWith('/') ? pathname : `/${pathname}`;
+    const fullUrl = baseUrl ? `${baseUrl}${cleanPath}` : cleanPath;
+
     let canonical = document.querySelector('link[rel="canonical"]');
     if (!canonical) {
       canonical = document.createElement('link');
@@ -49,3 +68,4 @@ export function setPageMetadata(title: string, description?: string, pathname?: 
     }
   }
 }
+
