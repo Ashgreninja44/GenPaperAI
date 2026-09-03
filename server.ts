@@ -24,7 +24,8 @@ async function startServer() {
 
   app.use(express.json({ limit: '10mb' }));
 
-  // Serve static files from public/assets
+  // Serve static files from public (ads.txt, robots.txt, sitemap.xml, assets, icons)
+  app.use(express.static(path.join(process.cwd(), 'public')));
   app.use('/assets', express.static(path.join(process.cwd(), 'public', 'assets')));
 
   // API Route for Gemini Proxy (Server-side model generation)

@@ -140,6 +140,12 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({
             Microsoft
           </span>
         );
+      case 'phone':
+        return (
+          <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            Phone / OTP
+          </span>
+        );
       default:
         return (
           <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-500/10 text-gray-600 dark:text-gray-400 border border-gray-500/20">
@@ -225,6 +231,7 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({
               <option value="google">Google</option>
               <option value="microsoft">Microsoft</option>
               <option value="email">Email</option>
+              <option value="phone">Phone Number</option>
             </select>
           </div>
         </div>

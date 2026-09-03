@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import Logo from './Logo';
 import { InstagramIcon, YouTubeIcon, XTwitterIcon } from './BrandIcons';
+import { setPageMetadata } from '../utils/seo';
 
 interface AboutProps {
   onBack?: () => void;
@@ -102,6 +103,11 @@ const About: React.FC<AboutProps> = ({ onBack, isLoggedIn = false, onOpenAuth })
     if (document.body) {
       document.body.scrollTop = 0;
     }
+    setPageMetadata(
+      "About GenPaperAI - Academic Pedagogy & Assessment Platform",
+      "Learn about GenPaperAI's educational mission, Bloom's Taxonomy algorithm, platform architecture, and developer vision.",
+      "/about"
+    );
   }, []);
 
   const handleReturn = () => {
@@ -148,13 +154,13 @@ const About: React.FC<AboutProps> = ({ onBack, isLoggedIn = false, onOpenAuth })
   const inProgressFeatures = [
     {
       title: "Web Extract & Question Ingestion",
-      status: "Under Development",
-      description: "Automated extraction and formatting of question papers from web sources and uploaded reference files."
+      status: "Active & Operational",
+      description: "Automated extraction and formatting of question papers from curriculum web sources, NCERT exemplars, and custom reference documents."
     },
     {
       title: "Deep Question Bank Integration",
-      status: "Coming Later",
-      description: "Direct seamless insertion of custom question bank items into automated AI paper generation workflows."
+      status: "Active & Operational",
+      description: "Direct seamless insertion and organization of custom question bank items into automated AI paper generation workflows."
     }
   ];
 
@@ -288,15 +294,15 @@ const About: React.FC<AboutProps> = ({ onBack, isLoggedIn = false, onOpenAuth })
         </div>
       </div>
 
-      {/* Features in Development */}
+      {/* Advanced Capabilities */}
       <div className="glass-panel p-6 sm:p-8 rounded-3xl mb-14 border border-white/15 bg-white/5 backdrop-blur-md">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center border border-amber-500/30">
             <Cpu className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-xl font-black text-white">Upcoming Enhancements</h3>
-            <p className="text-xs text-white/70">Features currently undergoing testing and development</p>
+            <h3 className="text-xl font-black text-white">Advanced Ingestion & Question Bank Workflows</h3>
+            <p className="text-xs text-white/70">Integrated capabilities engineered for high-throughput academic departments</p>
           </div>
         </div>
 
@@ -306,7 +312,7 @@ const About: React.FC<AboutProps> = ({ onBack, isLoggedIn = false, onOpenAuth })
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-bold text-white text-base">{item.title}</h4>
-                  <span className="text-[10px] uppercase tracking-wider font-black px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  <span className="text-[10px] uppercase tracking-wider font-black px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                     {item.status}
                   </span>
                 </div>
@@ -314,6 +320,39 @@ const About: React.FC<AboutProps> = ({ onBack, isLoggedIn = false, onOpenAuth })
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* AI Ethics & Academic Transparency Section */}
+      <div id="ethics" className="glass-panel p-6 sm:p-10 rounded-3xl mb-14 border border-white/20 bg-white/10 backdrop-blur-md shadow-2xl space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md">
+            <BookOpen className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-black text-white">AI Pedagogy & Academic Transparency</h2>
+            <p className="text-xs text-emerald-300 font-bold uppercase tracking-wider">Educator-in-the-Loop Standard</p>
+          </div>
+        </div>
+
+        <div className="space-y-3 text-white/90 text-sm sm:text-base leading-relaxed">
+          <p>
+            GenPaperAI is built on the pedagogical principle that <strong>Artificial Intelligence is an accelerator for teachers, not a replacement for pedagogical discernment</strong>.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+            <div className="p-4 rounded-2xl bg-black/20 border border-white/10 space-y-1.5">
+              <h4 className="font-bold text-amber-300 text-sm">1. Curriculum Grounding</h4>
+              <p className="text-xs text-slate-300">Generative prompts are bounded by NCERT/CBSE chapter scopes and Bloom's cognitive taxonomy targets.</p>
+            </div>
+            <div className="p-4 rounded-2xl bg-black/20 border border-white/10 space-y-1.5">
+              <h4 className="font-bold text-amber-300 text-sm">2. Teacher Verification</h4>
+              <p className="text-xs text-slate-300">Educators review, edit, regenerate, or replace questions and marking rubrics before final export.</p>
+            </div>
+            <div className="p-4 rounded-2xl bg-black/20 border border-white/10 space-y-1.5">
+              <h4 className="font-bold text-amber-300 text-sm">3. Zero Data Hawking</h4>
+              <p className="text-xs text-slate-300">User assessments and custom question banks remain private to the teacher's authenticated workspace.</p>
+            </div>
+          </div>
         </div>
       </div>
 

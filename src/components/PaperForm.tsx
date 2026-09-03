@@ -30,6 +30,8 @@ interface PaperFormProps {
   user?: UserProfile | null;
   subscriptionConfig?: SubscriptionGlobalConfig | null;
   webResearchConfig?: WebResearchConfig | null;
+  isGuest?: boolean;
+  onRequireAuth?: (feature: 'download' | 'bank' | 'web-extract' | 'save' | 'customization' | 'general', customMessage?: string) => void;
 }
 
 const PaperForm: React.FC<PaperFormProps> = ({ 
@@ -41,7 +43,9 @@ const PaperForm: React.FC<PaperFormProps> = ({
   initialSelectedQuestions = [],
   user = null,
   subscriptionConfig = null,
-  webResearchConfig = null
+  webResearchConfig = null,
+  isGuest = false,
+  onRequireAuth
 }) => {
   // --- Smart School Selector State ---
   const [selectedSchool, setSelectedSchool] = useState(''); 
@@ -1171,7 +1175,26 @@ const PaperForm: React.FC<PaperFormProps> = ({
 
                     {sourceTab === 'bank' && (
                         <div className="space-y-4 animate-fade-in">
-                            {!selectedSubject ? (
+                            {isGuest ? (
+                                <div className="p-4 rounded-xl bg-purple-50 border border-purple-200 text-center space-y-3">
+                                    <div className="w-10 h-10 rounded-full bg-purple-100 text-[#8A2CB0] flex items-center justify-center mx-auto">
+                                        <Database className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h5 className="font-bold text-gray-900 text-sm">Question Bank requires an account</h5>
+                                        <p className="text-xs text-gray-500 max-w-md mx-auto mt-1">
+                                            Sign in to access your saved questions, create custom question repositories, and import syllabus banks.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => onRequireAuth?.('bank', 'Sign in with Google, Microsoft, or Email to access and manage your Question Banks.')}
+                                        className="px-4 py-2 rounded-xl bg-[#8A2CB0] text-white text-xs font-bold hover:bg-[#722393] transition-colors shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+                                    >
+                                        <span>Sign In to Access Question Banks</span>
+                                    </button>
+                                </div>
+                            ) : !selectedSubject ? (
                                 <p className="text-red-500 text-xs font-bold bg-red-50 p-3 rounded-xl border border-red-100">⚠ Please select a subject in Step 2 first.</p>
                             ) : relevantBanks.length === 0 ? (
                                 <p className="text-gray-500 text-xs italic p-4 text-center border-2 border-dashed border-gray-200 rounded-xl">
@@ -1217,7 +1240,13 @@ const PaperForm: React.FC<PaperFormProps> = ({
 
                                 <button
                                     type="button"
-                                    onClick={() => setShowWebResearchModal(true)}
+                                    onClick={() => {
+                                        if (isGuest && onRequireAuth) {
+                                            onRequireAuth('web-extract', 'Sign in to use AI Web Research and live educational grounding.');
+                                            return;
+                                        }
+                                        setShowWebResearchModal(true);
+                                    }}
                                     className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
                                 >
                                     <Globe className="w-3.5 h-3.5" />
@@ -1242,7 +1271,13 @@ const PaperForm: React.FC<PaperFormProps> = ({
                                 />
                                 <button 
                                     type="button" 
-                                    onClick={handleUrlExtraction}
+                                    onClick={() => {
+                                        if (isGuest && onRequireAuth) {
+                                            onRequireAuth('web-extract', 'Sign in to extract questions from curriculum web pages.');
+                                            return;
+                                        }
+                                        handleUrlExtraction();
+                                    }}
                                     disabled={isExtracting || !extractionUrl}
                                     className="px-5 py-2.5 rounded-xl bg-[#8A2CB0] hover:bg-[#722393] text-white text-xs font-bold disabled:opacity-50 transition-colors cursor-pointer"
                                 >

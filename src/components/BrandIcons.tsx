@@ -136,3 +136,18 @@ export const EmailIcon: React.FC<IconProps> = ({ className = "w-5 h-5" }) => (
     <path fill="#EA4335" d="M20 4H4c-1.1 0-2 .9-2 2v1l10 6.5L22 7V6c0-1.1-.9-2-2-2z"/>
   </svg>
 );
+
+export const PhoneBrandIcon: React.FC<IconProps> = ({ className = "w-5 h-5" }) => (
+  <svg 
+    className={className} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+  >
+    <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
+    <path d="M12 18h.01" />
+  </svg>
+);

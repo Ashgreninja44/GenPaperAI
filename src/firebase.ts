@@ -13,7 +13,10 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
   sendPasswordResetEmail,
-  confirmPasswordReset
+  confirmPasswordReset,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  ConfirmationResult
 } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
@@ -153,6 +156,8 @@ export {
   signInWithEmailAndPassword,
   updateProfile,
   sendPasswordResetEmail,
-  confirmPasswordReset
+  confirmPasswordReset,
+  RecaptchaVerifier,
+  signInWithPhoneNumber
 };
-export type { User };
+export type { User, ConfirmationResult };

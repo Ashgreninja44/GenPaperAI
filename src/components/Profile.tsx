@@ -12,7 +12,7 @@ import {
   Clock,
   Layers
 } from 'lucide-react';
-import { GoogleIcon, MicrosoftIcon, EmailIcon } from './BrandIcons';
+import { GoogleIcon, MicrosoftIcon, EmailIcon, PhoneBrandIcon } from './BrandIcons';
 import { isSuperAdmin, isPlatformAdmin, OWNER_EMAIL } from '../services/adminService';
 import { getEffectiveProfilePhoto, isUsingCustomProfilePicture } from '../services/profilePhotoService';
 import { 
@@ -207,14 +207,22 @@ const Profile: React.FC<ProfileProps> = ({
                             <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 ${
                                 profile.provider === 'google' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
                                 profile.provider === 'microsoft' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' :
+                                profile.provider === 'phone' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
                                 'bg-rose-50 text-rose-600 border border-rose-100'
                             }`}>
                                 {profile.provider === 'google' && <GoogleIcon className="w-3 h-3" />}
                                 {profile.provider === 'microsoft' && <MicrosoftIcon className="w-3 h-3" />}
                                 {profile.provider === 'email' && <EmailIcon className="w-3 h-3" />}
-                                {profile.provider === 'email' ? 'e-mail' : profile.provider}
+                                {profile.provider === 'phone' && <PhoneBrandIcon className="w-3 h-3" />}
+                                {profile.provider === 'email' ? 'e-mail' : profile.provider === 'phone' ? 'Mobile Phone' : profile.provider}
                             </span>
                         </div>
+                        {profile.phoneNumber && (
+                          <div className="flex items-center justify-between">
+                              <span className="text-gray-500 text-sm">Mobile Phone</span>
+                              <span className="text-gray-800 font-bold text-sm font-mono">{profile.phoneNumber}</span>
+                          </div>
+                        )}
                         <div className="flex items-center justify-between">
                             <span className="text-gray-500 text-sm">Member Since</span>
                             <span className="text-gray-800 font-bold text-sm flex items-center gap-2">

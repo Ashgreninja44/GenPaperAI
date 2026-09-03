@@ -11,9 +11,17 @@ interface PaperPreviewProps {
   paper: GeneratedPaper;
   onBack: () => void;
   onUpdatePaper: (updatedPaper: GeneratedPaper) => Promise<void>;
+  isGuest?: boolean;
+  onRequireAuth?: (feature: 'download' | 'bank' | 'web-extract' | 'save' | 'customization' | 'general', customMessage?: string) => void;
 }
 
-const PaperPreview: React.FC<PaperPreviewProps> = ({ paper, onBack, onUpdatePaper }) => {
+const PaperPreview: React.FC<PaperPreviewProps> = ({ 
+  paper, 
+  onBack, 
+  onUpdatePaper,
+  isGuest = false,
+  onRequireAuth
+}) => {
   const [questions, setQuestions] = useState<Question[]>(paper.questions || []);
   const [showAnswerKey, setShowAnswerKey] = useState(false);
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
@@ -423,6 +431,10 @@ const PaperPreview: React.FC<PaperPreviewProps> = ({ paper, onBack, onUpdatePape
   };
 
   const handleDownload = () => {
+    if (isGuest && onRequireAuth) {
+      onRequireAuth('download', 'Sign in with Google, Microsoft, or Email to download this question paper in PDF, Word, or TXT format.');
+      return;
+    }
     switch (downloadFormat) {
       case 'txt': exportToText(); break;
       case 'pdf': exportToPdf(); break;
@@ -556,6 +568,32 @@ const PaperPreview: React.FC<PaperPreviewProps> = ({ paper, onBack, onUpdatePape
           }
         }
       `}} />
+
+      {/* Guest Mode Banner */}
+      {isGuest && (
+        <div className="mb-6 p-4 rounded-2xl bg-amber-500/15 border border-amber-400/40 backdrop-blur-md shadow-md flex flex-col sm:flex-row items-center justify-between gap-4 text-gray-900">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-400/30 text-amber-700 flex items-center justify-center shrink-0 text-lg font-bold">
+              👤
+            </div>
+            <div>
+              <h4 className="text-sm font-black flex items-center gap-2">
+                <span>You are previewing in Guest Mode</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400 text-[#3C128D] font-bold uppercase tracking-wider">Session Only</span>
+              </h4>
+              <p className="text-xs text-gray-600 font-medium mt-0.5">
+                You can edit and preview questions freely. Sign in with Google, Microsoft, or Email to permanently save and download PDF/Word files.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => onRequireAuth?.('save', 'Sign in to save this question paper to your account permanently and download PDF/Word.')}
+            className="px-4 py-2 rounded-xl text-xs sm:text-sm font-black bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] text-white shadow-md hover:shadow-lg hover:scale-105 transition-all shrink-0 cursor-pointer"
+          >
+            Sign In to Save & Download
+          </button>
+        </div>
+      )}
       
       {/* Top Toolbar */}
       <div className="flex flex-col md:flex-row items-center mb-6 gap-4 md:gap-6 sticky top-0 bg-white/90 backdrop-blur-md p-4 rounded-xl shadow-lg z-20 border border-gray-100">

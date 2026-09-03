@@ -378,12 +378,13 @@ export interface UserProfile {
   uid: string;
   name: string;
   email: string;
+  phoneNumber?: string | null;
   profilePhoto: string | null;
   customProfilePhoto?: string | null;
   providerPhoto?: string | null;
   selectedTheme: string;
   preferences: UserPreferences;
-  provider: 'google' | 'microsoft' | 'email';
+  provider: 'google' | 'microsoft' | 'email' | 'phone';
   createdAt: number;
   lastLogin?: number;
   role: UserRole;

@@ -38,6 +38,7 @@
         "uid": { "type": "string" },
         "name": { "type": "string" },
         "email": { "type": "string" },
+        "phoneNumber": { "type": "string" },
         "profilePhoto": { "type": "string" },
         "customProfilePhoto": { "type": "string" },
         "providerPhoto": { "type": "string" },
@@ -49,7 +50,7 @@
             "background": { "type": "string" }
           }
         },
-        "provider": { "type": "string", "enum": ["google", "microsoft", "email"] },
+        "provider": { "type": "string", "enum": ["google", "microsoft", "email", "phone"] },
         "createdAt": { "type": "number" },
         "lastLogin": { "type": "number" },
         "defaultPaperSettings": {

@@ -21,6 +21,7 @@ import ThemeBackdrop from './components/ThemeBackdrop';
 import Logo from './components/Logo';
 import BrandWordmark from './components/BrandWordmark';
 import { GoogleIcon, MicrosoftIcon, EmailIcon } from './components/BrandIcons';
+import { GuestAuthModal } from './components/GuestAuthModal';
 import { SyllabusData, getLatestCurriculum, updateSyllabusFromSources } from './services/syllabusService';
 import { 
   PaperConfig, 
@@ -46,10 +47,20 @@ import { subscribeToAdvertisementConfig } from './services/adService';
 import { subscribeToSubscriptionConfig, isUserPlusSubscriber } from './services/subscriptionService';
 import { convertToRuntimeQuestion } from './services/questionBankService';
 import { AdPlacement } from './components/ads/AdPlacement';
+import { LandingPage } from './components/public/LandingPage';
+import { EducatorGuide } from './components/public/EducatorGuide';
+import { CurriculumGuide } from './components/public/CurriculumGuide';
+import { FaqPage } from './components/public/FaqPage';
+import { ContactPage } from './components/public/ContactPage';
+import { PrivacyPolicyPage } from './components/public/PrivacyPolicyPage';
+import { TermsOfServicePage } from './components/public/TermsOfServicePage';
+import { NotFoundPage } from './components/public/NotFoundPage';
+import { PublicFooter } from './components/public/PublicFooter';
 import { 
   savePaperToFirestore, 
   loadPaperFromFirestore, 
-  deletePaperFromFirestore 
+  deletePaperFromFirestore,
+  migrateGuestPapersToFirestore
 } from './services/paperStorageService';
 import { getEffectiveProfilePhoto } from './services/profilePhotoService';
 import { 
@@ -176,6 +187,53 @@ const App: React.FC = () => {
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
 
+  // Guest Mode State
+  const [isGuest, setIsGuest] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('genpaper_guest_mode') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+  const [guestAuthModalState, setGuestAuthModalState] = useState<{
+    isOpen: boolean;
+    feature?: 'download' | 'bank' | 'web-extract' | 'save' | 'customization' | 'general';
+    customMessage?: string;
+  }>({ isOpen: false });
+
+  const handleEnterGuestMode = useCallback(() => {
+    setIsGuest(true);
+    try {
+      sessionStorage.setItem('genpaper_guest_mode', 'true');
+    } catch (e) {}
+    setView('dashboard');
+    showToast("👤 Welcome to Guest Mode! You can generate and preview question papers.", "success");
+  }, [showToast]);
+
+  const handleExitGuestMode = useCallback(() => {
+    setIsGuest(false);
+    try {
+      sessionStorage.removeItem('genpaper_guest_mode');
+    } catch (e) {}
+    setView('dashboard');
+    showToast("Exited Guest Mode.", "warning");
+  }, [showToast]);
+
+  const openGuestAuthModal = useCallback((
+    feature: 'download' | 'bank' | 'web-extract' | 'save' | 'customization' | 'general' = 'general', 
+    customMessage?: string
+  ) => {
+    setGuestAuthModalState({
+      isOpen: true,
+      feature,
+      customMessage
+    });
+  }, []);
+
+  const closeGuestAuthModal = useCallback(() => {
+    setGuestAuthModalState(prev => ({ ...prev, isOpen: false }));
+  }, []);
+
   const [history, setHistory] = useState<GeneratedPaper[]>([]);
   const [questionBanks, setQuestionBanks] = useState<QuestionBank[]>([]);
 
@@ -277,6 +335,21 @@ const App: React.FC = () => {
       setUser(currentUser);
       
       if (currentUser) {
+        // Exit guest mode upon successful sign in
+        setIsGuest(false);
+        try {
+          sessionStorage.removeItem('genpaper_guest_mode');
+        } catch (e) {}
+
+        // Migrate any pending guest papers to the authenticated user's account
+        migrateGuestPapersToFirestore(db, currentUser.uid).then((count) => {
+          if (count > 0) {
+            showToast(`✨ Migrated ${count} guest ${count === 1 ? 'paper' : 'papers'} to your account!`, 'success');
+          }
+        }).catch((err) => {
+          console.warn("[Guest Migration] Non-blocking migration note:", err);
+        });
+
         try {
           console.log("Fetching user profile for:", currentUser.uid);
           const userDocRef = doc(db, 'users', currentUser.uid);
@@ -297,6 +370,12 @@ const App: React.FC = () => {
               if (providerPhoto && !data.providerPhoto) {
                 data.providerPhoto = providerPhoto;
                 updateDoc(userDocRef, { providerPhoto }).catch(() => {});
+              }
+
+              // Update phoneNumber if available from auth
+              if (currentUser.phoneNumber && !data.phoneNumber) {
+                data.phoneNumber = currentUser.phoneNumber;
+                updateDoc(userDocRef, { phoneNumber: currentUser.phoneNumber }).catch(() => {});
               }
               
               // Bootstrap Admin for Dev
@@ -325,19 +404,25 @@ const App: React.FC = () => {
             console.log("No user profile found, creating new one...");
             
             // Determine provider
-            let provider: 'google' | 'microsoft' | 'email' = 'google';
+            let provider: 'google' | 'microsoft' | 'email' | 'phone' = 'google';
             if (currentUser.providerData.some(p => p.providerId === 'microsoft.com')) {
               provider = 'microsoft';
             } else if (currentUser.providerData.some(p => p.providerId === 'password')) {
               provider = 'email';
+            } else if (currentUser.providerData.some(p => p.providerId === 'phone') || currentUser.phoneNumber) {
+              provider = 'phone';
             }
 
             const providerPhoto = currentUser.photoURL || currentUser.providerData?.find(p => p.photoURL)?.photoURL || null;
+            const fallbackName = currentUser.phoneNumber 
+              ? `Teacher (${currentUser.phoneNumber.slice(-4)})` 
+              : 'Educator';
 
             const newProfile: UserProfile = {
               uid: currentUser.uid,
-              name: currentUser.displayName || 'Anonymous User',
+              name: currentUser.displayName || fallbackName,
               email: currentUser.email || '',
+              phoneNumber: currentUser.phoneNumber || null,
               profilePhoto: providerPhoto,
               customProfilePhoto: null,
               providerPhoto: providerPhoto,
@@ -643,27 +728,36 @@ const App: React.FC = () => {
     }
   };
 
-  // Sync History from Firestore
+  // Sync History from Firestore (or Session for Guest)
   useEffect(() => {
-    if (!user) {
-      setHistory([]);
-      return;
-    }
+    if (user) {
+      const q = query(collection(db, 'papers'), where('uid', '==', user.uid));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const papers = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as GeneratedPaper));
+        setHistory(papers.sort((a, b) => b.timestamp - a.timestamp));
+      }, (err) => {
+        try {
+          handleFirestoreError(err, OperationType.GET, 'papers');
+        } catch (error) {
+          console.warn('[Firestore papers sync notice]:', error);
+        }
+      });
 
-    const q = query(collection(db, 'papers'), where('uid', '==', user.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const papers = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as GeneratedPaper));
-      setHistory(papers.sort((a, b) => b.timestamp - a.timestamp));
-    }, (err) => {
+      return () => unsubscribe();
+    } else if (isGuest) {
       try {
-        handleFirestoreError(err, OperationType.GET, 'papers');
-      } catch (error) {
-        console.warn('[Firestore papers sync notice]:', error);
-      }
-    });
-
-    return () => unsubscribe();
-  }, [user]);
+        const raw = sessionStorage.getItem('genpaper_pending_guest_papers');
+        if (raw) {
+          const guestPapers = JSON.parse(raw);
+          if (Array.isArray(guestPapers)) {
+            setHistory(guestPapers);
+          }
+        }
+      } catch (e) {}
+    } else {
+      setHistory([]);
+    }
+  }, [user, isGuest]);
 
   // Sync Question Banks from Firestore
   useEffect(() => {
@@ -894,9 +988,9 @@ const App: React.FC = () => {
   };
 
   const handleGenerate = async (config: PaperConfig) => {
-    if (!user) {
-        setError("Please login to generate papers.");
-        showToast("Please login to generate papers.", "error");
+    if (!user && !isGuest) {
+        setError("Please login or continue as guest to generate papers.");
+        showToast("Please login or continue as guest to generate papers.", "error");
         return;
     }
 
@@ -907,29 +1001,40 @@ const App: React.FC = () => {
       const startTime = performance.now();
       const newPaper = await generateQuestionPaper(config);
       setGenerationProgress(100);
-      newPaper.uid = user.uid;
+      newPaper.uid = user ? user.uid : 'guest-session';
       
       // Instant View Transition: Display the generated paper to the teacher immediately
       setCurrentPaper(newPaper);
       setView('preview');
       setIsGenerating(false);
-      showToast("Question paper generated successfully!", "success");
 
-      const renderTime = (performance.now() - startTime).toFixed(0);
-      console.log(`[GenPaperAI Performance] Paper ready in ${renderTime}ms. Saving to cloud in background...`);
+      if (user) {
+        showToast("Question paper generated successfully!", "success");
+        const renderTime = (performance.now() - startTime).toFixed(0);
+        console.log(`[GenPaperAI Performance] Paper ready in ${renderTime}ms. Saving to cloud in background...`);
 
-      // Asynchronous Background Persistence: Save paper using modular storage architecture without blocking UI
-      savePaperToFirestore(db, newPaper, user.uid)
-        .then(() => {
-          console.log(`[GenPaperAI Storage] Paper ${newPaper.id} saved to Firestore successfully.`);
-        })
-        .catch((saveErr: any) => {
-          console.error("[GenPaperAI Storage Error] Failed to persist paper to Firestore:", saveErr);
-          if (saveErr?.message?.includes('permission-denied')) {
-            handleFirestoreError(saveErr, OperationType.WRITE, 'papers/' + config.subject);
-          }
-          showToast("Note: Paper preview loaded, but cloud autosave failed: " + (saveErr?.message || "Network error"), "warning");
+        // Asynchronous Background Persistence: Save paper using modular storage architecture without blocking UI
+        savePaperToFirestore(db, newPaper, user.uid)
+          .then(() => {
+            console.log(`[GenPaperAI Storage] Paper ${newPaper.id} saved to Firestore successfully.`);
+          })
+          .catch((saveErr: any) => {
+            console.error("[GenPaperAI Storage Error] Failed to persist paper to Firestore:", saveErr);
+            if (saveErr?.message?.includes('permission-denied')) {
+              handleFirestoreError(saveErr, OperationType.WRITE, 'papers/' + config.subject);
+            }
+            showToast("Note: Paper preview loaded, but cloud autosave failed: " + (saveErr?.message || "Network error"), "warning");
+          });
+      } else if (isGuest) {
+        showToast("✨ Question paper generated! Sign in anytime to download or save permanently.", "success");
+        setHistory(prev => {
+          const updated = [newPaper, ...prev.filter(p => p.id !== newPaper.id)];
+          try {
+            sessionStorage.setItem('genpaper_pending_guest_papers', JSON.stringify(updated));
+          } catch (e) {}
+          return updated;
         });
+      }
     } catch (err: any) {
       if (err.message?.includes('permission-denied')) {
         handleFirestoreError(err, OperationType.WRITE, 'papers/' + config.subject);
@@ -959,32 +1064,53 @@ const App: React.FC = () => {
   };
 
   const handleUpdatePaper = async (updatedPaper: GeneratedPaper) => {
-    if (!user) return;
-    try {
-        await savePaperToFirestore(db, updatedPaper, user.uid);
-        setCurrentPaper(updatedPaper);
-        showToast("Paper updated successfully!", "success");
-    } catch (err: any) {
-        if (err.message?.includes('permission-denied')) {
-            handleFirestoreError(err, OperationType.WRITE, 'papers/' + updatedPaper.id);
-        }
-        const displayError = formatErrorMessage(err.message || String(err));
-        setError("Update Failed: " + displayError);
-        showToast(displayError, "error");
+    if (user) {
+      try {
+          await savePaperToFirestore(db, updatedPaper, user.uid);
+          setCurrentPaper(updatedPaper);
+          showToast("Paper updated successfully!", "success");
+      } catch (err: any) {
+          if (err.message?.includes('permission-denied')) {
+              handleFirestoreError(err, OperationType.WRITE, 'papers/' + updatedPaper.id);
+          }
+          const displayError = formatErrorMessage(err.message || String(err));
+          setError("Update Failed: " + displayError);
+          showToast(displayError, "error");
+      }
+    } else if (isGuest) {
+      setCurrentPaper(updatedPaper);
+      setHistory(prev => {
+        const updated = prev.map(p => p.id === updatedPaper.id ? updatedPaper : p);
+        try {
+          sessionStorage.setItem('genpaper_pending_guest_papers', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+      showToast("Paper updated (Guest Session)!", "success");
     }
   };
 
   const handleDeletePaper = async (id: string) => {
-    if (!user) return;
-    try {
-        await deletePaperFromFirestore(db, id);
-        showToast("Paper deleted successfully!", "success");
-    } catch (err: any) {
-        if (err.message?.includes('permission-denied')) {
-            handleFirestoreError(err, OperationType.DELETE, 'papers/' + id);
-        }
-        setError("Failed to delete paper: " + err.message);
-        showToast("Failed to delete paper: " + err.message, "error");
+    if (user) {
+      try {
+          await deletePaperFromFirestore(db, id);
+          showToast("Paper deleted successfully!", "success");
+      } catch (err: any) {
+          if (err.message?.includes('permission-denied')) {
+              handleFirestoreError(err, OperationType.DELETE, 'papers/' + id);
+          }
+          setError("Failed to delete paper: " + err.message);
+          showToast("Failed to delete paper: " + err.message, "error");
+      }
+    } else if (isGuest) {
+      setHistory(prev => {
+        const updated = prev.filter(p => p.id !== id);
+        try {
+          sessionStorage.setItem('genpaper_pending_guest_papers', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+      showToast("Paper deleted from guest session.", "success");
     }
   };
 
@@ -1090,13 +1216,14 @@ const App: React.FC = () => {
       </div>
 
       {/* Top Navigation Bar - Liquid Glass Effect */}
-      {location.pathname !== '/reset-password' && (
+      {location.pathname !== '/reset-password' && !['/about', '/guide', '/curriculum', '/faq', '/contact', '/privacy', '/terms'].includes(location.pathname) && (
         <nav className="liquid-nav sticky top-4 z-50 w-full max-w-full px-2 sm:px-6 py-2 sm:py-3 flex justify-between items-center transition-all duration-300 rounded-2xl mx-2 sm:mx-4 mb-4">
           <div className="flex items-center gap-1 sm:gap-3 cursor-pointer" onClick={handleBackToDashboard}>
               <Logo className="w-5 h-5 md:w-9 md:h-9 shadow-lg" />
               <BrandWordmark 
                 user={user} 
                 userProfile={userProfile} 
+                isGuest={isGuest}
                 className="inline-flex items-center text-lg md:text-xl font-bold tracking-tight text-white drop-shadow-md select-none"
               />
           </div>
@@ -1111,14 +1238,17 @@ const App: React.FC = () => {
                           <span className="sm:hidden">Home</span>
                       </button>
                       <button 
-                          onClick={() => setView('bank')} 
+                          onClick={() => {
+                            if (isGuest) {
+                              openGuestAuthModal('bank', 'Sign in to access curated Question Banks.');
+                            } else {
+                              setView('bank');
+                            }
+                          }} 
                           className={`px-1.5 py-1 md:px-5 md:py-2 rounded-lg text-[10px] md:text-sm font-bold transition-all duration-300 flex items-center gap-0.5 md:gap-2 whitespace-nowrap flex-shrink cursor-pointer ${view === 'bank' ? 'bg-white text-[#3C128D] shadow-md scale-100 ring-1 ring-[#8A2CB0]/20' : 'text-white hover:text-white/90 hover:bg-white/10'}`}
                       >
                           <span className="hidden sm:inline">Question Bank</span>
                           <span className="sm:hidden">Question Bank</span>
-                          <span className="px-1 py-0.5 rounded-md bg-amber-400 text-[#3C128D] text-[8px] sm:text-[10px] font-black uppercase tracking-tighter shadow-sm border border-amber-500/30">
-                            🚧
-                          </span>
                       </button>
 
                       {/* Top-Level Admin Portal Navigation (Visible Strictly to Owner/Super Admin/Platform Admins) */}
@@ -1420,7 +1550,13 @@ const App: React.FC = () => {
               }} 
             />
           } />
-          <Route path="*" element={
+          <Route path="/guide" element={<EducatorGuide onEnterGuestMode={handleEnterGuestMode} isLoggedIn={!!user} />} />
+          <Route path="/curriculum" element={<CurriculumGuide onEnterGuestMode={handleEnterGuestMode} isLoggedIn={!!user} />} />
+          <Route path="/faq" element={<FaqPage onEnterGuestMode={handleEnterGuestMode} isLoggedIn={!!user} />} />
+          <Route path="/contact" element={<ContactPage onEnterGuestMode={handleEnterGuestMode} isLoggedIn={!!user} />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage onEnterGuestMode={handleEnterGuestMode} isLoggedIn={!!user} />} />
+          <Route path="/terms" element={<TermsOfServicePage onEnterGuestMode={handleEnterGuestMode} isLoggedIn={!!user} />} />
+          <Route path="/" element={
             !isAuthReady || (user && !userProfile) ? (
                 <div className="flex flex-col items-center justify-center h-64 gap-4">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
@@ -1428,167 +1564,123 @@ const App: React.FC = () => {
                         {user ? "Loading your profile..." : "Preparing GenPaperAI..."}
                     </p>
                 </div>
-            ) : !user ? (
-                <div className="max-w-4xl mx-auto text-center py-8 sm:py-14 animate-fade-in px-2">
-                    {/* Logo & Hero */}
-                    <div className="flex justify-center mb-6">
-                        <Logo className="w-20 h-20 sm:w-24 sm:h-24 shadow-2xl shadow-[#8A2CB0]/50" />
-                    </div>
-                    
-                    <h1 className="text-3xl sm:text-5xl font-black text-white mb-4 drop-shadow-lg leading-tight tracking-tight">
-                        Generate Question Papers in Seconds
-                    </h1>
-                    
-                    <p className="text-base sm:text-xl text-white/90 mb-10 max-w-2xl mx-auto leading-relaxed font-normal">
-                        Create structured, curriculum-aware question papers with AI. Choose your class, subject, chapters and paper pattern, and let GenPaperAI handle the rest.
-                    </p>
+            ) : (!user && !isGuest) ? (
+                <LandingPage 
+                  onOpenAuth={() => {
+                    setShowEmailModal(true);
+                    setEmailMode('login');
+                  }}
+                  onEnterGuestMode={handleEnterGuestMode}
+                  isLoggedIn={false}
+                  authComponent={
+                    <div id="auth-card" className="space-y-4">
+                      <div className="text-center mb-5">
+                        <h2 className="text-2xl font-black text-white tracking-tight">
+                          Welcome to GenPaperAI
+                        </h2>
+                        <p className="text-xs text-slate-300 font-medium mt-1">
+                          Sign in to create, organize & save question papers
+                        </p>
+                      </div>
 
-                    {/* Authentication Card */}
-                    <div 
-                        id="auth-card"
-                        className="w-full max-w-md mx-auto glass-panel bg-white/95 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/40 text-gray-900 transition-all text-left"
-                    >
-                        <div className="text-center mb-6">
-                            <h2 className="text-xl sm:text-2xl font-black text-[#3C128D] tracking-tight">
-                                Welcome to GenPaperAI
-                            </h2>
-                            <p className="text-xs sm:text-sm text-gray-500 font-medium mt-1">
-                                Sign in to continue
-                            </p>
-                        </div>
-
-                        <div className="space-y-3">
-                            {/* Google Authentication Button */}
-                            <button 
-                                onClick={() => handleLogin('google')}
-                                disabled={!!isLoggingIn}
-                                className="w-full py-3.5 px-4 rounded-2xl text-sm sm:text-base font-bold bg-white text-gray-800 border border-gray-200 shadow-sm hover:shadow-md hover:bg-gray-50 active:scale-[0.99] transition-all flex items-center justify-center gap-3 disabled:opacity-60 cursor-pointer"
-                            >
-                                {isLoggingIn === 'google' ? (
-                                    <Loader2 className="w-5 h-5 animate-spin text-[#8A2CB0]" />
-                                ) : (
-                                    <GoogleIcon className="w-5 h-5 shrink-0" />
-                                )}
-                                <span>Continue with Google</span>
-                            </button>
-
-                            {/* Microsoft Authentication Button */}
-                            <button 
-                                onClick={() => handleLogin('microsoft')}
-                                disabled={!!isLoggingIn}
-                                className="w-full py-3.5 px-4 rounded-2xl text-sm sm:text-base font-bold bg-white text-gray-800 border border-gray-200 shadow-sm hover:shadow-md hover:bg-gray-50 active:scale-[0.99] transition-all flex items-center justify-center gap-3 disabled:opacity-60 cursor-pointer"
-                            >
-                                {isLoggingIn === 'microsoft' ? (
-                                    <Loader2 className="w-5 h-5 animate-spin text-[#8A2CB0]" />
-                                ) : (
-                                    <MicrosoftIcon className="w-5 h-5 shrink-0" />
-                                )}
-                                <span>Continue with Microsoft</span>
-                            </button>
-
-                            {/* Divider */}
-                            <div className="relative py-2 flex items-center justify-center">
-                                <div className="absolute inset-0 flex items-center">
-                                    <div className="w-full border-t border-gray-200" />
-                                </div>
-                                <div className="relative bg-white px-3 text-[11px] font-bold uppercase tracking-wider text-gray-400">
-                                    or
-                                </div>
-                            </div>
-
-                            {/* Email Authentication Button */}
-                            <button 
-                                onClick={() => { setShowEmailModal(true); setEmailMode('login'); }}
-                                disabled={!!isLoggingIn}
-                                className="w-full py-3.5 px-4 rounded-2xl text-sm sm:text-base font-bold bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] text-white shadow-md hover:shadow-lg hover:opacity-95 active:scale-[0.99] transition-all flex items-center justify-center gap-3 disabled:opacity-60 cursor-pointer"
-                            >
-                                <EmailIcon className="w-5 h-5 shrink-0" />
-                                <span>Continue with Email</span>
-                            </button>
-                        </div>
-
-                        {/* Email Account Helper */}
-                        <div className="mt-4 text-center">
-                            <p className="text-xs text-gray-500">
-                                New to GenPaperAI?{' '}
-                                <button
-                                    type="button"
-                                    onClick={() => { setShowEmailModal(true); setEmailMode('signup'); }}
-                                    className="font-bold text-[#8A2CB0] hover:underline cursor-pointer"
-                                >
-                                    Create an account
-                                </button>
-                            </p>
-                        </div>
-
-                        {/* Terms & Privacy Notice */}
-                        <div className="mt-6 pt-4 border-t border-gray-100 text-center">
-                            <p className="text-[11px] text-gray-400 leading-normal">
-                                By continuing, you agree to our{' '}
-                                <button 
-                                    type="button"
-                                    onClick={() => setShowLegalModal('terms')} 
-                                    className="text-gray-600 hover:text-[#8A2CB0] underline underline-offset-2 transition-colors font-semibold cursor-pointer"
-                                >
-                                    Terms of Service
-                                </button>{' '}
-                                and{' '}
-                                <button 
-                                    type="button"
-                                    onClick={() => setShowLegalModal('privacy')} 
-                                    className="text-gray-600 hover:text-[#8A2CB0] underline underline-offset-2 transition-colors font-semibold cursor-pointer"
-                                >
-                                    Privacy Policy
-                                </button>
-                                .
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Feature Highlights Strip */}
-                    <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-                        <div className="glass-panel p-5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg flex flex-col">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center mb-3 shadow-md">
-                                <Zap className="w-5 h-5" />
-                            </div>
-                            <h3 className="font-black text-base text-white mb-1">Fast Generation</h3>
-                            <p className="text-xs text-white/80 leading-relaxed">
-                                Generate structured, balanced question papers in seconds with automatic sectioning and marks calculation.
-                            </p>
-                        </div>
-
-                        <div className="glass-panel p-5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg flex flex-col">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8A2CB0] to-purple-600 text-white flex items-center justify-center mb-3 shadow-md">
-                                <BookOpen className="w-5 h-5" />
-                            </div>
-                            <h3 className="font-black text-base text-white mb-1">Curriculum-Aware</h3>
-                            <p className="text-xs text-white/80 leading-relaxed">
-                                Aligned with CBSE and state board syllabi, grades, subjects, chapters, and subject blueprints.
-                            </p>
-                        </div>
-
-                        <div className="glass-panel p-5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg flex flex-col">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 text-white flex items-center justify-center mb-3 shadow-md">
-                                <Printer className="w-5 h-5" />
-                            </div>
-                            <h3 className="font-black text-base text-white mb-1">Ready-to-Print Papers</h3>
-                            <p className="text-xs text-white/80 leading-relaxed">
-                                Instantly preview, customize, and export clean PDF documents ready for printing with matching answer keys.
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Public Link to About Page */}
-                    <div className="mt-10 text-center">
-                        <button
-                            onClick={() => navigate('/about')}
-                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs sm:text-sm font-bold backdrop-blur-md border border-white/25 transition-all hover:scale-105 cursor-pointer shadow-lg"
+                      <div className="space-y-3">
+                        {/* Google Authentication Button */}
+                        <button 
+                          onClick={() => handleLogin('google')}
+                          disabled={!!isLoggingIn}
+                          className="w-full py-3.5 px-4 rounded-2xl text-sm font-bold bg-white text-gray-800 border border-gray-200 shadow-sm hover:shadow-md hover:bg-gray-50 active:scale-[0.99] transition-all flex items-center justify-center gap-3 disabled:opacity-60 cursor-pointer"
                         >
-                            <Info className="w-4 h-4 text-amber-300" />
-                            <span>Learn about GenPaperAI & its Creator →</span>
+                          {isLoggingIn === 'google' ? (
+                            <Loader2 className="w-5 h-5 animate-spin text-[#8A2CB0]" />
+                          ) : (
+                            <GoogleIcon className="w-5 h-5 shrink-0" />
+                          )}
+                          <span>Continue with Google</span>
                         </button>
+
+                        {/* Microsoft Authentication Button */}
+                        <button 
+                          onClick={() => handleLogin('microsoft')}
+                          disabled={!!isLoggingIn}
+                          className="w-full py-3.5 px-4 rounded-2xl text-sm font-bold bg-white text-gray-800 border border-gray-200 shadow-sm hover:shadow-md hover:bg-gray-50 active:scale-[0.99] transition-all flex items-center justify-center gap-3 disabled:opacity-60 cursor-pointer"
+                        >
+                          {isLoggingIn === 'microsoft' ? (
+                            <Loader2 className="w-5 h-5 animate-spin text-[#8A2CB0]" />
+                          ) : (
+                            <MicrosoftIcon className="w-5 h-5 shrink-0" />
+                          )}
+                          <span>Continue with Microsoft</span>
+                        </button>
+
+                        {/* Continue as Guest Button */}
+                        <button 
+                          id="btn-continue-as-guest"
+                          onClick={handleEnterGuestMode}
+                          disabled={!!isLoggingIn}
+                          className="w-full py-3.5 px-4 rounded-2xl text-sm font-bold bg-amber-400 text-gray-950 shadow-md hover:bg-amber-300 active:scale-[0.99] transition-all flex items-center justify-center gap-3 disabled:opacity-60 cursor-pointer"
+                        >
+                          <UserIcon className="w-5 h-5 text-gray-950 shrink-0" />
+                          <span>Continue as Guest (Instant Access)</span>
+                        </button>
+
+                        {/* Divider */}
+                        <div className="relative py-1 flex items-center justify-center">
+                          <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-white/20" />
+                          </div>
+                          <div className="relative bg-slate-900/80 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 rounded-md">
+                            or
+                          </div>
+                        </div>
+
+                        {/* Email Authentication Button */}
+                        <button 
+                          onClick={() => { setShowEmailModal(true); setEmailMode('login'); }}
+                          disabled={!!isLoggingIn}
+                          className="w-full py-3.5 px-4 rounded-2xl text-sm font-bold bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] text-white shadow-md hover:shadow-lg hover:opacity-95 active:scale-[0.99] transition-all flex items-center justify-center gap-3 disabled:opacity-60 cursor-pointer"
+                        >
+                          <EmailIcon className="w-5 h-5 shrink-0" />
+                          <span>Continue with Email</span>
+                        </button>
+                      </div>
+
+                      {/* Email Account Helper */}
+                      <div className="mt-4 text-center flex items-center justify-center gap-2 text-xs text-slate-300">
+                        <span>New to GenPaperAI?</span>
+                        <button
+                          type="button"
+                          onClick={() => { setShowEmailModal(true); setEmailMode('signup'); }}
+                          className="font-bold text-amber-300 hover:underline cursor-pointer"
+                        >
+                          Create account
+                        </button>
+                      </div>
+
+                      {/* Terms & Privacy Notice */}
+                      <div className="mt-5 pt-3 border-t border-white/10 text-center">
+                        <p className="text-[11px] text-slate-300 leading-normal">
+                          By continuing, you agree to our{' '}
+                          <button 
+                            type="button"
+                            onClick={() => navigate('/terms')} 
+                            className="text-amber-300 hover:underline transition-colors font-semibold cursor-pointer"
+                          >
+                            Terms of Service
+                          </button>{' '}
+                          and{' '}
+                          <button 
+                            type="button"
+                            onClick={() => navigate('/privacy')} 
+                            className="text-amber-300 hover:underline transition-colors font-semibold cursor-pointer"
+                          >
+                            Privacy Policy
+                          </button>
+                          .
+                        </p>
+                      </div>
                     </div>
-                </div>
+                  }
+                />
             ) : (
                 <>
                     {error && (
@@ -1618,8 +1710,16 @@ const App: React.FC = () => {
                           history={history} 
                           onCreateNew={handleCreateNew} 
                           onViewPaper={handleViewPaper} 
-                          onViewBank={() => setView('bank')}
+                          onViewBank={() => {
+                            if (isGuest) {
+                              openGuestAuthModal('bank', 'Sign in to access curated Question Banks.');
+                            } else {
+                              setView('bank');
+                            }
+                          }}
                           onDeletePaper={handleDeletePaper}
+                          isGuest={isGuest}
+                          onRequireAuth={openGuestAuthModal}
                         />
                         <AdPlacement 
                           placementId="dashboard_banner" 
@@ -1643,6 +1743,8 @@ const App: React.FC = () => {
                         user={userProfile}
                         subscriptionConfig={subscriptionConfig}
                         webResearchConfig={webResearchConfig}
+                        isGuest={isGuest}
+                        onRequireAuth={openGuestAuthModal}
                       />
                     )}
 
@@ -1651,6 +1753,8 @@ const App: React.FC = () => {
                         paper={currentPaper} 
                         onBack={handleBackToDashboard} 
                         onUpdatePaper={handleUpdatePaper}
+                        isGuest={isGuest}
+                        onRequireAuth={openGuestAuthModal}
                       />
                     )}
 
@@ -1795,8 +1899,14 @@ const App: React.FC = () => {
                 </>
             )
           } />
+          <Route path="*" element={<NotFoundPage onEnterGuestMode={handleEnterGuestMode} isLoggedIn={!!user} />} />
         </Routes>
       </main>
+
+      {/* Public Footer on Workspace view */}
+      {location.pathname === '/' && (user || isGuest) && (
+        <PublicFooter onEnterGuestMode={handleEnterGuestMode} />
+      )}
 
       {/* Application Footer - Full Width Scrolling Marquee */}
       {location.pathname !== '/reset-password' && (
@@ -2072,6 +2182,28 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Guest Mode Auth Modal */}
+      <GuestAuthModal
+        isOpen={guestAuthModalState.isOpen}
+        feature={guestAuthModalState.feature}
+        customMessage={guestAuthModalState.customMessage}
+        onClose={closeGuestAuthModal}
+        onLoginGoogle={async () => {
+          closeGuestAuthModal();
+          await handleLogin('google');
+        }}
+        onLoginMicrosoft={async () => {
+          closeGuestAuthModal();
+          await handleLogin('microsoft');
+        }}
+        onOpenEmailAuth={(mode) => {
+          closeGuestAuthModal();
+          setShowEmailModal(true);
+          setEmailMode(mode);
+        }}
+        isLoggingIn={isLoggingIn}
+      />
     </div>
   );
 };

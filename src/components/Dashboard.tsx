@@ -8,6 +8,8 @@ interface DashboardProps {
   onViewPaper: (paper: GeneratedPaper) => void;
   onViewBank: () => void;
   onDeletePaper: (id: string) => void;
+  isGuest?: boolean;
+  onRequireAuth?: (feature: 'download' | 'bank' | 'web-extract' | 'save' | 'customization' | 'general', customMessage?: string) => void;
 }
 
 const getClassNumber = (grade: string): number => {
@@ -23,7 +25,15 @@ const normalizeClass = (str: string): string => {
     .replace(/\b(\d+)\s+class\b/g, '$1'); // 10 class -> 10
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ history, onCreateNew, onViewPaper, onViewBank, onDeletePaper }) => {
+const Dashboard: React.FC<DashboardProps> = ({ 
+  history, 
+  onCreateNew, 
+  onViewPaper, 
+  onViewBank, 
+  onDeletePaper,
+  isGuest = false,
+  onRequireAuth
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<string>('newest');
 
@@ -130,7 +140,13 @@ const Dashboard: React.FC<DashboardProps> = ({ history, onCreateNew, onViewPaper
               <span>Create New Paper</span>
             </button>
             <button 
-              onClick={onViewBank}
+              onClick={() => {
+                if (isGuest && onRequireAuth) {
+                  onRequireAuth('bank', 'Sign in with Google, Microsoft, or Email to access curated Question Banks.');
+                  return;
+                }
+                onViewBank();
+              }}
               className="btn-glass btn-glass-accent px-5 py-3 rounded-xl font-bold text-sm w-full flex items-center justify-center gap-2 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 transition-all relative group/btn cursor-pointer"
             >
               <span>Open Question Bank</span>
@@ -141,6 +157,32 @@ const Dashboard: React.FC<DashboardProps> = ({ history, onCreateNew, onViewPaper
           </div>
         </div>
       </div>
+
+      {/* Guest Mode Session Notice */}
+      {isGuest && (
+        <div className="mb-6 p-4 rounded-2xl bg-amber-500/15 border border-amber-400/40 text-amber-950 dark:text-amber-100 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-400/30 text-amber-800 dark:text-amber-300 flex items-center justify-center shrink-0 text-lg font-bold">
+              👤
+            </div>
+            <div>
+              <h4 className="text-sm font-black flex items-center gap-2">
+                <span>Guest Mode Active</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400 text-[#3C128D] font-bold uppercase tracking-wider">Temporary</span>
+              </h4>
+              <p className="text-xs text-amber-900/80 dark:text-amber-200/80 font-medium mt-0.5">
+                Papers generated in guest mode are saved in this session only. Sign in to preserve them permanently and download PDFs.
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => onRequireAuth?.('save', 'Sign in to save your question papers to your permanent account history.')}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] text-white text-xs font-black hover:opacity-95 transition-all whitespace-nowrap shadow-md cursor-pointer shrink-0"
+          >
+            Sign In to Save Papers
+          </button>
+        </div>
+      )}
 
       {/* History Table */}
       <div className="glass-panel rounded-2xl overflow-hidden shadow-2xl shadow-[#3C128D]/10">

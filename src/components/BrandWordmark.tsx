@@ -5,11 +5,12 @@ import { isSuperAdmin, isAdmin } from '../services/adminService';
 import { isUserPlusSubscriber } from '../services/subscriptionService';
 import { User } from 'firebase/auth';
 
-export type BrandBadgeType = 'super_admin' | 'admin' | 'teacher' | 'plus' | 'free';
+export type BrandBadgeType = 'super_admin' | 'admin' | 'teacher' | 'plus' | 'free' | 'guest';
 
 export interface BrandWordmarkProps {
   user?: User | null;
   userProfile?: UserProfile | null;
+  isGuest?: boolean;
   className?: string;
   textClassName?: string;
   aiClassName?: string;
@@ -25,12 +26,18 @@ export interface BrandWordmarkProps {
  * 2. ADMIN                → ShieldCheck icon
  * 3. TEACHER              → GraduationCap icon
  * 4. PLUS SUBSCRIBER      → "+" character (GenPaperAI+)
- * 5. FREE / NORMAL USER   → No badge (GenPaperAI)
+ * 5. GUEST                → Guest indicator
+ * 6. FREE / NORMAL USER   → No badge (GenPaperAI)
  */
 export function getBrandBadge(
   user?: User | null,
-  userProfile?: UserProfile | null
+  userProfile?: UserProfile | null,
+  isGuest?: boolean
 ): { type: BrandBadgeType; title: string } {
+  if (isGuest && !user) {
+    return { type: 'guest', title: 'Guest Mode (Unregistered)' };
+  }
+
   const email = user?.email || userProfile?.email || null;
   const role = userProfile?.role;
 
@@ -61,13 +68,14 @@ export function getBrandBadge(
 export const BrandWordmark: React.FC<BrandWordmarkProps> = ({
   user,
   userProfile,
+  isGuest,
   className = "inline-flex items-center tracking-tight font-bold whitespace-nowrap select-none",
   textClassName = "text-white drop-shadow-md",
   aiClassName = "text-amber-400 drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]",
   iconSize = "w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-4.5 md:h-4.5",
   showBadge = true,
 }) => {
-  const badge = showBadge ? getBrandBadge(user, userProfile) : { type: 'free' as BrandBadgeType, title: 'GenPaperAI' };
+  const badge = showBadge ? getBrandBadge(user, userProfile, isGuest) : { type: 'free' as BrandBadgeType, title: 'GenPaperAI' };
 
   return (
     <span className={className}>
@@ -75,6 +83,16 @@ export const BrandWordmark: React.FC<BrandWordmarkProps> = ({
       <span className={aiClassName}>AI</span>
       
       {/* Account Status / Role Badge appearing directly after "AI" */}
+      {badge.type === 'guest' && (
+        <span 
+          className="inline-flex items-center ml-1 text-amber-200 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-400/20 border border-amber-300/40 transform -translate-y-0.5" 
+          title={badge.title}
+          aria-label={badge.title}
+        >
+          Guest
+        </span>
+      )}
+
       {badge.type === 'super_admin' && (
         <span 
           className="inline-flex items-center ml-1 text-amber-300 drop-shadow-[0_0_8px_rgba(252,211,77,0.7)] transform -translate-y-0.5 transition-transform hover:scale-110" 

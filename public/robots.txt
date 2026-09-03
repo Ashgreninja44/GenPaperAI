@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+Allow: /faq
+Allow: /guide
+Allow: /curriculum
+
+# Disallow private application, admin, and backend endpoints
+Disallow: /api/
+Disallow: /admin
+Disallow: /admin-portal
+Disallow: /settings
+Disallow: /reset-password
+
+Sitemap: https://ais-dev-ha4tzqhkafm5jkwgucql4m-324148928305.asia-east1.run.app/sitemap.xml

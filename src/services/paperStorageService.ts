@@ -293,3 +293,40 @@ export const getAllStoredPapers = async (): Promise<GeneratedPaper[]> => {
     return [];
   }
 };
+
+/**
+ * Migrates guest session papers from sessionStorage to the authenticated user's Firestore collection.
+ */
+export const migrateGuestPapersToFirestore = async (
+  db: Firestore,
+  targetUid: string
+): Promise<number> => {
+  try {
+    if (typeof window === 'undefined') return 0;
+    const raw = sessionStorage.getItem('genpaper_pending_guest_papers');
+    if (!raw) return 0;
+    const guestPapers: GeneratedPaper[] = JSON.parse(raw);
+    if (!Array.isArray(guestPapers) || guestPapers.length === 0) return 0;
+
+    console.log(`[Guest Migration] Migrating ${guestPapers.length} guest papers to user ${targetUid}...`);
+    let migratedCount = 0;
+    for (const paper of guestPapers) {
+      if (paper && paper.id) {
+        const migratedPaper: GeneratedPaper = {
+          ...paper,
+          uid: targetUid,
+          timestamp: paper.timestamp || Date.now()
+        };
+        await savePaperToFirestore(db, migratedPaper, targetUid);
+        migratedCount++;
+      }
+    }
+
+    sessionStorage.removeItem('genpaper_pending_guest_papers');
+    return migratedCount;
+  } catch (err) {
+    console.error('[Guest Migration Error] Failed to migrate guest papers to Firestore:', err);
+    return 0;
+  }
+};
+
