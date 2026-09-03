@@ -3,22 +3,24 @@
  * Updates document.title, meta descriptions, canonical links, and Open Graph tags per route.
  */
 
+export const PRODUCTION_DOMAIN = "https://genpaperai.pages.dev";
+
 export function getBaseUrl(): string {
   // Check client-accessible environment variable (if explicitly configured)
   const envUrl = (import.meta as any).env?.VITE_APP_URL || (import.meta as any).env?.VITE_PUBLIC_URL;
-  if (envUrl && typeof envUrl === 'string' && !envUrl.includes('ais-dev-') && !envUrl.includes('localhost')) {
+  if (envUrl && typeof envUrl === 'string' && !envUrl.includes('ais-dev-') && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
     return envUrl.trim().replace(/\/+$/, '');
   }
 
-  // Derive dynamically from browser origin
+  // Derive dynamically from browser origin if on Cloudflare Pages or valid deployment
   if (typeof window !== 'undefined' && window.location && window.location.origin) {
     const origin = window.location.origin;
-    if (!origin.includes('localhost') && !origin.includes('127.0.0.1')) {
+    if (!origin.includes('localhost') && !origin.includes('127.0.0.1') && !origin.includes('ais-dev-') && !origin.includes('ais-pre-')) {
       return origin.replace(/\/+$/, '');
     }
   }
 
-  return envUrl ? String(envUrl).trim().replace(/\/+$/, '') : '';
+  return PRODUCTION_DOMAIN;
 }
 
 export function setPageMetadata(title: string, description?: string, pathname?: string) {

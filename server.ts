@@ -29,20 +29,25 @@ const PUBLIC_ROUTES = [
   { path: '/terms', priority: '0.6', changefreq: 'monthly' },
 ];
 
+const DEFAULT_PRODUCTION_URL = "https://genpaperai.pages.dev";
+
 function getBaseUrl(req: express.Request): string {
   // If APP_URL or PUBLIC_URL is explicitly set in deployment environment
   const envUrl = (process.env.APP_URL || process.env.PUBLIC_URL || process.env.VITE_APP_URL || '').trim().replace(/\/+$/, '');
-  if (envUrl && !envUrl.includes('ais-dev-') && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+  if (envUrl && !envUrl.includes('ais-dev-') && !envUrl.includes('ais-pre-') && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
     return envUrl;
   }
 
-  // Derive dynamically from request headers (supports custom domains, Cloud Run, reverse proxies)
-  const forwardedProto = req.headers['x-forwarded-proto'];
-  const proto = (typeof forwardedProto === 'string' ? forwardedProto.split(',')[0].trim() : req.protocol) || 'https';
+  // Derive dynamically from request headers if on a custom domain or cloudflare pages
   const forwardedHost = req.headers['x-forwarded-host'];
-  const host = (typeof forwardedHost === 'string' ? forwardedHost.split(',')[0].trim() : req.get('host')) || 'localhost:3000';
+  const host = (typeof forwardedHost === 'string' ? forwardedHost.split(',')[0].trim() : req.get('host')) || '';
+  if (host && !host.includes('localhost') && !host.includes('127.0.0.1') && !host.includes('ais-dev-') && !host.includes('ais-pre-')) {
+    const forwardedProto = req.headers['x-forwarded-proto'];
+    const proto = (typeof forwardedProto === 'string' ? forwardedProto.split(',')[0].trim() : req.protocol) || 'https';
+    return `${proto}://${host}`.replace(/\/+$/, '');
+  }
   
-  return `${proto}://${host}`.replace(/\/+$/, '');
+  return DEFAULT_PRODUCTION_URL;
 }
 
 async function startServer() {

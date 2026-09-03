@@ -16,5 +16,5 @@ Disallow: /admin-portal
 Disallow: /settings
 Disallow: /reset-password
 
-Sitemap: /sitemap.xml
+Sitemap: https://genpaperai.pages.dev/sitemap.xml
 
