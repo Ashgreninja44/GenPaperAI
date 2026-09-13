@@ -188,18 +188,26 @@ const Profile: React.FC<ProfileProps> = ({
                     <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Account Details</h3>
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <span className="text-gray-500 text-sm">Account Role</span>
+                            <span className="text-gray-500 text-sm">Account Type</span>
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 ${
+                                profile.userType === 'student'
+                                  ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                                  : 'bg-purple-50 text-purple-800 border border-purple-200'
+                            }`}>
+                                {profile.userType === 'student' ? '🎓 Student Account' : '👨‍🏫 Teacher Account'}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-gray-500 text-sm">Administrative Role</span>
                             <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 ${
                                 isSuper
                                   ? 'bg-amber-50 text-amber-700 border border-amber-200' 
                                   : isAdmin
                                   ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                                  : profile.role === 'teacher'
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                   : 'bg-gray-100 text-gray-600 border border-gray-200'
                             }`}>
                                 <Shield className="w-3 h-3" />
-                                {isSuper ? 'Super Admin' : (profile.role || 'User')}
+                                {isSuper ? 'Super Admin' : isAdmin ? 'Admin' : 'User'}
                             </span>
                         </div>
                         <div className="flex items-center justify-between">

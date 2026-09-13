@@ -355,7 +355,7 @@ export const QuestionBankView: React.FC<QuestionBankProps> = ({
                   Board
                 </label>
                 <select 
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-semibold"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-semibold text-gray-900 dark:text-gray-100"
                   value={selectedBoard}
                   onChange={(e) => setSelectedBoard(e.target.value)}
                 >
@@ -370,7 +370,7 @@ export const QuestionBankView: React.FC<QuestionBankProps> = ({
                   Class / Grade
                 </label>
                 <select 
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-semibold"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-semibold text-gray-900 dark:text-gray-100"
                   value={selectedClass}
                   onChange={(e) => setSelectedClass(e.target.value)}
                 >
@@ -385,7 +385,7 @@ export const QuestionBankView: React.FC<QuestionBankProps> = ({
                   Subject
                 </label>
                 <select 
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-semibold disabled:opacity-50"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-semibold text-gray-900 dark:text-gray-100 disabled:opacity-50"
                   value={selectedSubject}
                   onChange={(e) => setSelectedSubject(e.target.value)}
                 >
@@ -874,7 +874,7 @@ export const QuestionBankView: React.FC<QuestionBankProps> = ({
                           updated[optIdx] = e.target.value;
                           setNewQuestionOptions(updated);
                         }}
-                        className="px-2.5 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-mono text-xs"
+                        className="px-2.5 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-mono text-xs text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                       />
                     ))}
                   </div>
@@ -891,7 +891,7 @@ export const QuestionBankView: React.FC<QuestionBankProps> = ({
                     value={newQuestionChapter}
                     onChange={(e) => setNewQuestionChapter(e.target.value)}
                     placeholder="e.g. Chemical Reactions"
-                    className="w-full px-2.5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                    className="w-full px-2.5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
 
@@ -904,7 +904,7 @@ export const QuestionBankView: React.FC<QuestionBankProps> = ({
                     value={newQuestionTopic}
                     onChange={(e) => setNewQuestionTopic(e.target.value)}
                     placeholder="e.g. Types of Reactions"
-                    className="w-full px-2.5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                    className="w-full px-2.5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
               </div>
@@ -918,7 +918,7 @@ export const QuestionBankView: React.FC<QuestionBankProps> = ({
                   value={newQuestionSolution}
                   onChange={(e) => setNewQuestionSolution(e.target.value)}
                   placeholder="Expected answer points or step-by-step marking justification..."
-                  className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                  className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                 />
               </div>
 

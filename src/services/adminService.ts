@@ -16,6 +16,7 @@ import { db, storage, auth, handleFirestoreError, OperationType } from '../fireb
 import { 
   UserProfile, 
   UserRole, 
+  UserType,
   AnnouncementConfig, 
   AIModelConfig, 
   AIModelRegistry, 
@@ -47,11 +48,12 @@ export function isAdmin(email?: string | null, role?: string): boolean {
 }
 
 /**
- * Validates if the user has Teacher role or above.
+ * Legacy compatibility helper: checks if user has teacher workspace access.
+ * Note: Workspace type is now managed via `UserProfile.userType`.
  */
 export function isTeacher(email?: string | null, role?: string): boolean {
   if (!email) return false;
-  return isAdmin(email, role) || role === 'teacher';
+  return isAdmin(email, role) || role === 'teacher' || role === 'user';
 }
 
 // ==========================================
@@ -230,6 +232,64 @@ export async function updateUserRole(
       targetEmail: targetUserEmail,
       previousRole: currentRole,
       newRole
+    }
+  );
+}
+
+/**
+ * Privileged operation: Allows Owner / Super Admin to change any user's workspace account type (Teacher <-> Student).
+ * Changes ONLY users/{uid}.userType and audit metadata. Does not modify role, subscription, papers, or question banks.
+ */
+export async function updateUserAccountType(
+  adminEmail: string,
+  targetUserUid: string,
+  targetUserEmail: string,
+  targetUserName: string | undefined,
+  currentType: UserType | null | undefined,
+  newType: UserType,
+  adminRole?: string
+): Promise<void> {
+  // 1. Authorization Guard: Only verified Platform Owner / Super Admin can change account types
+  const callerIsSuper = isSuperAdmin(adminEmail, adminRole);
+  if (!callerIsSuper) {
+    await logSecurityEvent(
+      'UNAUTHORIZED_ACCESS',
+      `Non-super-admin user ${adminEmail} attempted to modify user account type for ${targetUserEmail || targetUserUid}`,
+      'critical',
+      'internal',
+      adminEmail
+    );
+    throw new Error('Permission Denied: Only the Platform Owner / Super Admin is authorized to modify user account types.');
+  }
+
+  if (!targetUserUid) {
+    throw new Error('Invalid Request: Target user UID is required.');
+  }
+
+  // 2. Perform Firestore update (modifies ONLY userType, migration version, and audit/onboarding flags)
+  const userDocRef = doc(db, 'users', targetUserUid);
+  await updateDoc(userDocRef, {
+    userType: newType,
+    accountTypeMigrationVersion: 1,
+    accountTypeMigrationCompletedAt: Date.now(),
+    needsOnboarding: false,
+    lastUserTypeUpdate: Date.now(),
+    userTypeUpdatedBy: adminEmail
+  });
+
+  // 3. Record in the Admin Audit Log
+  await logAdminAction(
+    adminEmail,
+    'ACCOUNT_TYPE_CHANGED',
+    `user:${targetUserEmail || targetUserUid}`,
+    {
+      targetUid: targetUserUid,
+      targetEmail: targetUserEmail || '',
+      targetName: targetUserName || 'Anonymous User',
+      previousAccountType: currentType ? (currentType === 'student' ? 'Student' : 'Teacher') : 'Not Set',
+      newAccountType: newType === 'student' ? 'Student' : 'Teacher',
+      changedBy: adminEmail,
+      timestamp: Date.now()
     }
   );
 }

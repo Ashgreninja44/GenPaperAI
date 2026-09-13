@@ -65,17 +65,296 @@
     <title>GenPaperAI - AI Question Paper & Assessment Generator</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%233C128D;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%238A2CB0;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='20' fill='url(%23g)' /%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold' font-size='60'%3EG%3C/text%3E%3C/svg%3E" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              foreground: 'var(--foreground)',
+              'foreground-muted': 'var(--foreground-muted)',
+              'foreground-subtle': 'var(--foreground-subtle)',
+              background: 'var(--background)',
+              surface: 'var(--surface)',
+              'surface-elevated': 'var(--surface-elevated)',
+              'surface-muted': 'var(--surface-muted)',
+              border: 'var(--border)',
+              'border-strong': 'var(--border-strong)',
+              accent: 'var(--accent)',
+              'accent-foreground': 'var(--accent-foreground)',
+              'input-background': 'var(--input-background)',
+              'input-foreground': 'var(--input-foreground)',
+              placeholder: 'var(--placeholder)',
+            }
+          }
+        }
+      };
+
+      // Immediate theme preference initialization to prevent flash
+      (function() {
+        try {
+          const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;600&family=Noto+Sans+Devanagari:wght@400;700&family=Noto+Serif+Devanagari:wght@400;700&family=Rozha+One&family=Yatra+One&family=Poppins:wght@300;400;500;600;700&family=Noto+Sans+Telugu:wght@400;700&family=Gidugu&family=NTR&family=Ramabhadra&family=Peddana&display=swap');
       
+      /* ========================================================
+         SEMANTIC DESIGN TOKENS (LIGHT MODE / DEFAULT)
+         ======================================================== */
+      :root {
+        --foreground: #0f172a;               /* Slate 900 */
+        --foreground-muted: #334155;         /* Slate 700 */
+        --foreground-subtle: #64748b;        /* Slate 500 */
+        --background: #f8fafc;               /* Slate 50 */
+        --surface: rgba(255, 255, 255, 0.95);
+        --surface-elevated: #ffffff;
+        --surface-muted: #f1f5f9;
+        --border: #e2e8f0;
+        --border-strong: #cbd5e1;
+        --accent: #8A2CB0;
+        --accent-foreground: #ffffff;
+        --input-background: #ffffff;
+        --input-foreground: #0f172a;
+        --placeholder: #94a3b8;
+        --card-background: rgba(255, 255, 255, 0.95);
+        --card-foreground: #0f172a;
+      }
+
+      /* ========================================================
+         SEMANTIC DESIGN TOKENS (DARK MODE)
+         ======================================================== */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --foreground: #f8fafc;               /* Slate 50 - High contrast */
+          --foreground-muted: #cbd5e1;         /* Slate 300 - Readable subordinate */
+          --foreground-subtle: #94a3b8;        /* Slate 400 - Readable caption */
+          --background: #0b0f19;
+          --surface: rgba(17, 24, 39, 0.92);   /* Dark gray 900 */
+          --surface-elevated: #1e293b;         /* Slate 800 */
+          --surface-muted: rgba(30, 41, 59, 0.75);
+          --border: rgba(255, 255, 255, 0.12);
+          --border-strong: rgba(255, 255, 255, 0.22);
+          --accent: #a855f7;
+          --accent-foreground: #ffffff;
+          --input-background: #1e293b;
+          --input-foreground: #f8fafc;
+          --placeholder: #94a3b8;
+          --card-background: rgba(17, 24, 39, 0.92);
+          --card-foreground: #f8fafc;
+        }
+      }
+
+      .dark, [data-theme="dark"] {
+        --foreground: #f8fafc;
+        --foreground-muted: #cbd5e1;
+        --foreground-subtle: #94a3b8;
+        --background: #0b0f19;
+        --surface: rgba(17, 24, 39, 0.92);
+        --surface-elevated: #1e293b;
+        --surface-muted: rgba(30, 41, 59, 0.75);
+        --border: rgba(255, 255, 255, 0.12);
+        --border-strong: rgba(255, 255, 255, 0.22);
+        --accent: #a855f7;
+        --accent-foreground: #ffffff;
+        --input-background: #1e293b;
+        --input-foreground: #f8fafc;
+        --placeholder: #94a3b8;
+        --card-background: rgba(17, 24, 39, 0.92);
+        --card-foreground: #f8fafc;
+      }
+
+      /* Theme Presets Customization */
+      [data-theme="default"], .theme-default {
+        --accent: #8A2CB0;
+        --accent-foreground: #ffffff;
+      }
+
+      [data-theme="ocean"], .theme-ocean {
+        --accent: #38bdf8;
+        --accent-foreground: #082f49;
+      }
+
+      [data-theme="sunset"], .theme-sunset {
+        --accent: #f97316;
+        --accent-foreground: #ffffff;
+      }
+
+      [data-theme="forest"], .theme-forest {
+        --accent: #10b981;
+        --accent-foreground: #ffffff;
+      }
+
+      [data-theme="midnight"], .theme-midnight {
+        --accent: #c084fc;
+        --accent-foreground: #ffffff;
+      }
+
       body {
         font-family: 'Inter', sans-serif;
         margin: 0;
         background-color: transparent; /* Allow wrapper to show */
-        color: #1e293b;
+        color: var(--foreground);
+        transition: color 0.15s ease;
+      }
+
+      /* ========================================================
+         GLOBAL FORM CONTROLS & DROPDOWNS CONTRAST ENGINE
+         Fixes the root cause of dark text on dark surfaces
+         ======================================================== */
+      input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="color"]),
+      select,
+      textarea {
+        color: var(--input-foreground);
+      }
+
+      input::placeholder,
+      textarea::placeholder {
+        color: var(--placeholder);
+        opacity: 1;
+      }
+
+      /* Native select options contrast */
+      select option {
+        background-color: var(--surface-elevated);
+        color: var(--foreground);
+      }
+
+      /* Specific rules for dark mode & dark surfaces */
+      @media (prefers-color-scheme: dark) {
+        body {
+          color: #f8fafc;
+        }
+        input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="color"]),
+        select,
+        textarea {
+          color: #f8fafc;
+        }
+        input::placeholder,
+        textarea::placeholder {
+          color: #94a3b8;
+          opacity: 1;
+        }
+        select option {
+          background-color: #1e293b;
+          color: #f8fafc;
+        }
+      }
+
+      .dark body {
+        color: #f8fafc;
+      }
+
+      .dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="color"]),
+      .dark select,
+      .dark textarea {
+        color: #f8fafc;
+      }
+
+      .dark input::placeholder,
+      .dark textarea::placeholder {
+        color: #94a3b8;
+        opacity: 1;
+      }
+
+      .dark select option {
+        background-color: #1e293b;
+        color: #f8fafc;
+      }
+
+      /* Contextual: Dark inputs and selects */
+      select[class*="dark:bg-"],
+      select[class*="bg-gray-800"],
+      select[class*="bg-gray-900"],
+      select[class*="bg-slate-800"],
+      select[class*="bg-slate-900"],
+      input[class*="dark:bg-"],
+      input[class*="bg-gray-800"],
+      input[class*="bg-gray-900"],
+      input[class*="bg-slate-800"],
+      input[class*="bg-slate-900"],
+      textarea[class*="dark:bg-"],
+      textarea[class*="bg-gray-800"],
+      textarea[class*="bg-gray-900"],
+      textarea[class*="bg-slate-800"],
+      textarea[class*="bg-slate-900"] {
+        color: #0f172a; /* Light mode fallback if class is present without .dark */
+      }
+
+      @media (prefers-color-scheme: dark) {
+        select[class*="dark:bg-"],
+        select[class*="bg-gray-800"],
+        select[class*="bg-gray-900"],
+        select[class*="bg-slate-800"],
+        select[class*="bg-slate-900"],
+        input[class*="dark:bg-"],
+        input[class*="bg-gray-800"],
+        input[class*="bg-gray-900"],
+        input[class*="bg-slate-800"],
+        input[class*="bg-slate-900"],
+        textarea[class*="dark:bg-"],
+        textarea[class*="bg-gray-800"],
+        textarea[class*="bg-gray-900"],
+        textarea[class*="bg-slate-800"],
+        textarea[class*="bg-slate-900"] {
+          color: #f8fafc;
+        }
+
+        select[class*="dark:bg-"] option,
+        select[class*="bg-gray-800"] option,
+        select[class*="bg-gray-900"] option,
+        select[class*="bg-slate-800"] option,
+        select[class*="bg-slate-900"] option {
+          background-color: #1e293b;
+          color: #f8fafc;
+        }
+      }
+
+      .dark select[class*="dark:bg-"],
+      .dark select[class*="bg-gray-800"],
+      .dark select[class*="bg-gray-900"],
+      .dark select[class*="bg-slate-800"],
+      .dark select[class*="bg-slate-900"],
+      .dark input[class*="dark:bg-"],
+      .dark input[class*="bg-gray-800"],
+      .dark input[class*="bg-gray-900"],
+      .dark input[class*="bg-slate-800"],
+      .dark input[class*="bg-slate-900"],
+      .dark textarea[class*="dark:bg-"],
+      .dark textarea[class*="bg-gray-800"],
+      .dark textarea[class*="bg-gray-900"],
+      .dark textarea[class*="bg-slate-800"],
+      .dark textarea[class*="bg-slate-900"] {
+        color: #f8fafc;
+      }
+
+      .dark select[class*="dark:bg-"] option,
+      .dark select[class*="bg-gray-800"] option,
+      .dark select[class*="bg-gray-900"] option,
+      .dark select[class*="bg-slate-800"] option,
+      .dark select[class*="bg-slate-900"] option {
+        background-color: #1e293b;
+        color: #f8fafc;
+      }
+
+      /* Light surface controls on dark canvases */
+      .dark .bg-white input:not([class*="dark:bg-"]):not([class*="bg-gray-800"]):not([class*="bg-slate-800"]),
+      .dark .bg-white select:not([class*="dark:bg-"]):not([class*="bg-gray-800"]):not([class*="bg-slate-800"]):not(.dark-dropdown),
+      .dark .bg-white textarea:not([class*="dark:bg-"]):not([class*="bg-gray-800"]):not([class*="bg-slate-800"]) {
+        color: #0f172a;
+      }
+      .dark .bg-white select:not([class*="dark:bg-"]):not([class*="bg-gray-800"]):not([class*="bg-slate-800"]):not(.dark-dropdown) option {
+        background-color: #ffffff;
+        color: #0f172a;
       }
       .paper-font {
         font-family: 'Merriweather', serif;
@@ -181,14 +460,26 @@
 
       /* High-Contrast Glass Panels for Content */
       .glass-panel {
-        background: rgba(255, 255, 255, 0.95); /* High opacity white for readability */
+        background: var(--surface);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 1);
+        border: 1px solid var(--border);
         box-shadow: 
-          0 10px 25px -5px rgba(60, 18, 141, 0.15), /* Tinted shadow */
-          0 8px 10px -6px rgba(60, 18, 141, 0.1),
-          inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+          0 10px 25px -5px rgba(0, 0, 0, 0.12),
+          0 8px 10px -6px rgba(0, 0, 0, 0.08),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+        color: var(--foreground);
+      }
+
+      .dark .glass-panel,
+      [data-theme="dark"] .glass-panel {
+        background: rgba(17, 24, 39, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 
+          0 10px 25px -5px rgba(0, 0, 0, 0.5),
+          0 8px 10px -6px rgba(0, 0, 0, 0.4),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+        color: #f8fafc;
       }
 
       /* Liquid Glass Navigation Bar - Premium Style */

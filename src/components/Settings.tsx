@@ -3,7 +3,8 @@ import {
   UserProfile, 
   ThemeAnimationConfig, 
   BackgroundMode, 
-  CustomBackgroundConfig 
+  CustomBackgroundConfig,
+  StudentProfileSettings 
 } from '../types';
 import { 
   Globe, 
@@ -21,7 +22,11 @@ import {
   AlertCircle,
   UploadCloud,
   CheckCircle2,
-  Sparkle
+  Sparkle,
+  GraduationCap,
+  BookOpen,
+  Plus,
+  X
 } from 'lucide-react';
 import { GoogleIcon, MicrosoftIcon, EmailIcon } from './BrandIcons';
 import { ImageCropModal } from './ImageCropModal';
@@ -32,6 +37,13 @@ import {
   getEffectiveProfilePhoto,
   isUsingCustomProfilePicture
 } from '../services/profilePhotoService';
+import {
+  SUPPORTED_STUDENT_BOARDS,
+  SUPPORTED_STUDENT_GRADES,
+  LEARNING_GOAL_OPTIONS,
+  getAvailableSubjectsForGrade,
+  getSubjectVisualMeta
+} from '../services/studentCurriculumService';
 
 interface SettingsProps {
   profile: UserProfile;
@@ -73,6 +85,17 @@ export const Settings: React.FC<SettingsProps> = ({
     subject: 'Science',
     schoolName: ''
   });
+
+  // Student Specific Settings
+  const [studentBoard, setStudentBoard] = useState(profile.studentSettings?.targetBoard || 'CBSE');
+  const [studentGrade, setStudentGrade] = useState(profile.studentSettings?.targetGrade || 'Class 10');
+  const [studentSubjects, setStudentSubjects] = useState<string[]>(profile.studentSettings?.enrolledSubjects || []);
+  const [studentGoals, setStudentGoals] = useState<string[]>(profile.studentSettings?.learningGoals || []);
+  const [studentExam, setStudentExam] = useState(profile.studentSettings?.targetExam || '');
+  const [studentScore, setStudentScore] = useState(profile.studentSettings?.targetScore || '90%+');
+  const [studentDailyMinutes, setStudentDailyMinutes] = useState(profile.studentSettings?.dailyStudyGoalMinutes || 45);
+  const [subjectToAdd, setSubjectToAdd] = useState('');
+
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -88,15 +111,52 @@ export const Settings: React.FC<SettingsProps> = ({
     if (profile.defaultPaperSettings) {
       setDefaultSettings(profile.defaultPaperSettings);
     }
+    if (profile.studentSettings) {
+      setStudentBoard(profile.studentSettings.targetBoard || 'CBSE');
+      setStudentGrade(profile.studentSettings.targetGrade || 'Class 10');
+      setStudentSubjects(profile.studentSettings.enrolledSubjects || []);
+      setStudentGoals(profile.studentSettings.learningGoals || []);
+      setStudentExam(profile.studentSettings.targetExam || '');
+      setStudentScore(profile.studentSettings.targetScore || '90%+');
+      setStudentDailyMinutes(profile.studentSettings.dailyStudyGoalMinutes || 45);
+    }
   }, [profile]);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await onUpdateProfile({
-        name,
-        defaultPaperSettings: defaultSettings
-      });
+      if (profile.userType === 'student') {
+        const updatedStudentSettings: StudentProfileSettings = {
+          ...(profile.studentSettings || {
+            studyStreak: 0,
+            bestStreak: 0,
+            lastActivityDate: '',
+            activityDates: [],
+            questionsSolved: 0,
+            correctAnswers: 0,
+            mockTestsCompleted: 0,
+            mockTestScores: [],
+            mistakes: []
+          }),
+          targetBoard: studentBoard,
+          targetGrade: studentGrade,
+          enrolledSubjects: studentSubjects,
+          learningGoals: studentGoals,
+          targetExam: studentExam,
+          targetScore: studentScore,
+          dailyStudyGoalMinutes: studentDailyMinutes,
+          studentOnboardingCompleted: true
+        };
+        await onUpdateProfile({
+          name,
+          studentSettings: updatedStudentSettings
+        });
+      } else {
+        await onUpdateProfile({
+          name,
+          defaultPaperSettings: defaultSettings
+        });
+      }
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
     } catch (err) {
@@ -272,6 +332,33 @@ export const Settings: React.FC<SettingsProps> = ({
 
             <div className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">
               Member Since {new Date(profile.createdAt || Date.now()).toLocaleDateString()}
+            </div>
+          </div>
+
+          {/* Account Type Card */}
+          <div className="glass-panel p-6 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl space-y-3">
+            <h4 className="text-xs font-black text-gray-500 uppercase tracking-wider">Account Type</h4>
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 border border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl">
+                  {profile.userType === 'student' ? '🎓' : '👨‍🏫'}
+                </span>
+                <div>
+                  <p className="text-xs font-bold text-gray-900">
+                    {profile.userType === 'student' ? 'Student Account' : 'Teacher Account'}
+                  </p>
+                  <p className="text-[10px] text-gray-500 font-medium">
+                    {profile.userType === 'student' ? 'Student learning & practice mode' : 'Educator & exam creation mode'}
+                  </p>
+                </div>
+              </div>
+              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                profile.userType === 'student'
+                  ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                  : 'bg-purple-100 text-[#3C128D] border border-purple-200'
+              }`}>
+                {profile.userType === 'student' ? 'Student' : 'Teacher'}
+              </span>
             </div>
           </div>
 
@@ -552,55 +639,246 @@ export const Settings: React.FC<SettingsProps> = ({
             </div>
           </div>
 
-          {/* Default Paper Settings */}
-          <div className="glass-panel p-6 sm:p-8 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl">
-            <h2 className="text-lg font-black text-gray-900 mb-5 flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-amber-50 text-amber-600">
-                <Globe className="w-4 h-4" />
-              </span>
-              Default Paper Settings
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Default Board</label>
-                <select 
-                  value={defaultSettings.board}
-                  onChange={(e) => setDefaultSettings({...defaultSettings, board: e.target.value})}
-                  className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-bold border border-gray-200 focus:border-[#8A2CB0] outline-none cursor-pointer"
-                >
-                  <option value="CBSE">CBSE (Central Board)</option>
-                  <option value="ICSE">ICSE / ISC</option>
-                  <option value="State Board">State Board</option>
-                  <option value="IB">IB (International Baccalaureate)</option>
-                  <option value="IGCSE">Cambridge / IGCSE</option>
-                </select>
+          {/* Student Learning Profile OR Default Paper Settings */}
+          {profile.userType === 'student' ? (
+            <div className="glass-panel p-6 sm:p-8 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-black text-gray-900 flex items-center gap-2.5">
+                  <span className="p-2 rounded-xl bg-purple-50 text-[#8A2CB0]">
+                    <GraduationCap className="w-5 h-5" />
+                  </span>
+                  Student Learning Profile & Curriculum
+                </h2>
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-purple-100 text-[#3C128D]">
+                  Student Mode
+                </span>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Default Grade / Class</label>
-                <select 
-                  value={defaultSettings.grade}
-                  onChange={(e) => setDefaultSettings({...defaultSettings, grade: e.target.value})}
-                  className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-bold border border-gray-200 focus:border-[#8A2CB0] outline-none cursor-pointer"
-                >
-                  {['6th', '7th', '8th', '9th', '10th', '11th', '12th'].map(g => (
-                    <option key={g} value={g}>{g} Grade</option>
-                  ))}
-                </select>
-              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Board Selection */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Education Board</label>
+                  <select 
+                    value={studentBoard}
+                    onChange={(e) => setStudentBoard(e.target.value)}
+                    className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-bold border border-gray-200 focus:border-[#8A2CB0] outline-none cursor-pointer"
+                  >
+                    {SUPPORTED_STUDENT_BOARDS.map(b => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Default School Name</label>
-                <input 
-                  type="text"
-                  value={defaultSettings.schoolName}
-                  onChange={(e) => setDefaultSettings({...defaultSettings, schoolName: e.target.value})}
-                  placeholder="e.g. St. Xavier's International Academy"
-                  className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-medium border border-gray-200 focus:border-[#8A2CB0] outline-none"
-                />
+                {/* Grade Selection */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Class / Grade</label>
+                  <select 
+                    value={studentGrade}
+                    onChange={(e) => setStudentGrade(e.target.value)}
+                    className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-bold border border-gray-200 focus:border-[#8A2CB0] outline-none cursor-pointer"
+                  >
+                    {SUPPORTED_STUDENT_GRADES.map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Enrolled Subjects */}
+                <div className="sm:col-span-2 space-y-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Enrolled Subjects ({studentSubjects.length})
+                  </label>
+                  
+                  {/* Subject Chips */}
+                  <div className="flex flex-wrap gap-2">
+                    {studentSubjects.map(subName => {
+                      const meta = getSubjectVisualMeta(subName);
+                      return (
+                        <span 
+                          key={subName}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-[#3C128D] border border-purple-200 shadow-xs"
+                        >
+                          <span>{meta.icon}</span>
+                          <span>{subName}</span>
+                          {studentSubjects.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setStudentSubjects(prev => prev.filter(s => s !== subName))}
+                              className="text-gray-400 hover:text-rose-500 transition-colors p-0.5"
+                              title={`Remove ${subName}`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  {/* Add Subject Control */}
+                  {(() => {
+                    const availableForGrade = getAvailableSubjectsForGrade(studentBoard, studentGrade);
+                    const unselected = availableForGrade.filter(s => !studentSubjects.includes(s.name));
+                    if (unselected.length === 0) return null;
+                    return (
+                      <div className="flex items-center gap-2 pt-1">
+                        <select
+                          value={subjectToAdd}
+                          onChange={(e) => setSubjectToAdd(e.target.value)}
+                          className="p-2.5 bg-gray-50 rounded-xl text-xs font-bold text-gray-800 border border-gray-200 outline-none flex-1 max-w-xs"
+                        >
+                          <option value="">+ Select subject to add...</option>
+                          {unselected.map(s => (
+                            <option key={s.name} value={s.name}>{s.name} ({s.totalChapters} chapters)</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          disabled={!subjectToAdd}
+                          onClick={() => {
+                            if (subjectToAdd && !studentSubjects.includes(subjectToAdd)) {
+                              setStudentSubjects(prev => [...prev, subjectToAdd]);
+                              setSubjectToAdd('');
+                            }
+                          }}
+                          className="px-3 py-2.5 rounded-xl bg-[#8A2CB0] text-white text-xs font-bold hover:bg-[#3C128D] transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add Subject</span>
+                        </button>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Learning Goals */}
+                <div className="sm:col-span-2 space-y-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Primary Learning Goals
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {LEARNING_GOAL_OPTIONS.map(goal => {
+                      const isSelected = studentGoals.includes(goal.id);
+                      return (
+                        <button
+                          key={goal.id}
+                          type="button"
+                          onClick={() => {
+                            setStudentGoals(prev => 
+                              isSelected ? prev.filter(g => g !== goal.id) : [...prev, goal.id]
+                            );
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                            isSelected 
+                              ? 'bg-[#3C128D] text-white border-[#3C128D] shadow-sm'
+                              : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                          }`}
+                        >
+                          {goal.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Target Exam */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Target Exam</label>
+                  <input 
+                    type="text"
+                    value={studentExam}
+                    onChange={(e) => setStudentExam(e.target.value)}
+                    placeholder="e.g. CBSE Class 10 Board Exam 2026"
+                    className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-medium border border-gray-200 focus:border-[#8A2CB0] outline-none"
+                  />
+                </div>
+
+                {/* Target Score */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Target Score / Percentage</label>
+                  <input 
+                    type="text"
+                    value={studentScore}
+                    onChange={(e) => setStudentScore(e.target.value)}
+                    placeholder="e.g. 95%+"
+                    className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-medium border border-gray-200 focus:border-[#8A2CB0] outline-none"
+                  />
+                </div>
+
+                {/* Daily Study Goal */}
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Daily Study Target (Minutes per day)
+                  </label>
+                  <div className="flex items-center gap-3">
+                    {[15, 30, 45, 60, 90].map(mins => (
+                      <button
+                        key={mins}
+                        type="button"
+                        onClick={() => setStudentDailyMinutes(mins)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
+                          studentDailyMinutes === mins 
+                            ? 'bg-[#8A2CB0] text-white border-[#8A2CB0]' 
+                            : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        {mins} mins
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="glass-panel p-6 sm:p-8 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl">
+              <h2 className="text-lg font-black text-gray-900 mb-5 flex items-center gap-2.5">
+                <span className="p-2 rounded-xl bg-amber-50 text-amber-600">
+                  <Globe className="w-4 h-4" />
+                </span>
+                Default Paper Settings
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Default Board</label>
+                  <select 
+                    value={defaultSettings.board}
+                    onChange={(e) => setDefaultSettings({...defaultSettings, board: e.target.value})}
+                    className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-bold border border-gray-200 focus:border-[#8A2CB0] outline-none cursor-pointer"
+                  >
+                    <option value="CBSE">CBSE (Central Board)</option>
+                    <option value="ICSE">ICSE / ISC</option>
+                    <option value="State Board">State Board</option>
+                    <option value="IB">IB (International Baccalaureate)</option>
+                    <option value="IGCSE">Cambridge / IGCSE</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Default Grade / Class</label>
+                  <select 
+                    value={defaultSettings.grade}
+                    onChange={(e) => setDefaultSettings({...defaultSettings, grade: e.target.value})}
+                    className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-bold border border-gray-200 focus:border-[#8A2CB0] outline-none cursor-pointer"
+                  >
+                    {['6th', '7th', '8th', '9th', '10th', '11th', '12th'].map(g => (
+                      <option key={g} value={g}>{g} Grade</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Default School Name</label>
+                  <input 
+                    type="text"
+                    value={defaultSettings.schoolName}
+                    onChange={(e) => setDefaultSettings({...defaultSettings, schoolName: e.target.value})}
+                    placeholder="e.g. St. Xavier's International Academy"
+                    className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-medium border border-gray-200 focus:border-[#8A2CB0] outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

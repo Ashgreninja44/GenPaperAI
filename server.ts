@@ -56,6 +56,11 @@ async function startServer() {
 
   app.use(express.json({ limit: '10mb' }));
 
+  // API health check route
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok' });
+  });
+
   // Dynamic, production-aware sitemap.xml
   app.get('/sitemap.xml', (req, res) => {
     const baseUrl = getBaseUrl(req);

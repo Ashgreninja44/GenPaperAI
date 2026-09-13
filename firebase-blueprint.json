@@ -63,6 +63,13 @@
           }
         },
         "role": { "type": "string", "enum": ["user", "teacher", "admin", "super_admin", "plus"] },
+        "userType": { "type": "string", "enum": ["teacher", "student"] },
+        "accountTypeMigrationVersion": { "type": "number", "description": "Version of the Teacher/Student migration (1 for current migration system)." },
+        "accountTypeMigrationCompletedAt": { "type": "number", "description": "Timestamp when migration selection was submitted." },
+        "needsOnboarding": { "type": "boolean" },
+        "lastUserTypeUpdate": { "type": "number" },
+        "userTypeUpdatedBy": { "type": "string" },
+        "studentSettings": { "type": "object" },
         "subscriptionTier": { "type": "string", "enum": ["free", "plus"] },
         "isPlusSubscriber": { "type": "boolean" },
         "subscriptionDetails": { "type": "object" }

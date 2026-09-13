@@ -3,6 +3,10 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import Dashboard from './components/Dashboard';
+import { StudentDashboard } from './components/StudentDashboard';
+import { StudentOnboardingModal } from './components/StudentOnboardingModal';
+import { UserTypeSelectionModal } from './components/UserTypeSelectionModal';
+import { LegacyMigrationModal } from './components/LegacyMigrationModal';
 import PaperForm from './components/PaperForm';
 import PaperPreview from './components/PaperPreview';
 import QuestionBankView from './components/QuestionBank';
@@ -28,6 +32,8 @@ import {
   GeneratedPaper, 
   QuestionBank, 
   UserProfile, 
+  UserType,
+  StudentProfileSettings,
   MaintenanceConfig, 
   AnnouncementConfig, 
   ThemeAnimationConfig, 
@@ -46,6 +52,11 @@ import { subscribeToAnnouncement, isPlatformAdmin, subscribeToWebResearchConfig 
 import { subscribeToAdvertisementConfig } from './services/adService';
 import { subscribeToSubscriptionConfig, isUserPlusSubscriber } from './services/subscriptionService';
 import { convertToRuntimeQuestion } from './services/questionBankService';
+import { 
+  isLegacyUserRequiringMigration, 
+  completeLegacyMigration, 
+  CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION 
+} from './services/migrationService';
 import { AdPlacement } from './components/ads/AdPlacement';
 import { LandingPage } from './components/public/LandingPage';
 import { EducatorGuide } from './components/public/EducatorGuide';
@@ -62,6 +73,7 @@ import {
   deletePaperFromFirestore,
   migrateGuestPapersToFirestore
 } from './services/paperStorageService';
+import { loadGuestStudentSettings, saveGuestStudentSettings } from './services/studentProgressService';
 import { getEffectiveProfilePhoto } from './services/profilePhotoService';
 import { 
   auth, 
@@ -79,7 +91,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updateProfile,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  sanitizeForFirestore
 } from './firebase';
 import { collection, query, where, onSnapshot, setDoc, doc, deleteDoc, getDocFromServer, getDoc, updateDoc, getDocs, writeBatch } from 'firebase/firestore';
 import { 
@@ -106,7 +119,9 @@ import {
   Palette,
   Crown,
   ShieldAlert,
-  ShieldCheck
+  ShieldCheck,
+  GraduationCap,
+  ArrowRightLeft
 } from 'lucide-react';
 
 type View = 'dashboard' | 'create' | 'preview' | 'bank' | 'settings' | 'appearance' | 'profile' | 'about' | 'admin-portal' | 'subscription';
@@ -251,6 +266,198 @@ const App: React.FC = () => {
   const [subscriptionConfig, setSubscriptionConfig] = useState<SubscriptionGlobalConfig | null>(null);
   const [webResearchConfig, setWebResearchConfig] = useState<WebResearchConfig | null>(null);
   const [selectedQuestionsForPaper, setSelectedQuestionsForPaper] = useState<Question[]>([]);
+
+  // User Type (Teacher vs Student) Experience State
+  const [guestUserType, setGuestUserType] = useState<UserType>(() => {
+    try {
+      const saved = sessionStorage.getItem('genpaper_guest_user_type');
+      if (saved === 'student' || saved === 'teacher') return saved;
+    } catch (e) {}
+    return 'teacher';
+  });
+  const [showUserTypeModal, setShowUserTypeModal] = useState(false);
+  const [showStudentOnboardingModal, setShowStudentOnboardingModal] = useState(false);
+  const [showLegacyMigrationModal, setShowLegacyMigrationModal] = useState(false);
+  const [isSwitchingUserType, setIsSwitchingUserType] = useState(false);
+
+  // Effective active user experience (defaults safely to 'teacher' for existing accounts/sessions)
+  const effectiveUserType: UserType = user ? (userProfile?.userType || 'teacher') : guestUserType;
+
+  // Real-time evaluation of legacy migration requirement:
+  // Must be a signed-in user whose profile has not yet completed migration version 1+ and is NOT the Platform Owner
+  const isLegacyMigrationRequired = isAuthReady && !!user && !!userProfile && isLegacyUserRequiringMigration(user, userProfile);
+
+  // Complete the mandatory legacy migration selection for accounts created before deployment
+  const handleCompleteLegacyMigration = async (type: UserType) => {
+    if (!user) return;
+    try {
+      if (type === 'student') {
+        const currentSettings = userProfile?.studentSettings;
+        const hasCompletedOnboarding = currentSettings?.studentOnboardingCompleted === true;
+
+        await completeLegacyMigration(db, user.uid, 'student');
+        setUserProfile(prev => prev ? {
+          ...prev,
+          userType: 'student',
+          accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
+          accountTypeMigrationCompletedAt: Date.now(),
+          needsOnboarding: false
+        } : prev);
+        setShowLegacyMigrationModal(false);
+
+        if (!hasCompletedOnboarding) {
+          setShowStudentOnboardingModal(true);
+        } else {
+          setView('dashboard');
+          showToast("Welcome to the new GenPaperAI! Your Student workspace is ready 🎓", 'success');
+        }
+      } else {
+        await completeLegacyMigration(db, user.uid, 'teacher');
+        setUserProfile(prev => prev ? {
+          ...prev,
+          userType: 'teacher',
+          accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
+          accountTypeMigrationCompletedAt: Date.now(),
+          needsOnboarding: false
+        } : prev);
+        setShowLegacyMigrationModal(false);
+        setView('dashboard');
+        showToast("Welcome to the new GenPaperAI! Your Teacher workspace is ready 👨‍🏫", 'success');
+      }
+    } catch (err: any) {
+      console.error("Error completing migration:", err);
+      showToast("Migration error: " + (err.message || 'Failed to complete migration'), "error");
+      throw err;
+    }
+  };
+
+  const handleSelectUserType = async (type: UserType) => {
+    setIsSwitchingUserType(true);
+    try {
+      if (type === 'student') {
+        const currentSettings = user ? userProfile?.studentSettings : loadGuestStudentSettings();
+        const hasCompletedOnboarding = currentSettings?.studentOnboardingCompleted === true;
+
+        setShowUserTypeModal(false);
+
+        if (!hasCompletedOnboarding) {
+          // Direct to dedicated first-time setup wizard
+          setShowStudentOnboardingModal(true);
+          return;
+        }
+
+        // Already completed onboarding earlier: activate student workspace directly
+        if (user) {
+          const userDocRef = doc(db, 'users', user.uid);
+          await updateDoc(userDocRef, { 
+            userType: 'student',
+            accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
+            accountTypeMigrationCompletedAt: Date.now(),
+            needsOnboarding: false
+          });
+          setUserProfile(prev => prev ? { 
+            ...prev, 
+            userType: 'student',
+            accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
+            accountTypeMigrationCompletedAt: Date.now(),
+            needsOnboarding: false
+          } : prev);
+        } else {
+          setGuestUserType('student');
+          try {
+            sessionStorage.setItem('genpaper_guest_user_type', 'student');
+          } catch (e) {}
+        }
+        setView('dashboard');
+        showToast("Welcome to your Student Workspace 🎓!", 'success');
+      } else {
+        // Teacher workspace
+        if (user) {
+          const userDocRef = doc(db, 'users', user.uid);
+          await updateDoc(userDocRef, { 
+            userType: 'teacher',
+            accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
+            accountTypeMigrationCompletedAt: Date.now(),
+            needsOnboarding: false
+          });
+          setUserProfile(prev => prev ? { 
+            ...prev, 
+            userType: 'teacher',
+            accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
+            accountTypeMigrationCompletedAt: Date.now(),
+            needsOnboarding: false
+          } : prev);
+        } else {
+          setGuestUserType('teacher');
+          try {
+            sessionStorage.setItem('genpaper_guest_user_type', 'teacher');
+          } catch (e) {}
+        }
+        setView('dashboard');
+        showToast("Welcome to your Teacher Workspace 👨‍🏫!", 'success');
+      }
+    } catch (err: any) {
+      console.error("Error updating userType:", err);
+      showToast("Failed to set workspace mode: " + (err.message || 'Unknown error'), "error");
+    } finally {
+      setIsSwitchingUserType(false);
+      setShowUserTypeModal(false);
+    }
+  };
+
+  const handleCompleteStudentOnboarding = async (settings: StudentProfileSettings) => {
+    try {
+      const finalSettings: StudentProfileSettings = {
+        ...settings,
+        studentOnboardingCompleted: true,
+        // Ensure real streak & activity counters are clean
+        studyStreak: userProfile?.studentSettings?.studyStreak ?? 0,
+        bestStreak: userProfile?.studentSettings?.bestStreak ?? 0,
+        lastActivityDate: userProfile?.studentSettings?.lastActivityDate ?? '',
+        activityDates: userProfile?.studentSettings?.activityDates ?? [],
+        questionsSolved: userProfile?.studentSettings?.questionsSolved ?? 0,
+        correctAnswers: userProfile?.studentSettings?.correctAnswers ?? 0,
+        mockTestsCompleted: userProfile?.studentSettings?.mockTestsCompleted ?? 0,
+        mockTestScores: userProfile?.studentSettings?.mockTestScores ?? [],
+        mistakes: userProfile?.studentSettings?.mistakes ?? []
+      };
+
+      const cleanFinalSettings = sanitizeForFirestore(finalSettings);
+
+      if (user) {
+        const userDocRef = doc(db, 'users', user.uid);
+        const updates = sanitizeForFirestore({
+          userType: 'student',
+          accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
+          accountTypeMigrationCompletedAt: Date.now(),
+          needsOnboarding: false,
+          studentSettings: cleanFinalSettings
+        });
+        await updateDoc(userDocRef, updates);
+        setUserProfile(prev => prev ? {
+          ...prev,
+          userType: 'student',
+          accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
+          accountTypeMigrationCompletedAt: Date.now(),
+          needsOnboarding: false,
+          studentSettings: cleanFinalSettings
+        } : prev);
+      } else {
+        saveGuestStudentSettings(cleanFinalSettings);
+        setGuestUserType('student');
+        try {
+          sessionStorage.setItem('genpaper_guest_user_type', 'student');
+        } catch (e) {}
+      }
+
+      setShowStudentOnboardingModal(false);
+      setView('dashboard');
+      showToast("Your student learning profile is ready! 🎓 Happy learning!", 'success');
+    } catch (err: any) {
+      console.error("Error completing student onboarding:", err);
+      showToast("Failed to save student profile: " + (err.message || 'Unknown error'), "error");
+    }
+  };
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -398,8 +605,27 @@ const App: React.FC = () => {
                 handleFirestoreError(err, OperationType.UPDATE, `users/${currentUser.uid}`);
               }
             }
+
+            // Check if user is the verified Platform Owner (Requirement 5 & 7)
+            // The Platform Owner must NEVER be forced to select Teacher/Student during migration.
+            const isOwner = isSuperAdmin(currentUser.email, data.role);
+            if (isOwner && !data.userType) {
+              data.userType = 'teacher';
+            }
             
             setUserProfile(data);
+
+            // Check if user is a legacy account requiring mandatory migration
+            const needsMigration = isLegacyUserRequiringMigration(currentUser, data);
+            if (needsMigration) {
+              setShowLegacyMigrationModal(true);
+            } else if (data.needsOnboarding === true || !data.userType) {
+              if (!isOwner) {
+                setShowUserTypeModal(true);
+              }
+            } else if (data.userType === 'student' && !data.studentSettings?.studentOnboardingCompleted) {
+              setShowStudentOnboardingModal(true);
+            }
           } else {
             console.log("No user profile found, creating new one...");
             
@@ -427,6 +653,8 @@ const App: React.FC = () => {
               customProfilePhoto: null,
               providerPhoto: providerPhoto,
               selectedTheme: 'default',
+              needsOnboarding: true,
+              accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
               preferences: {
                 themeColor: 'default',
                 background: 'default'
@@ -448,7 +676,8 @@ const App: React.FC = () => {
               handleFirestoreError(err, OperationType.WRITE, `users/${currentUser.uid}`);
             }
             setUserProfile(newProfile);
-            console.log("New user profile created successfully with default preferences");
+            setShowUserTypeModal(true);
+            console.log("New user profile created successfully with mandatory onboarding state");
           }
           console.log("User UID after login:", currentUser.uid);
         } catch (err) {
@@ -541,6 +770,33 @@ const App: React.FC = () => {
     }
   };
 
+  // System Dark Mode / Theme Synchronization
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const updateDarkMode = (e: MediaQueryListEvent | MediaQueryList) => {
+      const isDark = e.matches;
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+        document.body && document.body.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.body && document.body.classList.remove('dark');
+      }
+    };
+
+    updateDarkMode(mediaQuery);
+
+    try {
+      mediaQuery.addEventListener('change', updateDarkMode);
+      return () => mediaQuery.removeEventListener('change', updateDarkMode);
+    } catch (e) {
+      mediaQuery.addListener(updateDarkMode);
+      return () => mediaQuery.removeListener(updateDarkMode);
+    }
+  }, []);
+
   // Apply Liquid Glass Global DOM Class
   useEffect(() => {
     if (liquidGlassEnabled) {
@@ -594,6 +850,8 @@ const App: React.FC = () => {
     try {
       localStorage.setItem('genpaper_theme_config', JSON.stringify(activeConfig));
       localStorage.setItem('genpaper_selected_theme', theme);
+      document.documentElement.setAttribute('data-theme', theme);
+      document.body && document.body.setAttribute('data-theme', theme);
     } catch (e) {}
 
     const bgWrapper = document.querySelector('.premium-bg-wrapper') as HTMLElement;
@@ -948,29 +1206,6 @@ const App: React.FC = () => {
       setError("Failed to update profile: " + err.message);
       showToast("Failed to update profile: " + err.message, "error");
     }
-  };
-
-  const sanitizeForFirestore = (obj: any): any => {
-    if (Array.isArray(obj)) {
-      return obj.map(sanitizeForFirestore);
-    } else if (obj !== null && typeof obj === 'object') {
-      const sanitized: any = {};
-      for (const key in obj) {
-        if (obj[key] === undefined) {
-          // Default generalInstructions to empty string if undefined
-          if (key === 'generalInstructions') {
-            sanitized[key] = "";
-          } else {
-            // Remove other undefined fields
-            continue;
-          }
-        } else {
-          sanitized[key] = sanitizeForFirestore(obj[key]);
-        }
-      }
-      return sanitized;
-    }
-    return obj;
   };
 
   const formatErrorMessage = (msg: string) => {
@@ -1368,6 +1603,20 @@ const App: React.FC = () => {
                                         Settings
                                     </button>
 
+                                    {effectiveUserType === 'student' && (
+                                      <button 
+                                          id="dropdown-btn-learning-profile"
+                                          onClick={() => { setShowStudentOnboardingModal(true); setIsOpen(false); }}
+                                          className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors cursor-pointer"
+                                      >
+                                          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                                              <GraduationCap className="w-4 h-4" />
+                                          </div>
+                                          <span>Learning Profile & Goals</span>
+                                      </button>
+                                    )}
+
+
                                     <button 
                                         onClick={() => { setView('about'); setIsOpen(false); }}
                                         className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
@@ -1706,21 +1955,45 @@ const App: React.FC = () => {
 
                     {view === 'dashboard' && (
                       <div className="space-y-4">
-                        <Dashboard 
-                          history={history} 
-                          onCreateNew={handleCreateNew} 
-                          onViewPaper={handleViewPaper} 
-                          onViewBank={() => {
-                            if (isGuest) {
-                              openGuestAuthModal('bank', 'Sign in to access curated Question Banks.');
-                            } else {
-                              setView('bank');
-                            }
-                          }}
-                          onDeletePaper={handleDeletePaper}
-                          isGuest={isGuest}
-                          onRequireAuth={openGuestAuthModal}
-                        />
+                        {effectiveUserType === 'student' ? (
+                          <StudentDashboard 
+                            userProfile={userProfile}
+                            isGuest={isGuest}
+                            onRequireAuth={openGuestAuthModal}
+                            onOpenProfileSettings={() => setShowStudentOnboardingModal(true)}
+                            onUpdateStudentSettings={async (updatedSettings) => {
+                              const cleanSettings = sanitizeForFirestore(updatedSettings);
+                              setUserProfile(prev => prev ? { ...prev, studentSettings: cleanSettings } : prev);
+                              if (user) {
+                                try {
+                                  await updateDoc(doc(db, 'users', user.uid), sanitizeForFirestore({
+                                    studentSettings: cleanSettings
+                                  }));
+                                } catch (e) {
+                                  console.error("Error saving updated student settings:", e);
+                                }
+                              } else {
+                                saveGuestStudentSettings(cleanSettings);
+                              }
+                            }}
+                          />
+                        ) : (
+                          <Dashboard 
+                            history={history} 
+                            onCreateNew={handleCreateNew} 
+                            onViewPaper={handleViewPaper} 
+                            onViewBank={() => {
+                              if (isGuest) {
+                                openGuestAuthModal('bank', 'Sign in to access curated Question Banks.');
+                              } else {
+                                setView('bank');
+                              }
+                            }} 
+                            onDeletePaper={handleDeletePaper}
+                            isGuest={isGuest}
+                            onRequireAuth={openGuestAuthModal}
+                          />
+                        )}
                         <AdPlacement 
                           placementId="dashboard_banner" 
                           currentUser={userProfile} 
@@ -1888,6 +2161,9 @@ const App: React.FC = () => {
                             <AdminCenter 
                                 user={userProfile} 
                                 onBackToDashboard={handleBackToDashboard} 
+                                onCurrentUserUpdated={(updated) => {
+                                  setUserProfile(updated);
+                                }}
                             />
                         ) : (
                             <div className="flex flex-col items-center justify-center h-64 gap-4">
@@ -2182,6 +2458,40 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Mandatory Legacy Migration Modal for Accounts Created Before Teacher/Student Deployment */}
+      <LegacyMigrationModal
+        isOpen={showLegacyMigrationModal || isLegacyMigrationRequired}
+        onComplete={handleCompleteLegacyMigration}
+        userEmail={user?.email || ''}
+        userName={userProfile?.name}
+      />
+
+      {/* User Type Onboarding Selection Modal (for newly registered accounts) */}
+      <UserTypeSelectionModal
+        isOpen={showUserTypeModal && !isLegacyMigrationRequired}
+        currentType={effectiveUserType}
+        onSelect={handleSelectUserType}
+        onClose={() => setShowUserTypeModal(false)}
+        isMandatory={!!user && (userProfile?.needsOnboarding === true || !userProfile?.userType)}
+        isGuest={!user && isGuest}
+      />
+
+      {/* Student First-Time Setup / Learning Profile Modal */}
+      <StudentOnboardingModal
+        isOpen={showStudentOnboardingModal}
+        initialSettings={userProfile?.studentSettings || loadGuestStudentSettings() || undefined}
+        isMandatory={!!user && userProfile?.userType === 'student' && !userProfile?.studentSettings?.studentOnboardingCompleted}
+        onComplete={handleCompleteStudentOnboarding}
+        onClose={() => {
+          if (!!user && userProfile?.userType === 'student' && !userProfile?.studentSettings?.studentOnboardingCompleted) {
+            setShowStudentOnboardingModal(false);
+            setShowUserTypeModal(true);
+          } else {
+            setShowStudentOnboardingModal(false);
+          }
+        }}
+      />
 
       {/* Guest Mode Auth Modal */}
       <GuestAuthModal

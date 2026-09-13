@@ -284,7 +284,7 @@ export const AdminAIModels: React.FC<AdminAIModelsProps> = ({
                       value={model.priority}
                       onChange={(e) => handlePriorityChange(model.id, Number(e.target.value))}
                       disabled={isSaving}
-                      className="bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 font-mono text-xs font-bold"
+                      className="bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 font-mono text-xs font-bold text-gray-900 dark:text-gray-100"
                     >
                       {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
                         <option key={num} value={num}>{num} {num === 1 ? '(Highest)' : ''}</option>
@@ -335,7 +335,7 @@ export const AdminAIModels: React.FC<AdminAIModelsProps> = ({
                   placeholder="e.g. gemini-3.7-flash or gemini-3.1-pro-preview"
                   value={newModel.id}
                   onChange={(e) => setNewModel({ ...newModel, id: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-mono text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 />
               </div>
 
@@ -349,7 +349,7 @@ export const AdminAIModels: React.FC<AdminAIModelsProps> = ({
                   placeholder="e.g. Gemini 3.7 Flash High Performance"
                   value={newModel.name}
                   onChange={(e) => setNewModel({ ...newModel, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 />
               </div>
 
@@ -361,7 +361,7 @@ export const AdminAIModels: React.FC<AdminAIModelsProps> = ({
                   <select
                     value={newModel.provider}
                     onChange={(e) => setNewModel({ ...newModel, provider: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:outline-none font-medium"
+                    className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:outline-none font-medium"
                   >
                     <option value="Google DeepMind">Google DeepMind</option>
                     <option value="Gemini">Gemini</option>
@@ -379,7 +379,7 @@ export const AdminAIModels: React.FC<AdminAIModelsProps> = ({
                     max={8}
                     value={newModel.priority}
                     onChange={(e) => setNewModel({ ...newModel, priority: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-mono text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -393,7 +393,7 @@ export const AdminAIModels: React.FC<AdminAIModelsProps> = ({
                   placeholder="e.g. HOTS Reasoning, High-Throughput Fallback, etc."
                   value={newModel.intendedUse}
                   onChange={(e) => setNewModel({ ...newModel, intendedUse: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 />
               </div>
 
@@ -406,7 +406,7 @@ export const AdminAIModels: React.FC<AdminAIModelsProps> = ({
                   placeholder="e.g. Adherence to Bloom taxonomy, token efficiency notes..."
                   value={newModel.qualityNotes}
                   onChange={(e) => setNewModel({ ...newModel, qualityNotes: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 />
               </div>
 

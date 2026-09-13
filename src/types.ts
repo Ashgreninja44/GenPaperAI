@@ -370,9 +370,221 @@ export interface UserPreferences {
   themeCustomization?: ThemeAnimationConfig;
 }
 
-export type UserRole = 'user' | 'teacher' | 'admin' | 'super_admin' | 'plus';
+// Administrative Permission Roles (Governs platform access levels)
+// 'teacher' and 'student' are retained in the union for backward compatibility with legacy database records.
+export type UserRole = 'user' | 'admin' | 'super_admin' | 'plus' | 'teacher' | 'student';
 
+// Account Type (Governs workspace experience: Paper generation vs. Student study practice)
+export type UserType = 'teacher' | 'student';
+
+// Subscription Tier (Governs quota and premium entitlements)
 export type SubscriptionTier = 'free' | 'plus';
+
+export interface StudentSubjectProgress {
+  id: string;
+  name: string;
+  grade: string;
+  board: string;
+  color: string;
+  iconName: string;
+  totalChapters: number;
+  completedChapters: number;
+  masteryPercentage: number;
+  weakTopics?: string[];
+  strongTopics?: string[];
+}
+
+export interface StudentPracticeQuestion {
+  id: string;
+  subject: string;
+  grade: string;
+  topic: string;
+  subtopic?: string;
+  questionText: string;
+  type: 'MCQ' | 'Short' | 'Assertion-Reason';
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  bloomLevel: BloomTaxonomyLevel;
+  options?: string[];
+  correctAnswer: string;
+  hint?: string;
+  explanation: string;
+}
+
+export interface StudentMockTest {
+  id: string;
+  title: string;
+  subject: string;
+  grade: string;
+  board: string;
+  totalMarks: number;
+  durationMinutes: number;
+  questionCount: number;
+  status: 'available' | 'in_progress' | 'completed';
+  assignedBy?: {
+    teacherName: string;
+    classroomCode?: string;
+    dueDate?: string;
+  };
+  score?: number;
+  maxScore?: number;
+  completedAt?: number;
+}
+
+export interface StudentMistakeRecord {
+  id: string;
+  subject: string;
+  topic: string;
+  questionText: string;
+  yourAnswer?: string;
+  correctAnswer: string;
+  explanation: string;
+  dateAdded: number;
+  resolved: boolean;
+  notes?: string;
+}
+
+export interface StudentRevisionDeck {
+  id: string;
+  subject: string;
+  title: string;
+  chapter: string;
+  summary: string;
+  keyPoints: string[];
+  formulas?: string[];
+  lastReviewed?: number;
+}
+
+// ==========================================
+// PHASE 6: FUTURE TEACHER ↔ STUDENT ARCHITECTURE BRIDGES
+// (Extensible data contracts for upcoming classroom / assignment phases)
+// ==========================================
+
+export interface ClassroomBatch {
+  id: string;
+  name: string;
+  code: string; // e.g. "CBSE-10A-2026"
+  teacherUid: string;
+  teacherName: string;
+  board: string;
+  grade: string;
+  subject: string;
+  createdAt: number;
+  studentCount: number;
+  activeAssignmentsCount: number;
+}
+
+export interface ClassroomStudent {
+  uid: string;
+  name: string;
+  email: string;
+  rollNumber?: string;
+  joinedAt: number;
+  status: 'active' | 'invited' | 'suspended';
+  overallMastery?: number;
+}
+
+export interface ClassroomAssignment {
+  id: string;
+  classroomId: string;
+  paperId: string;
+  paperTitle: string;
+  teacherUid: string;
+  assignedAt: number;
+  dueAt: number;
+  durationMinutes: number;
+  totalMarks: number;
+  status: 'draft' | 'published' | 'closed';
+  submissionCount: number;
+  evaluatedCount: number;
+  averageScore?: number;
+}
+
+export interface StudentAssignmentSubmission {
+  id: string;
+  assignmentId: string;
+  classroomId: string;
+  studentUid: string;
+  studentName: string;
+  submittedAt: number;
+  answers: Array<{
+    questionId: string;
+    studentAnswerText: string;
+    timeSpentSeconds?: number;
+  }>;
+  status: 'submitted' | 'evaluating' | 'graded';
+  score?: number;
+  maxScore?: number;
+  feedback?: string;
+  weakTopicsIdentified?: string[];
+}
+
+export interface AssignmentAutomatedEvaluation {
+  submissionId: string;
+  evaluatedAt: number;
+  evaluatorModel: string;
+  questionEvaluations: Array<{
+    questionId: string;
+    scoreAwarded: number;
+    maxScore: number;
+    isCorrect: boolean;
+    rubricFeedback: string;
+    identifiedConceptGap?: string;
+  }>;
+  overallScore: number;
+  overallFeedback: string;
+  recommendedRemedialTopics: string[];
+}
+
+export interface TargetedPracticeRecommendation {
+  id: string;
+  studentUid: string;
+  assignmentId?: string;
+  subject: string;
+  topic: string;
+  reason: string; // e.g., "Score < 60% in Trigonometric Identities"
+  generatedPaperConfig?: any;
+  createdDate: number;
+  status: 'pending' | 'completed';
+}
+
+export interface StudentProfileSettings {
+  targetGrade?: string;
+  targetBoard?: string;
+  enrolledSubjects?: string[]; // The subjects the student explicitly enrolled in
+  primarySubjects?: string[];
+  learningGoals?: string[]; // e.g. "Improve weak chapters", "Prepare for board exams"
+  customGoal?: string; // Optional custom goal entered by student
+  targetExam?: string;
+  targetScore?: string; // Optional target percentage / score
+  targetExamDate?: string; // Optional target exam date
+  dailyStudyGoal?: string; // Optional daily study goal (e.g. "30 mins/day")
+  dailyStudyGoalMinutes?: number; // Minutes per day
+  dailyPracticeGoal?: number; // e.g. 10 questions per day
+  strongSubjects?: string[];
+  weakSubjects?: string[];
+  
+  // Persisted First-Time Onboarding State
+  studentOnboardingCompleted?: boolean;
+  onboardingCompletedAt?: number;
+  
+  // Real Study Streak & Activity Tracking
+  studyStreak?: number;
+  lastActivityDate?: string; // Format: 'YYYY-MM-DD'
+  bestStreak?: number;
+  activityDates?: string[]; // Array of unique 'YYYY-MM-DD' activity dates
+  
+  // Real Academic Progress Metrics
+  questionsSolved?: number;
+  correctAnswers?: number;
+  mockTestsCompleted?: number;
+  mockTestScores?: Array<{
+    testId: string;
+    score: number;
+    maxScore: number;
+    completedAt: number;
+  }>;
+  mistakes?: StudentMistakeRecord[];
+}
 
 export interface UserProfile {
   uid: string;
@@ -388,9 +600,16 @@ export interface UserProfile {
   createdAt: number;
   lastLogin?: number;
   role: UserRole;
+  userType?: UserType; // 'teacher' | 'student'
+  accountTypeMigrationVersion?: number; // Version 1 for migrated or newly created users under the Teacher/Student system
+  accountTypeMigrationCompletedAt?: number;
+  needsOnboarding?: boolean; // Set to true for newly created accounts until account type is selected
+  lastUserTypeUpdate?: number;
+  userTypeUpdatedBy?: string;
   subscriptionTier?: SubscriptionTier;
   isPlusSubscriber?: boolean;
   subscriptionDetails?: UserSubscriptionDetails;
+  studentSettings?: StudentProfileSettings;
   defaultPaperSettings?: {
     board?: string;
     grade?: string;

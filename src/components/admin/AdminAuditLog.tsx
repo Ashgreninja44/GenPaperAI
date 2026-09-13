@@ -34,6 +34,13 @@ export const AdminAuditLog: React.FC<AdminAuditLogProps> = ({
   });
 
   const getActionBadge = (action: string) => {
+    if (action.includes('ACCOUNT_TYPE')) {
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+          Account Type
+        </span>
+      );
+    }
     if (action.includes('ROLE')) {
       return (
         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
@@ -103,6 +110,7 @@ export const AdminAuditLog: React.FC<AdminAuditLogProps> = ({
             className="bg-transparent text-xs font-semibold text-gray-700 dark:text-gray-300 focus:outline-none"
           >
             <option value="all">All Actions</option>
+            <option value="ACCOUNT_TYPE_CHANGED">Account Type Changes</option>
             <option value="USER_ROLE_CHANGED">Role Changes</option>
             <option value="MAINTENANCE_TOGGLED">Maintenance Mode</option>
             <option value="ANNOUNCEMENT_UPDATED">Announcements</option>

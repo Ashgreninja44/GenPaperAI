@@ -184,6 +184,26 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       )}
 
+      {/* Classroom & Student Assignments Placeholder (Phase 4 / Phase 6 Architecture Bridge) */}
+      <div className="mb-8 p-5 sm:p-6 rounded-2xl bg-white/75 dark:bg-gray-800/75 border border-white/60 dark:border-gray-700 shadow-xl backdrop-blur-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#EEA727] to-[#DD2476] text-white flex items-center justify-center text-xl font-bold shrink-0 shadow-md">
+            🎓
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">Classrooms & Student Assignments</h3>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-800 dark:text-amber-300 border border-amber-400/30 font-black uppercase tracking-wider">
+                Coming Soon in Phase 6
+              </span>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-300 max-w-2xl font-medium">
+              Seamlessly assign generated question papers to your student batches, conduct timed digital mock tests, and review automated AI student answer evaluations.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* History Table */}
       <div className="glass-panel rounded-2xl overflow-hidden shadow-2xl shadow-[#3C128D]/10">
         <div className="p-6 border-b border-gray-100 bg-white/50 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

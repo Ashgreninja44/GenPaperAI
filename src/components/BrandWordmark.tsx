@@ -1,11 +1,11 @@
 import React from 'react';
-import { Crown, ShieldCheck, GraduationCap } from 'lucide-react';
+import { Crown, ShieldCheck } from 'lucide-react';
 import { UserProfile } from '../types';
 import { isSuperAdmin, isAdmin } from '../services/adminService';
 import { isUserPlusSubscriber } from '../services/subscriptionService';
 import { User } from 'firebase/auth';
 
-export type BrandBadgeType = 'super_admin' | 'admin' | 'teacher' | 'plus' | 'free' | 'guest';
+export type BrandBadgeType = 'super_admin' | 'admin' | 'plus' | 'free' | 'guest';
 
 export interface BrandWordmarkProps {
   user?: User | null;
@@ -24,10 +24,9 @@ export interface BrandWordmarkProps {
  * Priority Hierarchy:
  * 1. OWNER / SUPER ADMIN  → Crown icon
  * 2. ADMIN                → ShieldCheck icon
- * 3. TEACHER              → GraduationCap icon
- * 4. PLUS SUBSCRIBER      → "+" character (GenPaperAI+)
- * 5. GUEST                → Guest indicator
- * 6. FREE / NORMAL USER   → No badge (GenPaperAI)
+ * 3. PLUS SUBSCRIBER      → "+" character (GenPaperAI+)
+ * 4. GUEST                → Guest indicator
+ * 5. FREE / NORMAL USER   → No badge (GenPaperAI)
  */
 export function getBrandBadge(
   user?: User | null,
@@ -51,17 +50,12 @@ export function getBrandBadge(
     return { type: 'admin', title: 'Administrator' };
   }
 
-  // 3. TEACHER
-  if (role === 'teacher') {
-    return { type: 'teacher', title: 'Educator' };
-  }
-
-  // 4. PLUS SUBSCRIBER
+  // 3. PLUS SUBSCRIBER
   if (userProfile && isUserPlusSubscriber(userProfile)) {
     return { type: 'plus', title: 'GenPaperAI Plus Subscriber' };
   }
 
-  // 5. FREE / NORMAL USER
+  // 4. FREE / NORMAL USER
   return { type: 'free', title: 'GenPaperAI' };
 }
 
@@ -110,16 +104,6 @@ export const BrandWordmark: React.FC<BrandWordmarkProps> = ({
           aria-label={badge.title}
         >
           <ShieldCheck className={`${iconSize} fill-sky-400/30 text-sky-300`} strokeWidth={2.2} />
-        </span>
-      )}
-
-      {badge.type === 'teacher' && (
-        <span 
-          className="inline-flex items-center ml-1 text-emerald-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.7)] transform -translate-y-0.5 transition-transform hover:scale-110" 
-          title={badge.title}
-          aria-label={badge.title}
-        >
-          <GraduationCap className={`${iconSize} fill-emerald-400/30 text-emerald-300`} strokeWidth={2.2} />
         </span>
       )}
 

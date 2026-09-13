@@ -344,7 +344,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="e.g. Science, Mathematics"
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 />
               </div>
 
@@ -357,7 +357,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
                   value={grade}
                   onChange={(e) => setGrade(e.target.value)}
                   placeholder="e.g. Class 10"
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 />
               </div>
 
@@ -370,7 +370,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
                   value={board}
                   onChange={(e) => setBoard(e.target.value)}
                   placeholder="e.g. CBSE, ICSE, State"
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-medium text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 />
               </div>
 
@@ -402,7 +402,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     placeholder="https://example.com/class-10-science-chapter-questions"
-                    className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -420,7 +420,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
                       value={topic}
                       onChange={(e) => setTopic(e.target.value)}
                       placeholder="e.g. Light Reflection and Refraction, Snell's Law, Ray Diagrams"
-                      className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium"
+                      className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium"
                     />
                   </div>
                 </div>
@@ -434,7 +434,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
                     value={chapter}
                     onChange={(e) => setChapter(e.target.value)}
                     placeholder="e.g. Chapter 9: Light"
-                    className="w-full px-3 py-2.5 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium"
+                    className="w-full px-3 py-2.5 text-xs rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium"
                   />
                 </div>
               </div>
@@ -685,11 +685,11 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
         {result && (
           <div className="p-4 sm:p-5 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <span className="text-xs font-bold text-gray-500">Save Destination:</span>
+              <span className="text-xs font-bold text-gray-500 dark:text-gray-400">Save Destination:</span>
               <select
                 value={targetBankId}
                 onChange={(e) => setTargetBankId(e.target.value)}
-                className="px-2.5 py-1.5 text-xs rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-medium"
+                className="px-2.5 py-1.5 text-xs rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-medium text-gray-900 dark:text-gray-100"
               >
                 <option value="new">Create New Subject Bank</option>
                 {existingBanks.map(b => (

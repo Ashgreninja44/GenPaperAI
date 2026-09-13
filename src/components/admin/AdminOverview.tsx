@@ -34,8 +34,9 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
   onNavigateTab
 }) => {
   const activeModelsCount = aiRegistry.models.filter(m => m.enabled).length;
-  const adminUsersCount = users.filter(u => u.role === 'admin' || u.role === 'super_admin').length;
-  const teacherUsersCount = users.filter(u => u.role === 'teacher').length;
+  const adminUsersCount = users.filter(u => u.role === 'admin' || u.role === 'super_admin' || (u.email && u.email.toLowerCase() === 'pendyaladarshit4@gmail.com')).length;
+  const teacherUsersCount = users.filter(u => (u.userType || 'teacher') === 'teacher').length;
+  const studentUsersCount = users.filter(u => u.userType === 'student').length;
 
   return (
     <div className="space-y-6" id="admin-overview-container">
@@ -111,10 +112,12 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
           <div className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white mt-2">
             {users.length}
           </div>
-          <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+          <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-1">
             <span className="font-semibold text-indigo-600 dark:text-indigo-400">{adminUsersCount} Admins</span>
             <span>•</span>
-            <span>{teacherUsersCount} Teachers</span>
+            <span className="text-purple-600 dark:text-purple-400 font-medium">{teacherUsersCount} Teachers</span>
+            <span>•</span>
+            <span className="text-amber-600 dark:text-amber-400 font-medium">{studentUsersCount} Students</span>
           </div>
         </div>
 

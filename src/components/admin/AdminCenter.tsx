@@ -53,6 +53,7 @@ export interface AdminCenterProps {
   user: UserProfile;
   onBackToDashboard: () => void;
   onBackToProfile?: () => void;
+  onCurrentUserUpdated?: (updated: UserProfile) => void;
 }
 
 type AdminTab = 'overview' | 'users' | 'ai-models' | 'analytics' | 'monetization' | 'system' | 'diagnostics' | 'security' | 'audit-log';
@@ -60,7 +61,8 @@ type AdminTab = 'overview' | 'users' | 'ai-models' | 'analytics' | 'monetization
 export const AdminCenter: React.FC<AdminCenterProps> = ({
   user,
   onBackToDashboard,
-  onBackToProfile
+  onBackToProfile,
+  onCurrentUserUpdated
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -289,6 +291,7 @@ export const AdminCenter: React.FC<AdminCenterProps> = ({
               currentUserEmail={user.email}
               currentUserRole={user.role}
               onRefreshUsers={refreshAllData}
+              onCurrentUserUpdated={onCurrentUserUpdated}
             />
           )}
 

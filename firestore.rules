@@ -43,7 +43,7 @@ service cloud.firestore {
              data.uid == request.auth.uid &&
              data.email is string && data.email.size() <= 200 &&
              data.name is string && data.name.size() <= 200 &&
-             data.role in ['user', 'teacher', 'admin', 'super_admin', 'plus'];
+             data.role in ['user', 'teacher', 'student', 'admin', 'super_admin', 'plus'];
     }
 
     match /users/{userId} {
@@ -52,9 +52,15 @@ service cloud.firestore {
       allow create: if isOwner(userId) && isValidUser(incoming()) && (
         incoming().role in ['user', 'plus'] || isDeveloperEmail()
       );
-      allow update: if (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phoneNumber', 'profilePhoto', 'customProfilePhoto', 'providerPhoto', 'selectedTheme', 'preferences', 'defaultPaperSettings', 'lastLogin'])) ||
-                       (isSuperAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'subscriptionTier', 'isPlusSubscriber', 'subscriptionDetails']) && !(existing().email.lower() == 'pendyaladarshit4@gmail.com' && incoming().role != 'super_admin')) ||
-                       (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'subscriptionTier', 'isPlusSubscriber', 'subscriptionDetails']) && incoming().role in ['user', 'teacher', 'admin', 'plus'] && existing().role != 'super_admin');
+      allow update: if (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phoneNumber', 'profilePhoto', 'customProfilePhoto', 'providerPhoto', 'selectedTheme', 'preferences', 'defaultPaperSettings', 'studentSettings', 'lastLogin', 'userType', 'needsOnboarding', 'lastUserTypeUpdate', 'userTypeUpdatedBy', 'accountTypeMigrationVersion', 'accountTypeMigrationCompletedAt']) && (
+                         !incoming().diff(existing()).affectedKeys().hasAny(['userType']) ||
+                         !('userType' in existing()) ||
+                         !('accountTypeMigrationVersion' in existing()) ||
+                         incoming().userType == existing().userType ||
+                         isSuperAdmin()
+                       )) ||
+                       (isSuperAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'subscriptionTier', 'isPlusSubscriber', 'subscriptionDetails', 'userType', 'needsOnboarding', 'lastUserTypeUpdate', 'userTypeUpdatedBy', 'accountTypeMigrationVersion', 'accountTypeMigrationCompletedAt']) && !(existing().email.lower() == 'pendyaladarshit4@gmail.com' && incoming().role != 'super_admin')) ||
+                       (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'subscriptionTier', 'isPlusSubscriber', 'subscriptionDetails']) && incoming().role in ['user', 'teacher', 'student', 'admin', 'plus'] && existing().role != 'super_admin');
       allow delete: if isSuperAdmin() && !(existing().email.lower() == 'pendyaladarshit4@gmail.com');
     }
 
