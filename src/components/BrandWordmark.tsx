@@ -63,10 +63,10 @@ export const BrandWordmark: React.FC<BrandWordmarkProps> = ({
   user,
   userProfile,
   isGuest,
-  className = "inline-flex items-center tracking-tight font-bold whitespace-nowrap select-none",
-  textClassName = "text-white drop-shadow-md",
-  aiClassName = "text-amber-400 drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]",
-  iconSize = "w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-4.5 md:h-4.5",
+  className = "inline-flex items-center tracking-tight font-extrabold whitespace-nowrap select-none",
+  textClassName = "text-white dark:text-white font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]",
+  aiClassName = "text-amber-300 dark:text-amber-300 font-black ml-0.5 drop-shadow-[0_0_12px_rgba(251,191,36,0.8)] tracking-wide",
+  iconSize = "w-4 h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5",
   showBadge = true,
 }) => {
   const badge = showBadge ? getBrandBadge(user, userProfile, isGuest) : { type: 'free' as BrandBadgeType, title: 'GenPaperAI' };
@@ -79,7 +79,7 @@ export const BrandWordmark: React.FC<BrandWordmarkProps> = ({
       {/* Account Status / Role Badge appearing directly after "AI" */}
       {badge.type === 'guest' && (
         <span 
-          className="inline-flex items-center ml-1 text-amber-200 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-400/20 border border-amber-300/40 transform -translate-y-0.5" 
+          className="inline-flex items-center ml-1.5 text-amber-200 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-400/30 border border-amber-300/60 shadow-sm transform -translate-y-0.5" 
           title={badge.title}
           aria-label={badge.title}
         >
@@ -89,27 +89,27 @@ export const BrandWordmark: React.FC<BrandWordmarkProps> = ({
 
       {badge.type === 'super_admin' && (
         <span 
-          className="inline-flex items-center ml-1 text-amber-300 drop-shadow-[0_0_8px_rgba(252,211,77,0.7)] transform -translate-y-0.5 transition-transform hover:scale-110" 
+          className="inline-flex items-center ml-1.5 text-amber-300 drop-shadow-[0_0_10px_rgba(252,211,77,0.9)] transform -translate-y-0.5 transition-transform hover:scale-115" 
           title={badge.title}
           aria-label={badge.title}
         >
-          <Crown className={`${iconSize} fill-amber-400/40 text-amber-300`} strokeWidth={2.2} />
+          <Crown className={`${iconSize} fill-amber-400 text-amber-300 drop-shadow-md`} strokeWidth={2.4} />
         </span>
       )}
 
       {badge.type === 'admin' && (
         <span 
-          className="inline-flex items-center ml-1 text-sky-300 drop-shadow-[0_0_8px_rgba(56,189,248,0.7)] transform -translate-y-0.5 transition-transform hover:scale-110" 
+          className="inline-flex items-center ml-1.5 text-sky-300 drop-shadow-[0_0_10px_rgba(56,189,248,0.9)] transform -translate-y-0.5 transition-transform hover:scale-115" 
           title={badge.title}
           aria-label={badge.title}
         >
-          <ShieldCheck className={`${iconSize} fill-sky-400/30 text-sky-300`} strokeWidth={2.2} />
+          <ShieldCheck className={`${iconSize} fill-sky-400 text-sky-300 drop-shadow-md`} strokeWidth={2.4} />
         </span>
       )}
 
       {badge.type === 'plus' && (
         <span 
-          className={`${aiClassName} ml-0.5 font-black text-[1.1em] leading-none transform -translate-y-0.5 select-none transition-transform hover:scale-110`}
+          className={`${aiClassName} ml-1 font-black text-[1.15em] leading-none transform -translate-y-0.5 select-none transition-transform hover:scale-115 drop-shadow-[0_0_10px_rgba(251,191,36,0.9)]`}
           title={badge.title}
           aria-label={badge.title}
         >

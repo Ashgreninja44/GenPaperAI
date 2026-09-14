@@ -26,6 +26,7 @@ import Logo from './components/Logo';
 import BrandWordmark from './components/BrandWordmark';
 import { GoogleIcon, MicrosoftIcon, EmailIcon } from './components/BrandIcons';
 import { GuestAuthModal } from './components/GuestAuthModal';
+import { ExitGuestModal } from './components/ExitGuestModal';
 import { SyllabusData, getLatestCurriculum, updateSyllabusFromSources } from './services/syllabusService';
 import { 
   PaperConfig, 
@@ -44,6 +45,7 @@ import {
   Question, 
   StructuredQuestion,
   BackgroundMode,
+  AppearanceMode,
   CustomBackgroundConfig
 } from './types';
 import { generateQuestionPaper } from './services/geminiService';
@@ -143,6 +145,8 @@ const ORB_THEMES: Record<string, string[]> = {
 };
 
 const App: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [view, setView] = useState<View>('dashboard');
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -184,6 +188,13 @@ const App: React.FC = () => {
     } catch (e) {}
     return null;
   });
+  const [appearanceMode, setAppearanceMode] = useState<AppearanceMode>(() => {
+    try {
+      const saved = localStorage.getItem('genpaper_appearance_mode');
+      if (saved === 'light' || saved === 'dark') return saved;
+    } catch (e) {}
+    return 'dark';
+  });
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' | 'warning' } | null>(null);
 
   const showToast = useCallback((message: string, type: 'error' | 'success' | 'warning' = 'error') => {
@@ -210,6 +221,7 @@ const App: React.FC = () => {
       return false;
     }
   });
+  const [showExitGuestModal, setShowExitGuestModal] = useState(false);
   const [guestAuthModalState, setGuestAuthModalState] = useState<{
     isOpen: boolean;
     feature?: 'download' | 'bank' | 'web-extract' | 'save' | 'customization' | 'general';
@@ -226,13 +238,22 @@ const App: React.FC = () => {
   }, [showToast]);
 
   const handleExitGuestMode = useCallback(() => {
+    setShowExitGuestModal(true);
+  }, []);
+
+  const handleConfirmExitGuestMode = useCallback(() => {
     setIsGuest(false);
     try {
       sessionStorage.removeItem('genpaper_guest_mode');
+      sessionStorage.removeItem('genpaper_pending_guest_papers');
+      sessionStorage.removeItem('genpaper_guest_student_settings');
     } catch (e) {}
+    setHistory([]);
     setView('dashboard');
-    showToast("Exited Guest Mode.", "warning");
-  }, [showToast]);
+    setShowExitGuestModal(false);
+    navigate('/');
+    showToast("Exited Guest Mode. Returned to home page.", "warning");
+  }, [navigate, showToast]);
 
   const openGuestAuthModal = useCallback((
     feature: 'download' | 'bank' | 'web-extract' | 'save' | 'customization' | 'general' = 'general', 
@@ -459,8 +480,6 @@ const App: React.FC = () => {
     }
   };
 
-  const location = useLocation();
-  const navigate = useNavigate();
   const [showLegalModal, setShowLegalModal] = useState<'terms' | 'privacy' | null>(null);
 
   // Subscribe to real-time maintenance status from Firestore
@@ -770,32 +789,34 @@ const App: React.FC = () => {
     }
   };
 
-  // System Dark Mode / Theme Synchronization
+  // Apply Appearance Mode (Light / Dark) to DOM
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof document === 'undefined') return;
 
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const updateDarkMode = (e: MediaQueryListEvent | MediaQueryList) => {
-      const isDark = e.matches;
-      if (isDark) {
-        document.documentElement.classList.add('dark');
-        document.body && document.body.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-        document.body && document.body.classList.remove('dark');
+    if (appearanceMode === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+      document.documentElement.setAttribute('data-appearance', 'dark');
+      if (document.body) {
+        document.body.classList.add('dark');
+        document.body.classList.remove('light');
+        document.body.setAttribute('data-appearance', 'dark');
       }
-    };
-
-    updateDarkMode(mediaQuery);
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+      document.documentElement.setAttribute('data-appearance', 'light');
+      if (document.body) {
+        document.body.classList.remove('dark');
+        document.body.classList.add('light');
+        document.body.setAttribute('data-appearance', 'light');
+      }
+    }
 
     try {
-      mediaQuery.addEventListener('change', updateDarkMode);
-      return () => mediaQuery.removeEventListener('change', updateDarkMode);
-    } catch (e) {
-      mediaQuery.addListener(updateDarkMode);
-      return () => mediaQuery.removeListener(updateDarkMode);
-    }
-  }, []);
+      localStorage.setItem('genpaper_appearance_mode', appearanceMode);
+    } catch (e) {}
+  }, [appearanceMode]);
 
   // Apply Liquid Glass Global DOM Class
   useEffect(() => {
@@ -822,6 +843,12 @@ const App: React.FC = () => {
     const theme = userProfile.preferences?.themeColor || userProfile.selectedTheme || currentTheme || 'default';
     const customConfig = userProfile.preferences?.themeCustomization || themeConfig || DEFAULT_THEME_ANIMATION_CONFIG;
     
+    if (userProfile.preferences?.appearanceMode !== undefined) {
+      setAppearanceMode(userProfile.preferences.appearanceMode);
+      try {
+        localStorage.setItem('genpaper_appearance_mode', userProfile.preferences.appearanceMode);
+      } catch (e) {}
+    }
     if (userProfile.preferences?.liquidGlassEnabled !== undefined) {
       setLiquidGlassEnabled(userProfile.preferences.liquidGlassEnabled);
     }
@@ -890,7 +917,8 @@ const App: React.FC = () => {
             themeCustomization: newConfig,
             liquidGlassEnabled: liquidGlassEnabled,
             backgroundMode: backgroundMode,
-            customBackground: customBackground ?? undefined
+            customBackground: customBackground ?? undefined,
+            appearanceMode: appearanceMode
           }
         };
         const sanitizedUpdates = sanitizeForFirestore(updates);
@@ -916,7 +944,8 @@ const App: React.FC = () => {
             themeCustomization: themeConfig,
             liquidGlassEnabled: enabled,
             backgroundMode: backgroundMode,
-            customBackground: customBackground ?? undefined
+            customBackground: customBackground ?? undefined,
+            appearanceMode: appearanceMode
           }
         };
         const sanitizedUpdates = sanitizeForFirestore(updates);
@@ -949,7 +978,8 @@ const App: React.FC = () => {
             themeCustomization: themeConfig,
             liquidGlassEnabled: liquidGlassEnabled,
             backgroundMode: mode,
-            customBackground: (customBg !== undefined ? customBg : customBackground) ?? undefined
+            customBackground: (customBg !== undefined ? customBg : customBackground) ?? undefined,
+            appearanceMode: appearanceMode
           }
         };
         const sanitizedUpdates = sanitizeForFirestore(updates);
@@ -975,13 +1005,41 @@ const App: React.FC = () => {
             themeCustomization: themeConfig,
             liquidGlassEnabled: liquidGlassEnabled,
             backgroundMode: 'custom',
-            customBackground: newConfig
+            customBackground: newConfig,
+            appearanceMode: appearanceMode
           }
         };
         const sanitizedUpdates = sanitizeForFirestore(updates);
         await updateDoc(doc(db, 'users', user.uid), sanitizedUpdates);
       } catch (err: any) {
         console.error("Error saving custom background config:", err);
+      }
+    }
+  };
+
+  const handleUpdateAppearanceMode = async (mode: AppearanceMode) => {
+    setAppearanceMode(mode);
+    try {
+      localStorage.setItem('genpaper_appearance_mode', mode);
+    } catch (e) {}
+
+    if (user) {
+      try {
+        const updates: Partial<UserProfile> = {
+          preferences: {
+            themeColor: currentTheme,
+            background: currentTheme,
+            themeCustomization: themeConfig,
+            liquidGlassEnabled: liquidGlassEnabled,
+            backgroundMode: backgroundMode,
+            customBackground: customBackground ?? undefined,
+            appearanceMode: mode
+          }
+        };
+        const sanitizedUpdates = sanitizeForFirestore(updates);
+        await updateDoc(doc(db, 'users', user.uid), sanitizedUpdates);
+      } catch (err: any) {
+        console.error("Error saving appearance mode preference:", err);
       }
     }
   };
@@ -1682,7 +1740,40 @@ const App: React.FC = () => {
                           )}
                       </div>
                    </>
-               ) : (
+                ) : isGuest ? (
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                      <button 
+                          onClick={() => setView('dashboard')} 
+                          className={`px-2 py-1 md:px-3.5 md:py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap cursor-pointer ${view === 'dashboard' ? 'bg-white text-[#3C128D] shadow-md' : 'text-white hover:bg-white/10'}`}
+                      >
+                          Dashboard
+                      </button>
+                      <button 
+                          onClick={() => openGuestAuthModal('bank', 'Sign in with Google, Microsoft, or Email to access curated Question Banks.')} 
+                          className={`px-2 py-1 md:px-3.5 md:py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap cursor-pointer ${view === 'bank' ? 'bg-white text-[#3C128D] shadow-md' : 'text-white hover:bg-white/10'}`}
+                      >
+                          Question Bank
+                      </button>
+                      <button 
+                          id="nav-btn-exit-guest"
+                          type="button"
+                          onClick={() => setShowExitGuestModal(true)}
+                          className="px-2.5 py-1.5 rounded-xl text-xs sm:text-sm font-black text-rose-100 bg-rose-500/25 hover:bg-rose-500/40 border border-rose-300/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:text-white"
+                          title="Exit Guest Mode & Return to Home"
+                      >
+                          <LogOut className="w-3.5 h-3.5 text-rose-300" />
+                          <span>Exit Guest</span>
+                      </button>
+                      <button 
+                          onClick={() => {
+                              openGuestAuthModal('save', 'Sign in to save your question papers to your permanent account.');
+                          }}
+                          className="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-black bg-white text-[#3C128D] shadow-md hover:shadow-lg hover:scale-105 transition-all cursor-pointer whitespace-nowrap"
+                      >
+                          Sign In
+                      </button>
+                  </div>
+                ) : (
                   <div className="flex items-center gap-2">
                       <button 
                           onClick={() => navigate('/about')}
@@ -1992,6 +2083,7 @@ const App: React.FC = () => {
                             onDeletePaper={handleDeletePaper}
                             isGuest={isGuest}
                             onRequireAuth={openGuestAuthModal}
+                            onExitGuestMode={handleExitGuestMode}
                           />
                         )}
                         <AdPlacement 
@@ -2062,10 +2154,12 @@ const App: React.FC = () => {
                             backgroundMode={backgroundMode}
                             customBackground={customBackground}
                             liquidGlassEnabled={liquidGlassEnabled}
+                            appearanceMode={appearanceMode}
                             onUpdateTheme={handleApplyTheme}
                             onUpdateBackgroundMode={handleUpdateBackgroundMode}
                             onUpdateLiquidGlass={handleUpdateLiquidGlass}
                             onUpdateCustomBackgroundConfig={handleUpdateCustomBackgroundConfig}
+                            onUpdateAppearanceMode={handleUpdateAppearanceMode}
                             onBack={handleBackToDashboard}
                             showToast={showToast}
                         />
@@ -2512,6 +2606,28 @@ const App: React.FC = () => {
           setShowEmailModal(true);
           setEmailMode(mode);
         }}
+        isLoggingIn={isLoggingIn}
+      />
+
+      {/* Exit Guest Mode Warning & Migration Modal */}
+      <ExitGuestModal
+        isOpen={showExitGuestModal}
+        onClose={() => setShowExitGuestModal(false)}
+        onConfirmExit={handleConfirmExitGuestMode}
+        onLoginGoogle={async () => {
+          setShowExitGuestModal(false);
+          await handleLogin('google');
+        }}
+        onLoginMicrosoft={async () => {
+          setShowExitGuestModal(false);
+          await handleLogin('microsoft');
+        }}
+        onOpenEmailAuth={(mode) => {
+          setShowExitGuestModal(false);
+          setShowEmailModal(true);
+          setEmailMode(mode);
+        }}
+        paperCount={history.length}
         isLoggingIn={isLoggingIn}
       />
     </div>

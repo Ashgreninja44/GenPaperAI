@@ -5,7 +5,8 @@ import {
   DEFAULT_THEME_ANIMATION_CONFIG,
   CustomBackgroundConfig,
   DEFAULT_CUSTOM_BACKGROUND_CONFIG,
-  BackgroundMode
+  BackgroundMode,
+  AppearanceMode
 } from '../types';
 import { 
   Palette, 
@@ -47,10 +48,12 @@ interface ThemeStudioProps {
   backgroundMode?: BackgroundMode;
   customBackground?: CustomBackgroundConfig | null;
   liquidGlassEnabled?: boolean;
+  appearanceMode?: AppearanceMode;
   onUpdateTheme: (themeId: string, newConfig: ThemeAnimationConfig) => Promise<void>;
   onUpdateBackgroundMode?: (mode: BackgroundMode, customBg?: CustomBackgroundConfig | null) => Promise<void> | void;
   onUpdateLiquidGlass?: (enabled: boolean) => Promise<void> | void;
   onUpdateCustomBackgroundConfig?: (config: CustomBackgroundConfig) => Promise<void> | void;
+  onUpdateAppearanceMode?: (mode: AppearanceMode) => Promise<void> | void;
   onBack: () => void;
   showToast: (message: string, type?: 'success' | 'error' | 'warning') => void;
 }
@@ -120,13 +123,16 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
   backgroundMode = 'preset',
   customBackground = null,
   liquidGlassEnabled = true,
+  appearanceMode = 'dark',
   onUpdateTheme,
   onUpdateBackgroundMode,
   onUpdateLiquidGlass,
   onUpdateCustomBackgroundConfig,
+  onUpdateAppearanceMode,
   onBack,
   showToast
 }) => {
+  const [activeAppearanceMode, setActiveAppearanceMode] = useState<AppearanceMode>(appearanceMode || 'dark');
   const [selectedThemeId, setSelectedThemeId] = useState<string>(currentTheme || 'default');
   const [config, setConfig] = useState<ThemeAnimationConfig>(themeConfig || DEFAULT_THEME_ANIMATION_CONFIG);
   const [activeBgMode, setActiveBgMode] = useState<BackgroundMode>(backgroundMode || 'preset');
@@ -141,6 +147,10 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
   const bgFileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync with incoming props
+  useEffect(() => {
+    if (appearanceMode) setActiveAppearanceMode(appearanceMode);
+  }, [appearanceMode]);
+
   useEffect(() => {
     if (themeConfig) setConfig(themeConfig);
   }, [themeConfig]);
@@ -389,21 +399,32 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
     handleApplyTheme(selectedThemeId, next);
   };
 
+  const handleSelectAppearanceMode = async (mode: AppearanceMode) => {
+    setActiveAppearanceMode(mode);
+    if (onUpdateAppearanceMode) {
+      await onUpdateAppearanceMode(mode);
+    }
+    const modeLabel = mode === 'light' ? 'Light Mode ☀️' : 'Dark Mode 🌙';
+    setAppliedMessage(`✨ Switched to ${modeLabel}`);
+    showToast(`Switched to ${modeLabel}`, 'success');
+    setTimeout(() => setAppliedMessage(null), 3000);
+  };
+
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 animate-fade-in text-gray-900 pb-20">
+    <div className="max-w-6xl mx-auto p-4 sm:p-6 animate-fade-in text-gray-900 dark:text-white pb-20">
       {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div className="flex items-center gap-3">
           <button 
             onClick={onBack}
-            className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm backdrop-blur-md border border-white/20 transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
+            className="px-3.5 py-2 rounded-xl bg-white/80 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 text-gray-800 dark:text-white font-bold text-sm backdrop-blur-md border border-gray-200 dark:border-white/20 transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Dashboard</span>
           </button>
-          <div className="hidden sm:block h-6 w-px bg-white/20" />
-          <span className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-white border border-white/15 backdrop-blur-md">
-            <Palette className="w-3.5 h-3.5 text-amber-300" />
+          <div className="hidden sm:block h-6 w-px bg-gray-300 dark:bg-white/20" />
+          <span className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/80 dark:bg-white/10 text-gray-800 dark:text-white border border-gray-200 dark:border-white/15 backdrop-blur-md shadow-xs">
+            <Palette className="w-3.5 h-3.5 text-purple-600 dark:text-amber-300" />
             Appearance & Customization Studio
           </span>
         </div>
@@ -411,7 +432,7 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={handleResetBackgroundToDefault}
-            className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-bold border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer backdrop-blur-md active:scale-95"
+            className="px-3.5 py-2 rounded-xl bg-white/80 dark:bg-white/10 hover:bg-white dark:hover:bg-white/20 text-gray-800 dark:text-white text-xs sm:text-sm font-bold border border-gray-200 dark:border-white/20 transition-all flex items-center gap-1.5 cursor-pointer backdrop-blur-md active:scale-95 shadow-xs"
             title="Reset to default theme & settings"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -422,19 +443,19 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
 
       {/* Applied Confirmation Banner */}
       {appliedMessage && (
-        <div className="mb-6 p-4 rounded-2xl bg-emerald-500/20 border border-emerald-400/50 text-emerald-100 backdrop-blur-md shadow-xl flex items-center justify-between gap-3 animate-fade-in">
+        <div className="mb-6 p-4 rounded-2xl bg-emerald-500/20 border border-emerald-400/50 text-emerald-900 dark:text-emerald-100 backdrop-blur-md shadow-xl flex items-center justify-between gap-3 animate-fade-in">
           <div className="flex items-center gap-3">
-            <span className="p-2 rounded-xl bg-emerald-500/30 text-emerald-200">
+            <span className="p-2 rounded-xl bg-emerald-500/30 text-emerald-800 dark:text-emerald-200">
               <Sparkles className="w-5 h-5 animate-spin" style={{ animationDuration: '6s' }} />
             </span>
             <div>
-              <h4 className="text-sm font-black text-white">{appliedMessage}</h4>
-              <p className="text-xs text-emerald-200/90 mt-0.5">Your visual preferences are saved to your profile and active immediately.</p>
+              <h4 className="text-sm font-black text-emerald-950 dark:text-white">{appliedMessage}</h4>
+              <p className="text-xs text-emerald-800/90 dark:text-emerald-200/90 mt-0.5">Your visual preferences are saved to your profile and active immediately.</p>
             </div>
           </div>
           <button 
             onClick={() => setAppliedMessage(null)}
-            className="text-xs font-bold px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+            className="text-xs font-bold px-2 py-1 rounded-lg bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 text-gray-900 dark:text-white cursor-pointer"
           >
             ✕
           </button>
@@ -443,40 +464,157 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
 
       {/* Title & Introduction */}
       <div className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-black text-white drop-shadow-md flex items-center gap-3">
-          <Palette className="w-8 h-8 text-amber-300 drop-shadow-md" />
+        <h1 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white drop-shadow-sm flex items-center gap-3">
+          <Palette className="w-8 h-8 text-[#8A2CB0] dark:text-amber-300" />
           Appearance & Customization
         </h1>
-        <p className="text-white/80 text-sm sm:text-base mt-2 max-w-3xl leading-relaxed">
-          Personalize your workspace experience with GenPaperAI Liquid Glass material styling, switch between atmospheric preset themes or upload your own custom background image.
+        <p className="text-gray-600 dark:text-white/80 text-sm sm:text-base mt-2 max-w-3xl leading-relaxed">
+          Personalize your workspace experience with Light or Dark Mode, GenPaperAI Liquid Glass material styling, atmospheric themes, and custom background options.
         </p>
       </div>
 
       {/* ========================================================
-          FEATURE 1: LIQUID GLASS MASTER TOGGLE CARD
+          SECTION 1: APPEARANCE MODE (LIGHT MODE / DARK MODE)
           ======================================================== */}
-      <div className="mb-8 glass-panel p-6 sm:p-7 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl">
+      <div className="mb-8 glass-panel p-6 sm:p-7 rounded-3xl bg-white/95 dark:bg-gray-900/90 backdrop-blur-xl border border-gray-200/80 dark:border-gray-800 shadow-xl">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-start sm:items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md shrink-0 bg-gradient-to-br from-amber-500 to-purple-600 text-white">
+              {activeAppearanceMode === 'light' ? (
+                <Sun className="w-6 h-6 text-amber-100" />
+              ) : (
+                <Moon className="w-6 h-6 text-purple-100" />
+              )}
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h2 className="text-xl font-black text-gray-900 dark:text-white">Appearance Mode</h2>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${
+                  activeAppearanceMode === 'light'
+                    ? 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800'
+                    : 'bg-purple-100 text-purple-900 border border-purple-300 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800'
+                }`}>
+                  {activeAppearanceMode === 'light' ? '☀️ Light Mode Active' : '🌙 Dark Mode Active'}
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-1 max-w-2xl leading-relaxed">
+                Choose between bright daylight clarity or eye-friendly nocturnal depth. This is a visual preference only and does not change your account type, question papers, or saved settings.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Two prominent selectable cards for Light and Dark mode */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Light Mode Option */}
+          <button
+            type="button"
+            onClick={() => handleSelectAppearanceMode('light')}
+            className={`p-5 rounded-2xl border-2 transition-all text-left flex items-start gap-4 cursor-pointer relative overflow-hidden ${
+              activeAppearanceMode === 'light'
+                ? 'bg-gradient-to-br from-amber-50 to-orange-50/60 dark:from-amber-950/40 dark:to-orange-950/20 border-amber-500 ring-4 ring-amber-400/25 shadow-lg scale-[1.01]'
+                : 'bg-white/80 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-500/50 hover:bg-white dark:hover:bg-gray-800'
+            }`}
+          >
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+              activeAppearanceMode === 'light'
+                ? 'bg-amber-500 text-white shadow-md'
+                : 'bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
+            }`}>
+              <Sun className="w-6 h-6" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
+                  <span>☀️ Light Mode</span>
+                  {activeAppearanceMode === 'light' && (
+                    <span className="p-0.5 rounded-full bg-emerald-500 text-white">
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    </span>
+                  )}
+                </h3>
+                <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full shrink-0 ${
+                  activeAppearanceMode === 'light'
+                    ? 'bg-amber-200 text-amber-900 border border-amber-300 dark:bg-amber-900/60 dark:text-amber-200'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                }`}>
+                  {activeAppearanceMode === 'light' ? 'Selected' : 'Select'}
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
+                Crisp daylight palette with bright surfaces, high-contrast typography, and gentle ambient tinting.
+              </p>
+            </div>
+          </button>
+
+          {/* Dark Mode Option */}
+          <button
+            type="button"
+            onClick={() => handleSelectAppearanceMode('dark')}
+            className={`p-5 rounded-2xl border-2 transition-all text-left flex items-start gap-4 cursor-pointer relative overflow-hidden ${
+              activeAppearanceMode === 'dark'
+                ? 'bg-gradient-to-br from-purple-50 to-slate-50/60 dark:from-purple-950/50 dark:to-slate-900/60 border-purple-500 ring-4 ring-purple-400/25 shadow-lg scale-[1.01]'
+                : 'bg-white/80 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-500/50 hover:bg-white dark:hover:bg-gray-800'
+            }`}
+          >
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+              activeAppearanceMode === 'dark'
+                ? 'bg-purple-600 text-white shadow-md'
+                : 'bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400'
+            }`}>
+              <Moon className="w-6 h-6" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
+                  <span>🌙 Dark Mode</span>
+                  {activeAppearanceMode === 'dark' && (
+                    <span className="p-0.5 rounded-full bg-emerald-500 text-white">
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    </span>
+                  )}
+                </h3>
+                <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full shrink-0 ${
+                  activeAppearanceMode === 'dark'
+                    ? 'bg-purple-200 text-purple-900 border border-purple-300 dark:bg-purple-900/60 dark:text-purple-200'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                }`}>
+                  {activeAppearanceMode === 'dark' ? 'Selected' : 'Select'}
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
+                Deep nocturnal atmosphere optimized for low-light comfort, glowing accents, and eye safety.
+              </p>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* ========================================================
+          SECTION 2: LIQUID GLASS MASTER TOGGLE CARD
+          ======================================================== */}
+      <div className="mb-8 glass-panel p-6 sm:p-7 rounded-3xl bg-white/95 dark:bg-gray-900/90 backdrop-blur-xl border border-gray-200/80 dark:border-gray-800 shadow-xl">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-4">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md shrink-0 ${
               isGlassOn 
                 ? 'bg-gradient-to-br from-[#3C128D] to-[#8A2CB0] text-amber-300 ring-2 ring-purple-300/50' 
-                : 'bg-gray-100 text-gray-400'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
             }`}>
               <Sparkle className={`w-6 h-6 ${isGlassOn ? 'animate-pulse' : ''}`} />
             </div>
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 className="text-xl font-black text-gray-900">Liquid Glass</h2>
+                <h2 className="text-xl font-black text-gray-900 dark:text-white">Liquid Glass</h2>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${
                   isGlassOn 
-                    ? 'bg-purple-100 text-[#8A2CB0] border border-purple-200' 
-                    : 'bg-gray-100 text-gray-600 border border-gray-200'
+                    ? 'bg-purple-100 text-[#8A2CB0] border border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800' 
+                    : 'bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700'
                 }`}>
                   {isGlassOn ? 'ON — Liquid Glass Active' : 'OFF — Solid UI Material'}
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-gray-600 mt-1 max-w-2xl leading-relaxed">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-1 max-w-2xl leading-relaxed">
                 {isGlassOn 
                   ? 'Luminous frosted glass surfaces, specular highlights, and translucent blur are applied across navigation, panels, and cards.'
                   : 'Liquid Glass material is disabled. UI surfaces use crisp, high-contrast solid materials without background blur.'}
@@ -486,7 +624,7 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
 
           {/* Toggle Switch */}
           <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider hidden sm:inline">
+            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:inline">
               {isGlassOn ? 'ON' : 'OFF'}
             </span>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -496,29 +634,29 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                 onChange={(e) => handleToggleLiquidGlass(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-16 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-8 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-7 after:w-7 after:transition-all after:shadow-md peer-checked:bg-gradient-to-r peer-checked:from-[#3C128D] peer-checked:to-[#8A2CB0]"></div>
+              <div className="w-16 h-8 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-8 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-7 after:w-7 after:transition-all after:shadow-md peer-checked:bg-gradient-to-r peer-checked:from-[#3C128D] peer-checked:to-[#8A2CB0]"></div>
             </label>
           </div>
         </div>
       </div>
 
       {/* ========================================================
-          FEATURE 2: BACKGROUND SELECTOR (PRESETS VS CUSTOM IMAGE)
+          FEATURE 3: BACKGROUND SELECTOR (PRESETS VS CUSTOM IMAGE)
           ======================================================== */}
-      <div className="mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 p-2 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20">
+      <div className="mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 p-2 rounded-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border border-gray-200/80 dark:border-gray-800 shadow-sm">
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={() => handleSelectBackgroundMode('preset')}
             className={`flex-1 sm:flex-initial px-5 py-3 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
               activeBgMode === 'preset'
-                ? 'bg-white text-gray-900 shadow-lg scale-100'
-                : 'text-white/80 hover:text-white hover:bg-white/10'
+                ? 'bg-[#3C128D] dark:bg-white text-white dark:text-gray-900 shadow-lg scale-100'
+                : 'text-gray-700 dark:text-white/80 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10'
             }`}
           >
-            <Sparkles className="w-4 h-4 text-purple-600" />
+            <Sparkles className="w-4 h-4 text-amber-400 dark:text-purple-600" />
             <span>Preset Atmospheric Themes</span>
             {activeBgMode === 'preset' && (
-              <span className="w-2 h-2 rounded-full bg-emerald-500 ml-1"></span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 ml-1"></span>
             )}
           </button>
 
@@ -526,19 +664,19 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
             onClick={() => handleSelectBackgroundMode('custom')}
             className={`flex-1 sm:flex-initial px-5 py-3 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
               activeBgMode === 'custom'
-                ? 'bg-white text-gray-900 shadow-lg scale-100'
-                : 'text-white/80 hover:text-white hover:bg-white/10'
+                ? 'bg-[#3C128D] dark:bg-white text-white dark:text-gray-900 shadow-lg scale-100'
+                : 'text-gray-700 dark:text-white/80 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10'
             }`}
           >
             <ImageIcon className="w-4 h-4 text-amber-500" />
             <span>Custom Background Image</span>
             {activeBgMode === 'custom' && (
-              <span className="w-2 h-2 rounded-full bg-emerald-500 ml-1"></span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 ml-1"></span>
             )}
           </button>
         </div>
 
-        <div className="text-xs text-white/90 font-medium px-3 text-center sm:text-right">
+        <div className="text-xs text-gray-700 dark:text-white/90 font-medium px-3 text-center sm:text-right">
           {activeBgMode === 'custom' ? 'Custom Wallpaper Active' : `Preset Theme: ${currentThemeObj.name}`}
         </div>
       </div>
@@ -891,15 +1029,15 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
           {/* Left Column: Theme Picker Cards & Global Master Animation Controls */}
           <div className="lg:col-span-5 space-y-6">
             {/* Global Master Animation Switch Card */}
-            <div className="glass-panel p-6 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl">
+            <div className="glass-panel p-6 rounded-3xl bg-white/95 dark:bg-gray-900/90 backdrop-blur-xl border border-gray-200/80 dark:border-gray-800 shadow-xl">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2.5">
-                  <span className={`p-2 rounded-xl ${config.enableAnimations ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-400'}`}>
+                  <span className={`p-2 rounded-xl ${config.enableAnimations ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-400'}`}>
                     <Zap className="w-5 h-5" />
                   </span>
                   <div>
-                    <h3 className="text-base font-black text-gray-900">Background Animations</h3>
-                    <p className="text-xs text-gray-500 font-medium">Master toggle for live motion & particles</p>
+                    <h3 className="text-base font-black text-gray-900 dark:text-white">Background Animations</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Master toggle for live motion & particles</p>
                   </div>
                 </div>
 
@@ -910,19 +1048,19 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                     onChange={(e) => updateGlobal('enableAnimations', e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-7 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all after:shadow-sm peer-checked:bg-gradient-to-r peer-checked:from-[#3C128D] peer-checked:to-[#8A2CB0]"></div>
+                  <div className="w-14 h-7 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-7 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all after:shadow-sm peer-checked:bg-gradient-to-r peer-checked:from-[#3C128D] peer-checked:to-[#8A2CB0]"></div>
                 </label>
               </div>
 
-              <div className="pt-4 border-t border-gray-100 space-y-4">
+              <div className="pt-4 border-t border-gray-100 dark:border-gray-800 space-y-4">
                 {/* Animation Speed Slider */}
                 <div>
-                  <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
+                  <div className="flex justify-between items-center text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     <span className="flex items-center gap-1.5">
-                      <Compass className="w-3.5 h-3.5 text-[#8A2CB0]" />
+                      <Compass className="w-3.5 h-3.5 text-[#8A2CB0] dark:text-purple-400" />
                       Animation Motion Speed
                     </span>
-                    <span className="text-[#8A2CB0] font-black px-2 py-0.5 rounded-md bg-purple-50">
+                    <span className="text-[#8A2CB0] dark:text-purple-400 font-black px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800">
                       {config.animationSpeed.toFixed(1)}x
                     </span>
                   </div>
@@ -934,7 +1072,7 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                     disabled={!config.enableAnimations}
                     value={config.animationSpeed} 
                     onChange={(e) => updateGlobal('animationSpeed', parseFloat(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#8A2CB0] disabled:opacity-40"
+                    className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#8A2CB0] dark:accent-purple-500 disabled:opacity-40"
                   />
                   <div className="flex justify-between text-[10px] text-gray-400 font-bold mt-1">
                     <span>Serene (0.5x)</span>
@@ -945,12 +1083,12 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
 
                 {/* Atmosphere Intensity Slider */}
                 <div>
-                  <div className="flex justify-between items-center text-xs font-bold text-gray-700 mb-1.5">
+                  <div className="flex justify-between items-center text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                     <span className="flex items-center gap-1.5">
-                      <Sliders className="w-3.5 h-3.5 text-amber-600" />
+                      <Sliders className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                       Atmosphere & Glow Intensity
                     </span>
-                    <span className="text-amber-700 font-black px-2 py-0.5 rounded-md bg-amber-50">
+                    <span className="text-amber-700 dark:text-amber-300 font-black px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
                       {Math.round(config.animationIntensity * 100)}%
                     </span>
                   </div>
@@ -962,7 +1100,7 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                     disabled={!config.enableAnimations}
                     value={config.animationIntensity} 
                     onChange={(e) => updateGlobal('animationIntensity', parseFloat(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-600 disabled:opacity-40"
+                    className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-600 dark:accent-amber-500 disabled:opacity-40"
                   />
                 </div>
               </div>
@@ -970,7 +1108,7 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
 
             {/* Atmospheric Themes List */}
             <div className="space-y-3">
-              <h3 className="text-xs font-black uppercase tracking-wider text-white/90 px-1">
+              <h3 className="text-xs font-black uppercase tracking-wider text-gray-700 dark:text-white/90 px-1">
                 Choose Atmospheric Environment
               </h3>
 
@@ -984,8 +1122,8 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                     onClick={() => handleSelectThemeCard(theme.id)}
                     className={`p-4 rounded-2xl transition-all cursor-pointer border flex items-center justify-between gap-4 ${
                       isSelected
-                        ? 'bg-white shadow-2xl scale-[1.02] border-amber-300 ring-2 ring-amber-300/60'
-                        : 'bg-white/85 hover:bg-white border-white/40 hover:scale-[1.01] shadow-md'
+                        ? 'bg-white dark:bg-gray-800 shadow-2xl scale-[1.02] border-amber-400 dark:border-amber-400 ring-2 ring-amber-300/60 dark:ring-amber-500/40'
+                        : 'bg-white/90 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 border-gray-200/80 dark:border-gray-700/80 hover:scale-[1.01] shadow-md'
                     }`}
                   >
                     <div className="flex items-center gap-3.5">
@@ -994,14 +1132,14 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="font-black text-sm text-gray-900">{theme.name}</h4>
+                          <h4 className="font-black text-sm text-gray-900 dark:text-white">{theme.name}</h4>
                           {isSelected && (
                             <span className="p-0.5 rounded-full bg-emerald-500 text-white">
                               <Check className="w-3 h-3 stroke-[3]" />
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 font-medium mt-0.5">{theme.tagline}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">{theme.tagline}</p>
                       </div>
                     </div>
 
@@ -1019,16 +1157,16 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
           {/* Right Column: Theme-Specific Fine-Grained Controls */}
           <div className="lg:col-span-7 space-y-6">
             {/* Live Interactive Preview Box */}
-            <div className="glass-panel p-6 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl">
+            <div className="glass-panel p-6 rounded-3xl bg-white/95 dark:bg-gray-900/90 backdrop-blur-xl border border-gray-200/80 dark:border-gray-800 shadow-xl">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <Eye className="w-4 h-4 text-[#8A2CB0]" />
-                  <h3 className="text-sm font-black text-gray-900">Live Atmospheric Simulation</h3>
+                  <Eye className="w-4 h-4 text-[#8A2CB0] dark:text-purple-400" />
+                  <h3 className="text-sm font-black text-gray-900 dark:text-white">Live Atmospheric Simulation</h3>
                 </div>
-                <span className="text-xs text-gray-500 font-medium">Real-time dynamic canvas</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Real-time dynamic canvas</span>
               </div>
 
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-300 aspect-[16/8] flex items-center justify-center p-6 bg-slate-950">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-300 dark:border-gray-700 aspect-[16/8] flex items-center justify-center p-6 bg-slate-950">
                 <ThemeBackdrop 
                   theme={selectedThemeId} 
                   config={config} 
@@ -1049,17 +1187,17 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
             </div>
 
             {/* Theme-Specific Fine-Grained Controls Card */}
-            <div className="glass-panel p-6 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl">
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+            <div className="glass-panel p-6 rounded-3xl bg-white/95 dark:bg-gray-900/90 backdrop-blur-xl border border-gray-200/80 dark:border-gray-800 shadow-xl">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
                 <div className="flex items-center gap-2.5">
-                  <span className="p-2 rounded-xl bg-purple-50 text-[#8A2CB0]">
+                  <span className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-[#8A2CB0] dark:text-purple-300">
                     <Sliders className="w-5 h-5" />
                   </span>
                   <div>
-                    <h3 className="text-lg font-black text-gray-900">
+                    <h3 className="text-lg font-black text-gray-900 dark:text-white">
                       {currentThemeObj.name} Customization
                     </h3>
-                    <p className="text-xs text-gray-500 font-medium">Fine-tune individual elements and atmospheric layers</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Fine-tune individual elements and atmospheric layers</p>
                   </div>
                 </div>
 

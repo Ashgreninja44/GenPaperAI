@@ -739,17 +739,17 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               key={tab.id}
               id={`student-tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id as ActiveStudentTab)}
-              className={`px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all flex items-center gap-2 cursor-pointer shadow-sm ${
+              className={`px-4 py-2.5 rounded-2xl font-black text-xs sm:text-sm whitespace-nowrap transition-all flex items-center gap-2.5 cursor-pointer shadow-sm ${
                 isActive
-                  ? 'bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] text-white shadow-md shadow-[#3C128D]/20 scale-[1.02]'
-                  : 'bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700 border border-gray-200/60 dark:border-gray-700'
+                  ? 'bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] text-white shadow-md shadow-[#3C128D]/30 scale-[1.02] ring-2 ring-purple-400/40'
+                  : 'bg-white/95 dark:bg-gray-800/95 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-amber-300' : 'text-[#8A2CB0] dark:text-purple-400'}`} />
-              <span>{tab.label}</span>
+              <Icon className={`w-4 h-4 ${isActive ? 'text-amber-300' : 'text-[#8A2CB0] dark:text-purple-300'}`} />
+              <span className="font-extrabold">{tab.label}</span>
               {tab.badge && (
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                  isActive ? 'bg-amber-400 text-purple-950' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider ${
+                  isActive ? 'bg-amber-400 text-purple-950' : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600'
                 }`}>
                   {tab.badge}
                 </span>
@@ -766,20 +766,20 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         <div className="space-y-6 animate-fade-in">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-[#8A2CB0]" />
-                <span>Enrolled Subjects & Syllabus Coverage</span>
+              <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2.5 tracking-tight">
+                <BookOpen className="w-6 h-6 text-[#8A2CB0] dark:text-purple-400 shrink-0" />
+                <span className="font-extrabold text-gray-950 dark:text-white">Enrolled Subjects & Syllabus Coverage</span>
               </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-1.5 leading-relaxed">
                 Track chapter completion, mastery percentage, and focus topics according to {selectedBoard} {selectedGrade} standards.
               </p>
             </div>
             <button 
               onClick={() => setActiveTab('practice')}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#EEA727] to-[#DD2476] text-white text-xs font-bold shadow-md hover:opacity-95 transition-all flex items-center gap-2 w-fit cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#EEA727] to-[#DD2476] text-white text-xs sm:text-sm font-black shadow-md hover:shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 w-fit cursor-pointer border border-white/20"
             >
-              <Zap className="w-3.5 h-3.5" />
-              <span>Start Daily Practice</span>
+              <Zap className="w-4 h-4 text-amber-200 fill-amber-200" />
+              <span className="font-extrabold tracking-wide">Start Daily Practice</span>
             </button>
           </div>
 
@@ -893,22 +893,22 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         <div className="space-y-6 animate-fade-in">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Target className="w-5 h-5 text-amber-500" />
-                <span>Interactive Topic Practice Shell</span>
+              <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2.5 tracking-tight">
+                <Target className="w-6 h-6 text-amber-500 shrink-0" />
+                <span className="font-extrabold text-gray-950 dark:text-white">Interactive Topic Practice Shell</span>
               </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-1.5 leading-relaxed">
                 Sharpen conceptual clarity with curriculum-aligned questions. Every answered question counts towards your daily study streak!
               </p>
             </div>
             
             <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
-                Session Score: <span className="text-[#3C128D] dark:text-purple-400 font-black">{practiceSessionScore.correct}/{practiceSessionScore.total}</span>
+              <span className="text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-200">
+                Session Score: <span className="text-[#3C128D] dark:text-purple-300 font-black">{practiceSessionScore.correct}/{practiceSessionScore.total}</span>
               </span>
               <button 
                 onClick={handleNextPracticeQuestion}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] text-white text-xs font-bold shadow-md hover:opacity-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] text-white text-xs sm:text-sm font-black shadow-md hover:shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer border border-white/20"
               >
                 <span>Next Question</span>
                 <ChevronRight className="w-4 h-4" />
@@ -1052,11 +1052,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       {activeTab === 'mock-tests' && (
         <div className="space-y-6 animate-fade-in">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Clock className="w-5 h-5 text-indigo-500" />
-              <span>Mock Tests & Timed Assessments</span>
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2.5 tracking-tight">
+              <Clock className="w-6 h-6 text-indigo-500 shrink-0" />
+              <span className="font-extrabold text-gray-950 dark:text-white">Mock Tests & Timed Assessments</span>
             </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-1.5 leading-relaxed">
               Simulate actual examination hall conditions with strict timers, section navigation, and blueprint scoring.
             </p>
           </div>
@@ -1150,14 +1150,14 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       {activeTab === 'ai-tutor' && (
         <div className="space-y-6 animate-fade-in">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Brain className="w-5 h-5 text-purple-500" />
-              <span>AI Study Companion & Concept Tutor</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-[#3C128D] dark:text-purple-300 font-bold uppercase">
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2.5 tracking-tight">
+              <Brain className="w-6 h-6 text-purple-500 shrink-0" />
+              <span className="font-extrabold text-gray-950 dark:text-white">AI Study Companion & Concept Tutor</span>
+              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-[#3C128D] dark:text-purple-300 font-black uppercase tracking-wider border border-purple-300 dark:border-purple-700">
                 Interactive Shell
               </span>
             </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-1.5 leading-relaxed">
               Learn concepts step-by-step with your AI study companion. Get instant conceptual breakdowns without just copying answers.
             </p>
           </div>
@@ -1243,15 +1243,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         <div className="space-y-6 animate-fade-in">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Bookmark className="w-5 h-5 text-red-500" />
-                <span>Smart Mistake Notebook</span>
+              <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2.5 tracking-tight">
+                <Bookmark className="w-6 h-6 text-red-500 shrink-0" />
+                <span className="font-extrabold text-gray-950 dark:text-white">Smart Mistake Notebook</span>
               </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-1.5 leading-relaxed">
                 Turn past errors into mastery. Automatically stores tricky questions with step-by-step conceptual corrections.
               </p>
             </div>
-            <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
+            <span className="text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-200">
               {savedMistakes.length} Questions Tracked
             </span>
           </div>
@@ -1335,11 +1335,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       {activeTab === 'revision' && (
         <div className="space-y-6 animate-fade-in">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-500" />
-              <span>Revision Decks & Formula Cheat Sheets</span>
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2.5 tracking-tight">
+              <Sparkles className="w-6 h-6 text-amber-500 shrink-0" />
+              <span className="font-extrabold text-gray-950 dark:text-white">Revision Decks & Formula Cheat Sheets</span>
             </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-1.5 leading-relaxed">
               One-page high-yield revision summaries and formula banks for quick exam-day brush-ups.
             </p>
           </div>
@@ -1391,11 +1391,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       {activeTab === 'progress' && (
         <div className="space-y-6 animate-fade-in">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-emerald-500" />
-              <span>Learning Analytics & Progress Insights</span>
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2.5 tracking-tight">
+              <TrendingUp className="w-6 h-6 text-emerald-500 shrink-0" />
+              <span className="font-extrabold text-gray-950 dark:text-white">Learning Analytics & Progress Insights</span>
             </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-1.5 leading-relaxed">
               Real-time breakdown of accuracy, solved questions, and topic mastery across subjects.
             </p>
           </div>

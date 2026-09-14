@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { GeneratedPaper } from '../types';
-import { Search, X, ArrowUpDown } from 'lucide-react';
+import { Search, X, ArrowUpDown, LogOut, Sparkles } from 'lucide-react';
 
 interface DashboardProps {
   history: GeneratedPaper[];
@@ -10,6 +10,7 @@ interface DashboardProps {
   onDeletePaper: (id: string) => void;
   isGuest?: boolean;
   onRequireAuth?: (feature: 'download' | 'bank' | 'web-extract' | 'save' | 'customization' | 'general', customMessage?: string) => void;
+  onExitGuestMode?: () => void;
 }
 
 const getClassNumber = (grade: string): number => {
@@ -32,7 +33,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   onViewBank, 
   onDeletePaper,
   isGuest = false,
-  onRequireAuth
+  onRequireAuth,
+  onExitGuestMode
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<string>('newest');
@@ -160,27 +162,43 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Guest Mode Session Notice */}
       {isGuest && (
-        <div className="mb-6 p-4 rounded-2xl bg-amber-500/15 border border-amber-400/40 text-amber-950 dark:text-amber-100 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-400/30 text-amber-800 dark:text-amber-300 flex items-center justify-center shrink-0 text-lg font-bold">
+        <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/25 via-amber-400/20 to-orange-500/20 dark:from-amber-950/70 dark:via-amber-900/60 dark:to-orange-950/70 border-2 border-amber-400 dark:border-amber-500 text-amber-950 dark:text-amber-50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl backdrop-blur-md">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-amber-400 text-amber-950 flex items-center justify-center shrink-0 text-2xl font-black shadow-md border-2 border-amber-300 ring-2 ring-amber-400/40">
               👤
             </div>
             <div>
-              <h4 className="text-sm font-black flex items-center gap-2">
-                <span>Guest Mode Active</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400 text-[#3C128D] font-bold uppercase tracking-wider">Temporary</span>
+              <h4 className="text-base sm:text-lg font-black flex items-center gap-2.5 text-amber-950 dark:text-white tracking-tight">
+                <span className="font-black text-amber-950 dark:text-white drop-shadow-sm">Guest Mode Active</span>
+                <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full bg-amber-400 text-[#3C128D] font-black uppercase tracking-wider shadow-sm border border-amber-500/30">Temporary</span>
               </h4>
-              <p className="text-xs text-amber-900/80 dark:text-amber-200/80 font-medium mt-0.5">
+              <p className="text-xs sm:text-sm text-amber-950 dark:text-amber-100 font-semibold mt-1 leading-relaxed max-w-2xl">
                 Papers generated in guest mode are saved in this session only. Sign in to preserve them permanently and download PDFs.
               </p>
             </div>
           </div>
-          <button 
-            onClick={() => onRequireAuth?.('save', 'Sign in to save your question papers to your permanent account history.')}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] text-white text-xs font-black hover:opacity-95 transition-all whitespace-nowrap shadow-md cursor-pointer shrink-0"
-          >
-            Sign In to Save Papers
-          </button>
+          <div className="flex items-center gap-2.5 w-full md:w-auto shrink-0 justify-end">
+            {onExitGuestMode && (
+              <button 
+                id="btn-exit-guest-mode-banner"
+                type="button"
+                onClick={onExitGuestMode}
+                className="px-3.5 py-2 rounded-xl bg-white/90 hover:bg-white text-rose-700 dark:bg-rose-950/80 dark:hover:bg-rose-900 dark:text-rose-200 text-xs font-black border border-rose-300 dark:border-rose-700 hover:border-rose-400 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer whitespace-nowrap"
+                title="Exit Guest Mode & Return to Home"
+              >
+                <LogOut className="w-3.5 h-3.5 text-rose-600 dark:text-rose-300" />
+                <span>Exit Guest Mode</span>
+              </button>
+            )}
+            <button 
+              type="button"
+              onClick={() => onRequireAuth?.('save', 'Sign in to save your question papers to your permanent account history.')}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#3C128D] to-[#8A2CB0] text-white text-xs font-black hover:opacity-95 active:scale-95 transition-all whitespace-nowrap shadow-md hover:shadow-lg cursor-pointer flex items-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>Sign In to Save</span>
+            </button>
+          </div>
         </div>
       )}
 

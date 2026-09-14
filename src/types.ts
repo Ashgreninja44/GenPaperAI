@@ -360,6 +360,7 @@ export const DEFAULT_CUSTOM_BACKGROUND_CONFIG: CustomBackgroundConfig = {
 };
 
 export type BackgroundMode = 'preset' | 'custom';
+export type AppearanceMode = 'light' | 'dark';
 
 export interface UserPreferences {
   themeColor: string;
@@ -367,6 +368,7 @@ export interface UserPreferences {
   backgroundMode?: BackgroundMode;
   customBackground?: CustomBackgroundConfig | null;
   liquidGlassEnabled?: boolean;
+  appearanceMode?: AppearanceMode;
   themeCustomization?: ThemeAnimationConfig;
 }
 
