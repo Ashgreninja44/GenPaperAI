@@ -2,7 +2,7 @@
 import { db } from "../firebase";
 import { collection, doc, setDoc, getDocs, query, where } from "firebase/firestore";
 import { SYLLABUS_DATA } from "../constants";
-import { generateContentProxy } from "./geminiService";
+import { generateContentProxy, cleanAndParseJson } from "./geminiService";
 import { OFFICIAL_SOURCE_METADATA, SOURCE_METADATA_LIST } from "../data/sourceMetadata";
 
 export interface BookData {
@@ -59,7 +59,7 @@ export const updateSyllabusFromSources = async (board: string = "CBSE"): Promise
   try {
     const fetchSyllabus = async (currentPrompt: string) => {
         const response = await generateContentProxy({
-          model: "gemini-3-flash-preview",
+          model: "gemini-3.8-flash",
           contents: currentPrompt,
           config: {
             tools: [{ googleSearch: {} }],
@@ -75,10 +75,10 @@ export const updateSyllabusFromSources = async (board: string = "CBSE"): Promise
     let syllabusData: SyllabusData;
     
     try {
-        if (!text || text.trim() === "{}" || text.trim() === "[]") {
-            throw new Error("Empty Response");
+        if (!text || text.trim() === "{}" || text.trim() === "[]" || text.trim().startsWith('<')) {
+            throw new Error("Empty or non-JSON Response");
         }
-        syllabusData = JSON.parse(text);
+        syllabusData = cleanAndParseJson<SyllabusData>(text, STATIC_FALLBACK_SYLLABUS);
     } catch (err) {
         console.warn("AI failed or returned invalid JSON. Using verified STATIC FALLBACK.");
         syllabusData = STATIC_FALLBACK_SYLLABUS;

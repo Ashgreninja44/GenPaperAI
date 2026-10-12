@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MathRenderer } from './MathRenderer';
 
 interface AnswerItem {
   questionNumber: string;
@@ -172,7 +173,9 @@ const AnswerKeyRenderer: React.FC<AnswerKeyRendererProps> = ({ rawText, isEditin
                     {item.answerText.charAt(0).toUpperCase()}
                   </span>
                   {item.answerText.length > 2 && (
-                    <span className="text-gray-700 font-medium ml-1">{item.answerText.substring(2)}</span>
+                    <div className="text-gray-700 font-medium ml-1">
+                      <MathRenderer content={item.answerText.substring(2)} inline />
+                    </div>
                   )}
                 </div>
               ) : item.points.length > 0 ? (
@@ -182,7 +185,9 @@ const AnswerKeyRenderer: React.FC<AnswerKeyRendererProps> = ({ rawText, isEditin
                      {item.points.map((p, pIdx) => (
                        <li key={pIdx} className="flex gap-3 items-start">
                          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#3C128D] shrink-0"></span>
-                         <span className="text-gray-700">{p}</span>
+                         <div className="text-gray-700 flex-1">
+                           <MathRenderer content={p} />
+                         </div>
                        </li>
                      ))}
                    </ul>
@@ -190,7 +195,9 @@ const AnswerKeyRenderer: React.FC<AnswerKeyRendererProps> = ({ rawText, isEditin
               ) : (
                 <div>
                   <span className="font-bold text-gray-400 uppercase text-[10px] tracking-widest block mb-1">Answer:</span>
-                  <p className="whitespace-pre-wrap text-gray-700">{item.answerText}</p>
+                  <div className="text-gray-700">
+                    <MathRenderer content={item.answerText} />
+                  </div>
                 </div>
               )}
             </div>

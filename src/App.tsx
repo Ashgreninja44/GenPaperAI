@@ -1,12 +1,9 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import Dashboard from './components/Dashboard';
-import { StudentDashboard } from './components/StudentDashboard';
-import { StudentOnboardingModal } from './components/StudentOnboardingModal';
-import { UserTypeSelectionModal } from './components/UserTypeSelectionModal';
-import { LegacyMigrationModal } from './components/LegacyMigrationModal';
+import { TeacherOnboardingModal } from './components/TeacherOnboardingModal';
 import PaperForm from './components/PaperForm';
 import PaperPreview from './components/PaperPreview';
 import QuestionBankView from './components/QuestionBank';
@@ -18,6 +15,9 @@ import Maintenance from './components/Maintenance';
 import ThemeStudio from './components/ThemeStudio';
 import { AdminCenter } from './components/admin/AdminCenter';
 import SubscriptionView from './components/SubscriptionView';
+import { CommandPalette } from './components/CommandPalette';
+import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { useGlobalShortcuts, getModifierLabel } from './hooks/useGlobalShortcuts';
 import { isMaintenanceModeActive } from './config/maintenance';
 import ScrollToTop from './components/ScrollToTop';
 import BackgroundAnimation from './components/BackgroundAnimation';
@@ -33,8 +33,7 @@ import {
   GeneratedPaper, 
   QuestionBank, 
   UserProfile, 
-  UserType,
-  StudentProfileSettings,
+  TeacherProfileSettings,
   MaintenanceConfig, 
   AnnouncementConfig, 
   ThemeAnimationConfig, 
@@ -50,15 +49,11 @@ import {
 } from './types';
 import { generateQuestionPaper } from './services/geminiService';
 import { subscribeToMaintenanceMode, isSuperAdmin, setMaintenanceMode } from './services/maintenanceService';
-import { subscribeToAnnouncement, isPlatformAdmin, subscribeToWebResearchConfig } from './services/adminService';
+import { subscribeToAnnouncement, isPlatformAdmin, subscribeToWebResearchConfig, OWNER_EMAIL } from './services/adminService';
 import { subscribeToAdvertisementConfig } from './services/adService';
 import { subscribeToSubscriptionConfig, isUserPlusSubscriber } from './services/subscriptionService';
 import { convertToRuntimeQuestion } from './services/questionBankService';
-import { 
-  isLegacyUserRequiringMigration, 
-  completeLegacyMigration, 
-  CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION 
-} from './services/migrationService';
+import { CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION } from './services/migrationService';
 import { AdPlacement } from './components/ads/AdPlacement';
 import { LandingPage } from './components/public/LandingPage';
 import { EducatorGuide } from './components/public/EducatorGuide';
@@ -75,7 +70,6 @@ import {
   deletePaperFromFirestore,
   migrateGuestPapersToFirestore
 } from './services/paperStorageService';
-import { loadGuestStudentSettings, saveGuestStudentSettings } from './services/studentProgressService';
 import { getEffectiveProfilePhoto } from './services/profilePhotoService';
 import { 
   auth, 
@@ -123,7 +117,11 @@ import {
   ShieldAlert,
   ShieldCheck,
   GraduationCap,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Sun,
+  Moon,
+  Search,
+  Command
 } from 'lucide-react';
 
 type View = 'dashboard' | 'create' | 'preview' | 'bank' | 'settings' | 'appearance' | 'profile' | 'about' | 'admin-portal' | 'subscription';
@@ -133,7 +131,7 @@ const THEMES: Record<string, string> = {
   ocean: 'linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%)',
   sunset: 'linear-gradient(135deg, #FF512F 0%, #DD2476 100%)',
   forest: 'linear-gradient(135deg, #134E5E 0%, #71B280 100%)',
-  midnight: 'linear-gradient(135deg, #232526 0%, #414345 100%)',
+  midnight: 'linear-gradient(135deg, #090d16 0%, #1e293b 50%, #334155 100%)',
 };
 
 const ORB_THEMES: Record<string, string[]> = {
@@ -141,7 +139,7 @@ const ORB_THEMES: Record<string, string[]> = {
   ocean: ['#0F2027', '#203A43', '#2C5364', '#48cae4'],
   sunset: ['#FF512F', '#DD2476', '#FF8C00', '#FFD700'],
   forest: ['#134E5E', '#71B280', '#2E7D32', '#A5D6A7'],
-  midnight: ['#232526', '#414345', '#000000', '#7f8c8d'],
+  midnight: ['#0f172a', '#1e293b', '#334155', '#475569'],
 };
 
 const App: React.FC = () => {
@@ -163,7 +161,7 @@ const App: React.FC = () => {
   const [themeConfig, setThemeConfig] = useState<ThemeAnimationConfig>(() => {
     try {
       const saved = localStorage.getItem('genpaper_theme_config');
-      if (saved) return JSON.parse(saved);
+      if (saved && !saved.trim().startsWith('<')) return JSON.parse(saved);
     } catch (e) {}
     return DEFAULT_THEME_ANIMATION_CONFIG;
   });
@@ -184,7 +182,7 @@ const App: React.FC = () => {
   const [customBackground, setCustomBackground] = useState<CustomBackgroundConfig | null>(() => {
     try {
       const saved = localStorage.getItem('genpaper_custom_background');
-      if (saved) return JSON.parse(saved);
+      if (saved && !saved.trim().startsWith('<')) return JSON.parse(saved);
     } catch (e) {}
     return null;
   });
@@ -246,7 +244,6 @@ const App: React.FC = () => {
     try {
       sessionStorage.removeItem('genpaper_guest_mode');
       sessionStorage.removeItem('genpaper_pending_guest_papers');
-      sessionStorage.removeItem('genpaper_guest_student_settings');
     } catch (e) {}
     setHistory([]);
     setView('dashboard');
@@ -288,195 +285,60 @@ const App: React.FC = () => {
   const [webResearchConfig, setWebResearchConfig] = useState<WebResearchConfig | null>(null);
   const [selectedQuestionsForPaper, setSelectedQuestionsForPaper] = useState<Question[]>([]);
 
-  // User Type (Teacher vs Student) Experience State
-  const [guestUserType, setGuestUserType] = useState<UserType>(() => {
+  // Educator Setup Modal State
+  const [showTeacherOnboardingModal, setShowTeacherOnboardingModal] = useState(false);
+
+  const handleCompleteTeacherOnboarding = async (
+    teacherSettings: TeacherProfileSettings,
+    paperSettings: { board: string; grade: string; subject: string; schoolName: string },
+    appearance: AppearanceMode
+  ) => {
     try {
-      const saved = sessionStorage.getItem('genpaper_guest_user_type');
-      if (saved === 'student' || saved === 'teacher') return saved;
-    } catch (e) {}
-    return 'teacher';
-  });
-  const [showUserTypeModal, setShowUserTypeModal] = useState(false);
-  const [showStudentOnboardingModal, setShowStudentOnboardingModal] = useState(false);
-  const [showLegacyMigrationModal, setShowLegacyMigrationModal] = useState(false);
-  const [isSwitchingUserType, setIsSwitchingUserType] = useState(false);
+      const finalTeacherSettings: TeacherProfileSettings = {
+        ...teacherSettings,
+        teacherOnboardingCompleted: true,
+        onboardingCompletedAt: Date.now()
+      };
 
-  // Effective active user experience (defaults safely to 'teacher' for existing accounts/sessions)
-  const effectiveUserType: UserType = user ? (userProfile?.userType || 'teacher') : guestUserType;
+      const cleanTeacherSettings = sanitizeForFirestore(finalTeacherSettings);
+      const cleanPaperSettings = sanitizeForFirestore(paperSettings);
 
-  // Real-time evaluation of legacy migration requirement:
-  // Must be a signed-in user whose profile has not yet completed migration version 1+ and is NOT the Platform Owner
-  const isLegacyMigrationRequired = isAuthReady && !!user && !!userProfile && isLegacyUserRequiringMigration(user, userProfile);
-
-  // Complete the mandatory legacy migration selection for accounts created before deployment
-  const handleCompleteLegacyMigration = async (type: UserType) => {
-    if (!user) return;
-    try {
-      if (type === 'student') {
-        const currentSettings = userProfile?.studentSettings;
-        const hasCompletedOnboarding = currentSettings?.studentOnboardingCompleted === true;
-
-        await completeLegacyMigration(db, user.uid, 'student');
-        setUserProfile(prev => prev ? {
-          ...prev,
-          userType: 'student',
+      if (user) {
+        const userDocRef = doc(db, 'users', user.uid);
+        const updates = sanitizeForFirestore({
+          userType: 'teacher',
           accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
           accountTypeMigrationCompletedAt: Date.now(),
-          needsOnboarding: false
-        } : prev);
-        setShowLegacyMigrationModal(false);
-
-        if (!hasCompletedOnboarding) {
-          setShowStudentOnboardingModal(true);
-        } else {
-          setView('dashboard');
-          showToast("Welcome to the new GenPaperAI! Your Student workspace is ready 🎓", 'success');
-        }
-      } else {
-        await completeLegacyMigration(db, user.uid, 'teacher');
+          needsOnboarding: false,
+          teacherSettings: cleanTeacherSettings,
+          defaultPaperSettings: cleanPaperSettings
+        });
+        await updateDoc(userDocRef, updates);
         setUserProfile(prev => prev ? {
           ...prev,
           userType: 'teacher',
           accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
           accountTypeMigrationCompletedAt: Date.now(),
-          needsOnboarding: false
-        } : prev);
-        setShowLegacyMigrationModal(false);
-        setView('dashboard');
-        showToast("Welcome to the new GenPaperAI! Your Teacher workspace is ready 👨‍🏫", 'success');
-      }
-    } catch (err: any) {
-      console.error("Error completing migration:", err);
-      showToast("Migration error: " + (err.message || 'Failed to complete migration'), "error");
-      throw err;
-    }
-  };
-
-  const handleSelectUserType = async (type: UserType) => {
-    setIsSwitchingUserType(true);
-    try {
-      if (type === 'student') {
-        const currentSettings = user ? userProfile?.studentSettings : loadGuestStudentSettings();
-        const hasCompletedOnboarding = currentSettings?.studentOnboardingCompleted === true;
-
-        setShowUserTypeModal(false);
-
-        if (!hasCompletedOnboarding) {
-          // Direct to dedicated first-time setup wizard
-          setShowStudentOnboardingModal(true);
-          return;
-        }
-
-        // Already completed onboarding earlier: activate student workspace directly
-        if (user) {
-          const userDocRef = doc(db, 'users', user.uid);
-          await updateDoc(userDocRef, { 
-            userType: 'student',
-            accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
-            accountTypeMigrationCompletedAt: Date.now(),
-            needsOnboarding: false
-          });
-          setUserProfile(prev => prev ? { 
-            ...prev, 
-            userType: 'student',
-            accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
-            accountTypeMigrationCompletedAt: Date.now(),
-            needsOnboarding: false
-          } : prev);
-        } else {
-          setGuestUserType('student');
-          try {
-            sessionStorage.setItem('genpaper_guest_user_type', 'student');
-          } catch (e) {}
-        }
-        setView('dashboard');
-        showToast("Welcome to your Student Workspace 🎓!", 'success');
-      } else {
-        // Teacher workspace
-        if (user) {
-          const userDocRef = doc(db, 'users', user.uid);
-          await updateDoc(userDocRef, { 
-            userType: 'teacher',
-            accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
-            accountTypeMigrationCompletedAt: Date.now(),
-            needsOnboarding: false
-          });
-          setUserProfile(prev => prev ? { 
-            ...prev, 
-            userType: 'teacher',
-            accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
-            accountTypeMigrationCompletedAt: Date.now(),
-            needsOnboarding: false
-          } : prev);
-        } else {
-          setGuestUserType('teacher');
-          try {
-            sessionStorage.setItem('genpaper_guest_user_type', 'teacher');
-          } catch (e) {}
-        }
-        setView('dashboard');
-        showToast("Welcome to your Teacher Workspace 👨‍🏫!", 'success');
-      }
-    } catch (err: any) {
-      console.error("Error updating userType:", err);
-      showToast("Failed to set workspace mode: " + (err.message || 'Unknown error'), "error");
-    } finally {
-      setIsSwitchingUserType(false);
-      setShowUserTypeModal(false);
-    }
-  };
-
-  const handleCompleteStudentOnboarding = async (settings: StudentProfileSettings) => {
-    try {
-      const finalSettings: StudentProfileSettings = {
-        ...settings,
-        studentOnboardingCompleted: true,
-        // Ensure real streak & activity counters are clean
-        studyStreak: userProfile?.studentSettings?.studyStreak ?? 0,
-        bestStreak: userProfile?.studentSettings?.bestStreak ?? 0,
-        lastActivityDate: userProfile?.studentSettings?.lastActivityDate ?? '',
-        activityDates: userProfile?.studentSettings?.activityDates ?? [],
-        questionsSolved: userProfile?.studentSettings?.questionsSolved ?? 0,
-        correctAnswers: userProfile?.studentSettings?.correctAnswers ?? 0,
-        mockTestsCompleted: userProfile?.studentSettings?.mockTestsCompleted ?? 0,
-        mockTestScores: userProfile?.studentSettings?.mockTestScores ?? [],
-        mistakes: userProfile?.studentSettings?.mistakes ?? []
-      };
-
-      const cleanFinalSettings = sanitizeForFirestore(finalSettings);
-
-      if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const updates = sanitizeForFirestore({
-          userType: 'student',
-          accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
-          accountTypeMigrationCompletedAt: Date.now(),
           needsOnboarding: false,
-          studentSettings: cleanFinalSettings
-        });
-        await updateDoc(userDocRef, updates);
-        setUserProfile(prev => prev ? {
-          ...prev,
-          userType: 'student',
-          accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
-          accountTypeMigrationCompletedAt: Date.now(),
-          needsOnboarding: false,
-          studentSettings: cleanFinalSettings
+          teacherSettings: cleanTeacherSettings,
+          defaultPaperSettings: cleanPaperSettings
         } : prev);
       } else {
-        saveGuestStudentSettings(cleanFinalSettings);
-        setGuestUserType('student');
         try {
-          sessionStorage.setItem('genpaper_guest_user_type', 'student');
+          sessionStorage.setItem('genpaper_guest_user_type', 'teacher');
         } catch (e) {}
       }
 
-      setShowStudentOnboardingModal(false);
+      if (appearance) {
+        handleUpdateAppearanceMode(appearance);
+      }
+
+      setShowTeacherOnboardingModal(false);
       setView('dashboard');
-      showToast("Your student learning profile is ready! 🎓 Happy learning!", 'success');
+      showToast("Your educator workspace is configured and ready! 👨‍🏫", 'success');
     } catch (err: any) {
-      console.error("Error completing student onboarding:", err);
-      showToast("Failed to save student profile: " + (err.message || 'Unknown error'), "error");
+      console.error("Error completing teacher onboarding:", err);
+      showToast("Failed to save educator profile: " + (err.message || 'Unknown error'), "error");
     }
   };
 
@@ -625,25 +487,16 @@ const App: React.FC = () => {
               }
             }
 
-            // Check if user is the verified Platform Owner (Requirement 5 & 7)
-            // The Platform Owner must NEVER be forced to select Teacher/Student during migration.
+            // Verified Platform Owner and educator role assignment
             const isOwner = isSuperAdmin(currentUser.email, data.role);
-            if (isOwner && !data.userType) {
+            if (!data.userType) {
               data.userType = 'teacher';
             }
             
             setUserProfile(data);
 
-            // Check if user is a legacy account requiring mandatory migration
-            const needsMigration = isLegacyUserRequiringMigration(currentUser, data);
-            if (needsMigration) {
-              setShowLegacyMigrationModal(true);
-            } else if (data.needsOnboarding === true || !data.userType) {
-              if (!isOwner) {
-                setShowUserTypeModal(true);
-              }
-            } else if (data.userType === 'student' && !data.studentSettings?.studentOnboardingCompleted) {
-              setShowStudentOnboardingModal(true);
+            if (!data.teacherSettings?.teacherOnboardingCompleted && !isOwner) {
+              setShowTeacherOnboardingModal(true);
             }
           } else {
             console.log("No user profile found, creating new one...");
@@ -672,7 +525,8 @@ const App: React.FC = () => {
               customProfilePhoto: null,
               providerPhoto: providerPhoto,
               selectedTheme: 'default',
-              needsOnboarding: true,
+              needsOnboarding: false,
+              userType: 'teacher',
               accountTypeMigrationVersion: CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION,
               preferences: {
                 themeColor: 'default',
@@ -680,10 +534,10 @@ const App: React.FC = () => {
               },
               provider,
               createdAt: Date.now(),
-              role: currentUser.email === 'pendyaladarshit4@gmail.com' ? 'admin' : 'user',
+              role: (currentUser.email && currentUser.email.trim().toLowerCase() === OWNER_EMAIL.toLowerCase()) ? 'super_admin' : 'user',
               defaultPaperSettings: {
-                board: 'CBSE',
-                grade: '10th',
+                board: 'CBSE / NCERT (New)',
+                grade: 'Class 10',
                 subject: 'Science',
                 schoolName: ''
               }
@@ -695,8 +549,10 @@ const App: React.FC = () => {
               handleFirestoreError(err, OperationType.WRITE, `users/${currentUser.uid}`);
             }
             setUserProfile(newProfile);
-            setShowUserTypeModal(true);
-            console.log("New user profile created successfully with mandatory onboarding state");
+            if (!isSuperAdmin(currentUser.email, newProfile.role)) {
+              setShowTeacherOnboardingModal(true);
+            }
+            console.log("New educator profile created successfully");
           }
           console.log("User UID after login:", currentUser.uid);
         } catch (err) {
@@ -816,6 +672,9 @@ const App: React.FC = () => {
     try {
       localStorage.setItem('genpaper_appearance_mode', appearanceMode);
     } catch (e) {}
+
+    // Re-evaluate background theme colors and orbs for the selected appearance mode
+    applyTheme(currentTheme || 'default', themeConfig, appearanceMode);
   }, [appearanceMode]);
 
   // Apply Liquid Glass Global DOM Class
@@ -836,17 +695,18 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!userProfile) {
       console.log("No user profile, applying stored/default theme");
-      applyTheme(currentTheme || 'default', themeConfig);
+      applyTheme(currentTheme || 'default', themeConfig, appearanceMode);
       return;
     }
 
     const theme = userProfile.preferences?.themeColor || userProfile.selectedTheme || currentTheme || 'default';
     const customConfig = userProfile.preferences?.themeCustomization || themeConfig || DEFAULT_THEME_ANIMATION_CONFIG;
+    const prefAppearance = userProfile.preferences?.appearanceMode;
     
-    if (userProfile.preferences?.appearanceMode !== undefined) {
-      setAppearanceMode(userProfile.preferences.appearanceMode);
+    if (prefAppearance !== undefined) {
+      setAppearanceMode(prefAppearance);
       try {
-        localStorage.setItem('genpaper_appearance_mode', userProfile.preferences.appearanceMode);
+        localStorage.setItem('genpaper_appearance_mode', prefAppearance);
       } catch (e) {}
     }
     if (userProfile.preferences?.liquidGlassEnabled !== undefined) {
@@ -867,13 +727,17 @@ const App: React.FC = () => {
 
     console.log("Fetched preferences:", userProfile.preferences);
     console.log("Applying theme:", theme);
-    applyTheme(theme, customConfig);
+    applyTheme(theme, customConfig, prefAppearance || appearanceMode);
   }, [userProfile]);
 
-  const applyTheme = (theme: string, config?: ThemeAnimationConfig) => {
+  const applyTheme = (theme: string, config?: ThemeAnimationConfig, mode?: AppearanceMode) => {
     setCurrentTheme(theme);
     const activeConfig = config || themeConfig || DEFAULT_THEME_ANIMATION_CONFIG;
     setThemeConfig(activeConfig);
+    const effectiveMode = mode || appearanceMode;
+    const themeDict = THEMES;
+    const orbDict = ORB_THEMES;
+
     try {
       localStorage.setItem('genpaper_theme_config', JSON.stringify(activeConfig));
       localStorage.setItem('genpaper_selected_theme', theme);
@@ -883,7 +747,7 @@ const App: React.FC = () => {
 
     const bgWrapper = document.querySelector('.premium-bg-wrapper') as HTMLElement;
     if (bgWrapper) {
-      bgWrapper.style.background = THEMES[theme] || THEMES.default;
+      bgWrapper.style.background = themeDict[theme] || themeDict.default;
       if (activeConfig.enableAnimations === false) {
         bgWrapper.style.animation = 'none';
       } else {
@@ -891,18 +755,27 @@ const App: React.FC = () => {
       }
     }
     
-    const orbs = ORB_THEMES[theme] || ORB_THEMES.default;
+    const orbs = orbDict[theme] || orbDict.default;
     orbs.forEach((color, i) => {
       const orb = document.querySelector(`.orb-${i + 1}`) as HTMLElement;
       if (orb) {
         orb.style.background = color;
-        if (activeConfig.enableAnimations === false || (theme === 'default' && activeConfig.default && !activeConfig.default.showOrbs)) {
+        if (activeConfig.enableAnimations === false || backgroundMode === 'custom' || (theme === 'default' && activeConfig.default && !activeConfig.default.showOrbs)) {
           orb.style.display = 'none';
         } else {
           orb.style.display = 'block';
         }
       }
     });
+
+    const orb5 = document.querySelector('.orb-5') as HTMLElement;
+    if (orb5) {
+      if (activeConfig.enableAnimations === false || backgroundMode === 'custom') {
+        orb5.style.display = 'none';
+      } else {
+        orb5.style.display = 'block';
+      }
+    }
   };
 
   const handleApplyTheme = async (newThemeId: string, newConfig: ThemeAnimationConfig) => {
@@ -1019,6 +892,7 @@ const App: React.FC = () => {
 
   const handleUpdateAppearanceMode = async (mode: AppearanceMode) => {
     setAppearanceMode(mode);
+    applyTheme(currentTheme, themeConfig, mode);
     try {
       localStorage.setItem('genpaper_appearance_mode', mode);
     } catch (e) {}
@@ -1063,7 +937,7 @@ const App: React.FC = () => {
     } else if (isGuest) {
       try {
         const raw = sessionStorage.getItem('genpaper_pending_guest_papers');
-        if (raw) {
+        if (raw && !raw.trim().startsWith('<')) {
           const guestPapers = JSON.parse(raw);
           if (Array.isArray(guestPapers)) {
             setHistory(guestPapers);
@@ -1447,6 +1321,68 @@ const App: React.FC = () => {
     setView('dashboard');
   }, []);
 
+  // Global Command Palette & Shortcuts State
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  const modKey = useMemo(() => getModifierLabel(), []);
+
+  const handleViewPaperFromPalette = useCallback(async (paper: GeneratedPaper) => {
+    if (location.pathname !== '/') {
+      navigate('/');
+    }
+    await handleViewPaper(paper);
+  }, [location.pathname, navigate, handleViewPaper]);
+
+  // Global Keyboard Shortcuts (Cmd+K palette, Cmd+N new paper, Cmd+Shift+L appearance, etc.)
+  useGlobalShortcuts({
+    onOpenPalette: useCallback(() => {
+      setIsCommandPaletteOpen((prev) => !prev);
+    }, []),
+    onNewPaper: useCallback(() => {
+      if (location.pathname !== '/') {
+        navigate('/');
+      }
+      handleCreateNew();
+      showToast("Starting new question paper...", "success");
+    }, [location.pathname, navigate, handleCreateNew, showToast]),
+    onToggleTheme: useCallback(() => {
+      const nextMode = appearanceMode === 'dark' ? 'light' : 'dark';
+      handleUpdateAppearanceMode(nextMode);
+      showToast(`Switched to ${nextMode} appearance mode`, "success");
+    }, [appearanceMode, handleUpdateAppearanceMode, showToast]),
+    onGoToDashboard: useCallback(() => {
+      if (location.pathname !== '/') {
+        navigate('/');
+      }
+      setView('dashboard');
+    }, [location.pathname, navigate]),
+    onGoToBank: useCallback(() => {
+      if (location.pathname !== '/') {
+        navigate('/');
+      }
+      if (isGuest) {
+        openGuestAuthModal('bank', 'Sign in to access curated Question Banks.');
+      } else {
+        setView('bank');
+      }
+    }, [location.pathname, navigate, isGuest, openGuestAuthModal]),
+    onOpenSettings: useCallback(() => {
+      if (location.pathname !== '/') {
+        navigate('/');
+      }
+      setView('settings');
+    }, [location.pathname, navigate]),
+    onOpenHelp: useCallback(() => {
+      setIsShortcutsModalOpen(true);
+    }, []),
+    onCloseModals: useCallback(() => {
+      setIsCommandPaletteOpen(false);
+      setIsShortcutsModalOpen(false);
+      setIsOpen(false);
+    }, []),
+    isPaletteOpen: isCommandPaletteOpen || isShortcutsModalOpen,
+  });
+
   // Maintenance Mode Gate
   const isSuper = isSuperAdmin(user?.email, userProfile?.role);
   const isUserAdmin = isPlatformAdmin(user?.email, userProfile?.role);
@@ -1465,7 +1401,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen relative font-sans text-gray-900 selection:bg-[#EEA727] selection:text-[#3C128D] overflow-x-hidden flex flex-col">
+    <div className="min-h-screen relative font-sans text-slate-900 dark:text-slate-100 selection:bg-[#EEA727] selection:text-[#3C128D] overflow-x-hidden flex flex-col">
       <ScrollToTop />
 
       {/* Super Admin Top Notice when Maintenance is Active */}
@@ -1517,7 +1453,7 @@ const App: React.FC = () => {
                 user={user} 
                 userProfile={userProfile} 
                 isGuest={isGuest}
-                className="inline-flex items-center text-lg md:text-xl font-bold tracking-tight text-white drop-shadow-md select-none"
+                className="inline-flex items-center text-lg md:text-xl font-bold tracking-tight text-slate-900 dark:text-white drop-shadow-xs dark:drop-shadow-md select-none"
               />
           </div>
           <div className="flex items-center gap-0.5 md:gap-3 flex-nowrap">
@@ -1525,7 +1461,11 @@ const App: React.FC = () => {
                    <>
                       <button 
                           onClick={() => setView('dashboard')} 
-                          className={`px-1.5 py-1 md:px-5 md:py-2 rounded-lg text-[10px] md:text-sm font-bold transition-all duration-300 whitespace-nowrap flex-shrink cursor-pointer ${view === 'dashboard' ? 'bg-white text-[#3C128D] shadow-md scale-100 ring-1 ring-[#8A2CB0]/20' : 'text-white hover:text-white/90 hover:bg-white/10'}`}
+                          className={`px-1.5 py-1 md:px-5 md:py-2 rounded-lg text-[10px] md:text-sm font-bold transition-all duration-300 whitespace-nowrap flex-shrink cursor-pointer ${
+                            view === 'dashboard' 
+                              ? 'bg-[#3C128D] text-white shadow-md scale-100 ring-1 ring-[#3C128D]/40 dark:bg-white dark:text-[#3C128D] dark:ring-[#8A2CB0]/20' 
+                              : 'text-slate-800 hover:text-slate-950 hover:bg-slate-200/80 dark:text-white dark:hover:text-white/90 dark:hover:bg-white/10'
+                          }`}
                       >
                           <span className="hidden sm:inline">Dashboard</span>
                           <span className="sm:hidden">Home</span>
@@ -1538,10 +1478,29 @@ const App: React.FC = () => {
                               setView('bank');
                             }
                           }} 
-                          className={`px-1.5 py-1 md:px-5 md:py-2 rounded-lg text-[10px] md:text-sm font-bold transition-all duration-300 flex items-center gap-0.5 md:gap-2 whitespace-nowrap flex-shrink cursor-pointer ${view === 'bank' ? 'bg-white text-[#3C128D] shadow-md scale-100 ring-1 ring-[#8A2CB0]/20' : 'text-white hover:text-white/90 hover:bg-white/10'}`}
+                          className={`px-1.5 py-1 md:px-5 md:py-2 rounded-lg text-[10px] md:text-sm font-bold transition-all duration-300 flex items-center gap-0.5 md:gap-2 whitespace-nowrap flex-shrink cursor-pointer ${
+                            view === 'bank' 
+                              ? 'bg-[#3C128D] text-white shadow-md scale-100 ring-1 ring-[#3C128D]/40 dark:bg-white dark:text-[#3C128D] dark:ring-[#8A2CB0]/20' 
+                              : 'text-slate-800 hover:text-slate-950 hover:bg-slate-200/80 dark:text-white dark:hover:text-white/90 dark:hover:bg-white/10'
+                          }`}
                       >
                           <span className="hidden sm:inline">Question Bank</span>
                           <span className="sm:hidden">Question Bank</span>
+                      </button>
+
+                      {/* Global Quick Actions / Command Palette Trigger Button */}
+                      <button
+                        type="button"
+                        id="nav-btn-command-palette"
+                        onClick={() => setIsCommandPaletteOpen(true)}
+                        className="px-2 py-1 md:px-3 md:py-2 rounded-lg text-[10px] md:text-sm font-bold transition-all duration-300 flex items-center gap-1.5 whitespace-nowrap flex-shrink cursor-pointer text-slate-800 hover:text-slate-950 hover:bg-slate-200/80 dark:text-white dark:hover:text-white/90 dark:hover:bg-white/10"
+                        title={`Quick Actions & Navigation (${modKey}K)`}
+                      >
+                        <Search className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                        <span className="hidden lg:inline">Quick Jump</span>
+                        <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-200/90 dark:bg-slate-800 rounded border border-slate-300 dark:border-slate-700 shadow-2xs">
+                          {modKey}K
+                        </kbd>
                       </button>
 
                       {/* Top-Level Admin Portal Navigation (Visible Strictly to Owner/Super Admin/Platform Admins) */}
@@ -1551,12 +1510,12 @@ const App: React.FC = () => {
                           onClick={() => setView('admin-portal')}
                           className={`px-2 py-1 md:px-3.5 md:py-2 rounded-lg text-[10px] md:text-sm font-black transition-all duration-300 flex items-center gap-1 md:gap-1.5 whitespace-nowrap flex-shrink cursor-pointer ${
                             view === 'admin-portal'
-                              ? 'bg-amber-400 text-gray-950 shadow-md scale-100 ring-2 ring-amber-300'
-                              : 'text-amber-300 hover:text-white hover:bg-white/15 border border-amber-400/30'
+                              ? 'bg-amber-500 text-slate-950 shadow-md scale-100 ring-2 ring-amber-400 dark:bg-amber-400 dark:text-gray-950 dark:ring-amber-300'
+                              : 'text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-400/50 dark:text-amber-300 dark:hover:text-white dark:hover:bg-white/15 dark:border-amber-400/30'
                           }`}
                           title="Open Admin Portal"
                         >
-                          <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <Crown className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
                           <span>Admin Portal</span>
                         </button>
                       )}
@@ -1569,7 +1528,7 @@ const App: React.FC = () => {
                                   console.log("Profile menu clicked, current state:", isOpen);
                                   setIsOpen(!isOpen);
                               }}
-                              className="w-6 h-6 md:w-10 md:h-10 rounded-full border border-white/30 overflow-hidden shadow-lg hover:border-white/60 transition-all duration-300 focus:outline-none bg-white/10 cursor-pointer"
+                              className="w-6 h-6 md:w-10 md:h-10 rounded-full border border-slate-300 dark:border-white/30 overflow-hidden shadow-md hover:border-purple-600 dark:hover:border-white/60 transition-all duration-300 focus:outline-none bg-slate-200 dark:bg-white/10 cursor-pointer"
                           >
                               {getEffectiveProfilePhoto(userProfile, user.photoURL) ? (
                                   <img 
@@ -1591,10 +1550,10 @@ const App: React.FC = () => {
                                       className="fixed inset-0 z-[9998] bg-black/5" 
                                       onClick={() => setIsOpen(false)}
                                   ></div>
-                                  <div className="absolute top-full right-0 mt-2 w-64 glass-panel rounded-2xl shadow-2xl z-[9999] py-2 animate-fade-in border border-white/40 opacity-100 bg-white shadow-xl">
-                                      <div className="px-4 py-4 border-b border-gray-100 mb-1 bg-gray-50/50">
+                                  <div className="absolute top-full right-0 mt-2 w-72 glass-panel rounded-2xl shadow-2xl z-[9999] py-2 animate-fade-in border border-gray-200/90 dark:border-white/10 opacity-100 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xl backdrop-blur-xl">
+                                      <div className="px-4 py-3.5 border-b border-gray-100 dark:border-white/10 mb-1 bg-gray-50/70 dark:bg-slate-800/60">
                                           <div className="flex items-center gap-3">
-                                              <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 ring-1 ring-purple-100">
+                                              <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 dark:border-white/20 ring-1 ring-purple-100 dark:ring-purple-900/40 shrink-0">
                                                   {getEffectiveProfilePhoto(userProfile, user.photoURL) ? (
                                                       <img 
                                                           src={getEffectiveProfilePhoto(userProfile, user.photoURL)!} 
@@ -1609,132 +1568,184 @@ const App: React.FC = () => {
                                                   )}
                                               </div>
                                               <div className="flex-1 min-w-0">
-                                                  <p className="text-sm font-bold text-gray-800 truncate">{userProfile?.name || user.displayName}</p>
-                                                  <p className="text-[10px] text-gray-500 truncate">{user.email}</p>
+                                                  <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{userProfile?.name || user.displayName}</p>
+                                                  <p className="text-[11px] text-gray-500 dark:text-slate-400 truncate">{user.email}</p>
                                               </div>
+                                          </div>
+                                          <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
+                                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40">
+                                                  👩‍🏫 Educator Account
+                                              </span>
+                                              {isUserAdmin && (
+                                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40">
+                                                      👑 Admin
+                                                  </span>
+                                              )}
+                                          </div>
+                                      </div>
+
+                                      {/* Instant Appearance Mode Switcher in Profile Dropdown */}
+                                      <div className="px-4 py-2 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
+                                          <span className="text-xs font-bold text-gray-600 dark:text-slate-300 flex items-center gap-1.5">
+                                              <Palette className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                                              Appearance
+                                          </span>
+                                          <div className="inline-flex rounded-lg p-0.5 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-white/10">
+                                              <button
+                                                  type="button"
+                                                  id="dropdown-mode-light"
+                                                  onClick={() => handleUpdateAppearanceMode('light')}
+                                                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                                                      appearanceMode === 'light'
+                                                          ? 'bg-white text-gray-900 shadow-sm'
+                                                          : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
+                                                  }`}
+                                                  title="Switch to Light Mode"
+                                              >
+                                                  <Sun className="w-3 h-3 text-amber-500" />
+                                                  <span>Light</span>
+                                              </button>
+                                              <button
+                                                  type="button"
+                                                  id="dropdown-mode-dark"
+                                                  onClick={() => handleUpdateAppearanceMode('dark')}
+                                                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                                                      appearanceMode === 'dark'
+                                                          ? 'bg-slate-900 text-white shadow-sm'
+                                                          : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
+                                                  }`}
+                                                  title="Switch to Dark Mode"
+                                              >
+                                                  <Moon className="w-3 h-3 text-purple-400" />
+                                                  <span>Dark</span>
+                                              </button>
                                           </div>
                                       </div>
                                       <button 
-                                          onClick={() => { setView('profile'); setIsOpen(false); }}
-                                          className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
-                                      >
-                                          <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
-                                              <UserIcon className="w-4 h-4 text-[#8A2CB0]" />
-                                          </div>
-                                          View Profile
-                                      </button>
-                                      {(isSuperAdmin(userProfile.email, userProfile.role) || isUserPlusSubscriber(userProfile) || (subscriptionConfig ? subscriptionConfig.pricingVisible !== false : true)) && (
-                                        <button 
-                                          id="dropdown-btn-subscription"
-                                          onClick={() => { setView('subscription'); setIsOpen(false); }}
-                                          className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-between gap-3 transition-colors cursor-pointer"
-                                        >
-                                          <div className="flex items-center gap-3">
-                                              <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-[#8A2CB0]">
-                                                  <Sparkles className="w-4 h-4" />
-                                              </div>
-                                              <span>{isUserPlusSubscriber(userProfile) || isSuperAdmin(userProfile.email, userProfile.role) ? 'Subscription & Entitlements' : 'Subscription & Plans'}</span>
-                                          </div>
-                                          {isUserPlusSubscriber(userProfile) ? (
-                                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-purple-100 text-purple-900 border border-purple-200">Plus</span>
-                                          ) : (
-                                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600">Free</span>
-                                          )}
-                                        </button>
-                                      )}
-                                      <button 
-                                          onClick={() => { setView('appearance'); setIsOpen(false); }}
-                                          className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
-                                      >
-                                          <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-                                              <Palette className="w-4 h-4 text-amber-600" />
-                                          </div>
-                                          Appearance & Theme
-                                      </button>
-                                      <button 
-                                          onClick={() => { setView('settings'); setIsOpen(false); }}
-                                          className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
-                                      >
-                                          <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
-                                              <SettingsIcon className="w-4 h-4 text-[#8A2CB0]" />
-                                          </div>
-                                        Settings
-                                    </button>
+                                           onClick={() => { setView('profile'); setIsOpen(false); }}
+                                           className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/80 flex items-center gap-3 transition-colors cursor-pointer"
+                                       >
+                                           <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-[#8A2CB0] dark:text-purple-300">
+                                               <UserIcon className="w-4 h-4" />
+                                           </div>
+                                           View Profile
+                                       </button>
+                                       {(isSuperAdmin(userProfile.email, userProfile.role) || isUserPlusSubscriber(userProfile) || (subscriptionConfig ? subscriptionConfig.pricingVisible !== false : true)) && (
+                                         <button 
+                                           id="dropdown-btn-subscription"
+                                           onClick={() => { setView('subscription'); setIsOpen(false); }}
+                                           className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/80 flex items-center justify-between gap-3 transition-colors cursor-pointer"
+                                         >
+                                           <div className="flex items-center gap-3">
+                                               <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-[#8A2CB0] dark:text-purple-300">
+                                                   <Sparkles className="w-4 h-4" />
+                                               </div>
+                                               <span>{isUserPlusSubscriber(userProfile) || isSuperAdmin(userProfile.email, userProfile.role) ? 'Subscription & Entitlements' : 'Subscription & Plans'}</span>
+                                           </div>
+                                           {isUserPlusSubscriber(userProfile) ? (
+                                             <span className="px-2 py-0.5 rounded text-[10px] font-black bg-purple-100 dark:bg-purple-900/60 text-purple-900 dark:text-purple-200 border border-purple-200 dark:border-purple-800/40">Plus</span>
+                                           ) : (
+                                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400">Free</span>
+                                           )}
+                                         </button>
+                                       )}
+                                       <button 
+                                           onClick={() => { setView('appearance'); setIsOpen(false); }}
+                                           className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/80 flex items-center gap-3 transition-colors cursor-pointer"
+                                       >
+                                           <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                                               <Palette className="w-4 h-4" />
+                                           </div>
+                                           Appearance & Theme
+                                       </button>
+                                       <button 
+                                           onClick={() => { setView('settings'); setIsOpen(false); }}
+                                           className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/80 flex items-center gap-3 transition-colors cursor-pointer"
+                                       >
+                                           <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-[#8A2CB0] dark:text-purple-300">
+                                               <SettingsIcon className="w-4 h-4" />
+                                           </div>
+                                         Settings
+                                     </button>
 
-                                    {effectiveUserType === 'student' && (
-                                      <button 
-                                          id="dropdown-btn-learning-profile"
-                                          onClick={() => { setShowStudentOnboardingModal(true); setIsOpen(false); }}
-                                          className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors cursor-pointer"
-                                      >
-                                          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-                                              <GraduationCap className="w-4 h-4" />
-                                          </div>
-                                          <span>Learning Profile & Goals</span>
-                                      </button>
-                                    )}
+                                     
 
+                                     <button 
+                                         onClick={() => { setView('about'); setIsOpen(false); }}
+                                         className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/80 flex items-center gap-3 transition-colors cursor-pointer"
+                                     >
+                                         <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-500">
+                                             <Sparkles className="w-4 h-4" />
+                                         </div>
+                                         About GenPaperAI
+                                     </button>
 
-                                    <button 
-                                        onClick={() => { setView('about'); setIsOpen(false); }}
-                                        className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
-                                    >
-                                        <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-                                            <Sparkles className="w-4 h-4 text-amber-500" />
-                                        </div>
-                                        About GenPaperAI
-                                    </button>
-                                    
-                                    {/* Dedicated Top-Level Admin Portal access in dropdown */}
-                                    {isUserAdmin && (
-                                        <div className="border-t border-gray-100 mt-1 pt-1">
-                                            <button 
-                                                id="dropdown-btn-admin-portal"
-                                                onClick={() => { setView('admin-portal'); setIsOpen(false); }}
-                                                className={`w-full text-left px-4 py-3 text-sm font-bold flex items-center gap-3 transition-colors cursor-pointer ${
-                                                  view === 'admin-portal' ? 'bg-amber-50 text-amber-950 font-black' : 'text-amber-800 hover:bg-amber-50/80'
-                                                }`}
-                                            >
-                                                <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 shadow-sm border border-amber-200">
-                                                    <Crown className="w-4 h-4" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-1.5">
-                                                      <span>Admin Portal</span>
-                                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-200 text-amber-900 uppercase">Super</span>
-                                                    </div>
-                                                    <span className="text-[10px] text-amber-600 font-medium">Owner & System Hub</span>
-                                                </div>
-                                            </button>
-                                        </div>
-                                    )}
+                                     <button 
+                                         id="dropdown-btn-shortcuts"
+                                         onClick={() => { setIsShortcutsModalOpen(true); setIsOpen(false); }}
+                                         className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/80 flex items-center justify-between gap-3 transition-colors cursor-pointer"
+                                     >
+                                         <div className="flex items-center gap-3">
+                                             <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                                 <Command className="w-4 h-4" />
+                                             </div>
+                                             <span>Keyboard Shortcuts</span>
+                                         </div>
+                                         <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 rounded border border-gray-200 dark:border-white/10">
+                                             ?
+                                         </kbd>
+                                     </button>
+                                     
+                                     {/* Dedicated Top-Level Admin Portal access in dropdown */}
+                                     {isUserAdmin && (
+                                         <div className="border-t border-gray-100 dark:border-white/10 mt-1 pt-1">
+                                             <button 
+                                                 id="dropdown-btn-admin-portal"
+                                                 onClick={() => { setView('admin-portal'); setIsOpen(false); }}
+                                                 className={`w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-3 transition-colors cursor-pointer ${
+                                                   view === 'admin-portal' ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-950 dark:text-amber-200 font-black' : 'text-amber-800 dark:text-amber-400 hover:bg-amber-50/80 dark:hover:bg-amber-950/30'
+                                                 }`}
+                                             >
+                                                 <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center text-amber-700 dark:text-amber-300 shadow-sm border border-amber-200 dark:border-amber-800/40">
+                                                     <Crown className="w-4 h-4" />
+                                                 </div>
+                                                 <div className="flex-1 min-w-0">
+                                                     <div className="flex items-center gap-1.5">
+                                                       <span>Admin Portal</span>
+                                                       <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-200 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 uppercase">Super</span>
+                                                     </div>
+                                                     <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Owner & System Hub</span>
+                                                 </div>
+                                             </button>
+                                         </div>
+                                     )}
 
-                                    {userProfile?.role === 'admin' && (
-                                        <div className="border-t border-gray-100 mt-1 pt-1">
-                                            <button 
-                                                onClick={() => { handleSyncSyllabus(); setIsOpen(false); }}
-                                                disabled={isSyncingSyllabus}
-                                                className="w-full text-left px-4 py-3 text-sm font-bold text-amber-600 hover:bg-amber-50 flex items-center gap-3 transition-colors disabled:opacity-50"
-                                            >
-                                                <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-                                                    {isSyncingSyllabus ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                                                </div>
-                                                Sync Syllabus (AI)
-                                            </button>
-                                        </div>
-                                    )}
+                                     {userProfile?.role === 'admin' && (
+                                         <div className="border-t border-gray-100 dark:border-white/10 mt-1 pt-1">
+                                             <button 
+                                                 onClick={() => { handleSyncSyllabus(); setIsOpen(false); }}
+                                                 disabled={isSyncingSyllabus}
+                                                 className="w-full text-left px-4 py-2.5 text-sm font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 flex items-center gap-3 transition-colors disabled:opacity-50"
+                                             >
+                                                 <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center">
+                                                     {isSyncingSyllabus ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
+                                                 </div>
+                                                 Sync Syllabus (AI)
+                                             </button>
+                                         </div>
+                                     )}
 
-                                    <div className="border-t border-gray-100 mt-1 pt-1">
-                                          <button 
-                                              onClick={() => { handleLogout(); setIsOpen(false); }}
-                                              className="w-full text-left px-4 py-3 text-sm font-bold text-rose-500 hover:bg-rose-50 flex items-center gap-3 transition-colors"
-                                          >
-                                              <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center">
-                                                  <LogOut className="w-4 h-4" />
-                                              </div>
-                                              Logout
-                                          </button>
-                                      </div>
+                                     <div className="border-t border-gray-100 dark:border-white/10 mt-1 pt-1">
+                                           <button 
+                                               onClick={() => { handleLogout(); setIsOpen(false); }}
+                                               className="w-full text-left px-4 py-2.5 text-sm font-bold text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-3 transition-colors cursor-pointer"
+                                           >
+                                               <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center">
+                                                   <LogOut className="w-4 h-4" />
+                                               </div>
+                                               Logout
+                                           </button>
+                                       </div>
                                   </div>
                               </>
                           )}
@@ -1744,31 +1755,51 @@ const App: React.FC = () => {
                   <div className="flex items-center gap-1.5 sm:gap-2">
                       <button 
                           onClick={() => setView('dashboard')} 
-                          className={`px-2 py-1 md:px-3.5 md:py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap cursor-pointer ${view === 'dashboard' ? 'bg-white text-[#3C128D] shadow-md' : 'text-white hover:bg-white/10'}`}
+                          className={`px-2 py-1 md:px-3.5 md:py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap cursor-pointer ${
+                            view === 'dashboard' 
+                              ? 'bg-[#3C128D] text-white shadow-md dark:bg-white dark:text-[#3C128D]' 
+                              : 'text-slate-800 hover:text-slate-950 hover:bg-slate-200/80 dark:text-white dark:hover:bg-white/10'
+                          }`}
                       >
                           Dashboard
                       </button>
                       <button 
                           onClick={() => openGuestAuthModal('bank', 'Sign in with Google, Microsoft, or Email to access curated Question Banks.')} 
-                          className={`px-2 py-1 md:px-3.5 md:py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap cursor-pointer ${view === 'bank' ? 'bg-white text-[#3C128D] shadow-md' : 'text-white hover:bg-white/10'}`}
+                          className={`px-2 py-1 md:px-3.5 md:py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap cursor-pointer ${
+                            view === 'bank' 
+                              ? 'bg-[#3C128D] text-white shadow-md dark:bg-white dark:text-[#3C128D]' 
+                              : 'text-slate-800 hover:text-slate-950 hover:bg-slate-200/80 dark:text-white dark:hover:bg-white/10'
+                          }`}
                       >
                           Question Bank
+                      </button>
+                      <button 
+                          id="guest-btn-command-palette"
+                          type="button"
+                          onClick={() => setIsCommandPaletteOpen(true)}
+                          className="px-2 py-1 md:px-2.5 md:py-1.5 rounded-lg text-xs md:text-sm font-bold text-slate-800 hover:text-slate-950 hover:bg-slate-200/80 dark:text-white dark:hover:bg-white/10 flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+                          title={`Quick Actions & Navigation (${modKey}K)`}
+                      >
+                          <Search className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                          <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-200/90 dark:bg-slate-800 rounded border border-slate-300 dark:border-slate-700 shadow-2xs">
+                            {modKey}K
+                          </kbd>
                       </button>
                       <button 
                           id="nav-btn-exit-guest"
                           type="button"
                           onClick={() => setShowExitGuestModal(true)}
-                          className="px-2.5 py-1.5 rounded-xl text-xs sm:text-sm font-black text-rose-100 bg-rose-500/25 hover:bg-rose-500/40 border border-rose-300/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:text-white"
+                          className="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-black text-white bg-rose-600 hover:bg-rose-700 active:scale-95 border border-rose-500 shadow-md transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                           title="Exit Guest Mode & Return to Home"
                       >
-                          <LogOut className="w-3.5 h-3.5 text-rose-300" />
+                          <LogOut className="w-3.5 h-3.5 text-white" />
                           <span>Exit Guest</span>
                       </button>
                       <button 
                           onClick={() => {
                               openGuestAuthModal('save', 'Sign in to save your question papers to your permanent account.');
                           }}
-                          className="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-black bg-white text-[#3C128D] shadow-md hover:shadow-lg hover:scale-105 transition-all cursor-pointer whitespace-nowrap"
+                          className="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-black bg-[#3C128D] text-white hover:bg-[#320f78] dark:bg-white dark:text-[#3C128D] shadow-md hover:shadow-lg hover:scale-105 transition-all cursor-pointer whitespace-nowrap"
                       >
                           Sign In
                       </button>
@@ -1776,10 +1807,20 @@ const App: React.FC = () => {
                 ) : (
                   <div className="flex items-center gap-2">
                       <button 
-                          onClick={() => navigate('/about')}
-                          className="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                          onClick={() => setIsCommandPaletteOpen(true)}
+                          className="px-2.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold text-slate-800 bg-slate-200/80 hover:bg-slate-300/80 border border-slate-300 dark:text-white dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                          title={`Quick Navigation (${modKey}K)`}
                       >
-                          <Info className="w-3.5 h-3.5 text-amber-300" />
+                          <Search className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                          <kbd className="hidden sm:inline-flex px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-slate-800 rounded border border-slate-300 dark:border-slate-700">
+                            {modKey}K
+                          </kbd>
+                      </button>
+                      <button 
+                          onClick={() => navigate('/about')}
+                          className="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold text-slate-800 bg-slate-200/80 hover:bg-slate-300/80 border border-slate-300 dark:text-white dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                      >
+                          <Info className="w-3.5 h-3.5 text-amber-500 dark:text-amber-300" />
                           <span>About</span>
                       </button>
                       <button 
@@ -1789,12 +1830,12 @@ const App: React.FC = () => {
                                   el.scrollIntoView({ behavior: 'smooth' });
                               }
                           }}
-                          className="px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black bg-white text-[#3C128D] shadow-md hover:shadow-lg hover:scale-105 transition-all cursor-pointer"
+                          className="px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black bg-[#3C128D] text-white hover:bg-[#320f78] dark:bg-white dark:text-[#3C128D] shadow-md hover:shadow-lg hover:scale-105 transition-all cursor-pointer"
                       >
                           Sign In
                       </button>
                   </div>
-               )}
+                )}
           </div>
         </nav>
       )}
@@ -1823,6 +1864,7 @@ const App: React.FC = () => {
         config={themeConfig} 
         backgroundMode={backgroundMode} 
         customBackground={customBackground} 
+        appearanceMode={appearanceMode}
       />
 
       {/* Main Content Area */}
@@ -2046,31 +2088,9 @@ const App: React.FC = () => {
 
                     {view === 'dashboard' && (
                       <div className="space-y-4">
-                        {effectiveUserType === 'student' ? (
-                          <StudentDashboard 
-                            userProfile={userProfile}
-                            isGuest={isGuest}
-                            onRequireAuth={openGuestAuthModal}
-                            onOpenProfileSettings={() => setShowStudentOnboardingModal(true)}
-                            onUpdateStudentSettings={async (updatedSettings) => {
-                              const cleanSettings = sanitizeForFirestore(updatedSettings);
-                              setUserProfile(prev => prev ? { ...prev, studentSettings: cleanSettings } : prev);
-                              if (user) {
-                                try {
-                                  await updateDoc(doc(db, 'users', user.uid), sanitizeForFirestore({
-                                    studentSettings: cleanSettings
-                                  }));
-                                } catch (e) {
-                                  console.error("Error saving updated student settings:", e);
-                                }
-                              } else {
-                                saveGuestStudentSettings(cleanSettings);
-                              }
-                            }}
-                          />
-                        ) : (
-                          <Dashboard 
+                        <Dashboard 
                             history={history} 
+                            userProfile={userProfile}
                             onCreateNew={handleCreateNew} 
                             onViewPaper={handleViewPaper} 
                             onViewBank={() => {
@@ -2085,7 +2105,6 @@ const App: React.FC = () => {
                             onRequireAuth={openGuestAuthModal}
                             onExitGuestMode={handleExitGuestMode}
                           />
-                        )}
                         <AdPlacement 
                           placementId="dashboard_banner" 
                           currentUser={userProfile} 
@@ -2173,9 +2192,12 @@ const App: React.FC = () => {
                             backgroundMode={backgroundMode}
                             customBackground={customBackground}
                             liquidGlassEnabled={liquidGlassEnabled}
+                            appearanceMode={appearanceMode}
+                            onUpdateAppearanceMode={handleUpdateAppearanceMode}
                             onUpdateProfile={handleUpdateProfile}
                             onUpdateLiquidGlass={handleUpdateLiquidGlass}
                             onNavigateToThemeStudio={() => setView('appearance')}
+                            onOpenTeacherOnboarding={() => setShowTeacherOnboardingModal(true)}
                             onBack={handleBackToDashboard}
                         />
                     )}
@@ -2276,19 +2298,6 @@ const App: React.FC = () => {
       {/* Public Footer on Workspace view */}
       {location.pathname === '/' && (user || isGuest) && (
         <PublicFooter onEnterGuestMode={handleEnterGuestMode} />
-      )}
-
-      {/* Application Footer - Full Width Scrolling Marquee */}
-      {location.pathname !== '/reset-password' && (
-        <footer className="footer-bar mt-auto">
-          <div className="marquee-track">
-               {/* Repeated content for seamless infinite loop */}
-               <span className="marquee-item">© ALL RIGHTS RESERVED. DESIGNED & DEVELOPED BY SRI DARSHIT & SRI VENKATESH PENDYALA</span>
-               <span className="marquee-item">© ALL RIGHTS RESERVED. DESIGNED & DEVELOPED BY SRI DARSHIT & SRI VENKATESH PENDYALA</span>
-               <span className="marquee-item">© ALL RIGHTS RESERVED. DESIGNED & DEVELOPED BY SRI DARSHIT & SRI VENKATESH PENDYALA</span>
-               <span className="marquee-item">© ALL RIGHTS RESERVED. DESIGNED & DEVELOPED BY SRI DARSHIT & SRI VENKATESH PENDYALA</span>
-          </div>
-        </footer>
       )}
 
       {/* Email Auth Modal */}
@@ -2553,37 +2562,19 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Mandatory Legacy Migration Modal for Accounts Created Before Teacher/Student Deployment */}
-      <LegacyMigrationModal
-        isOpen={showLegacyMigrationModal || isLegacyMigrationRequired}
-        onComplete={handleCompleteLegacyMigration}
-        userEmail={user?.email || ''}
-        userName={userProfile?.name}
-      />
-
-      {/* User Type Onboarding Selection Modal (for newly registered accounts) */}
-      <UserTypeSelectionModal
-        isOpen={showUserTypeModal && !isLegacyMigrationRequired}
-        currentType={effectiveUserType}
-        onSelect={handleSelectUserType}
-        onClose={() => setShowUserTypeModal(false)}
-        isMandatory={!!user && (userProfile?.needsOnboarding === true || !userProfile?.userType)}
+      {/* Teacher First-Time Setup / Educator Profile Modal */}
+      <TeacherOnboardingModal
+        isOpen={showTeacherOnboardingModal}
+        initialSettings={userProfile?.teacherSettings || undefined}
+        initialDefaultPaperSettings={userProfile?.defaultPaperSettings || undefined}
+        currentAppearanceMode={appearanceMode}
+        userName={userProfile?.name || (user?.displayName || undefined)}
         isGuest={!user && isGuest}
-      />
-
-      {/* Student First-Time Setup / Learning Profile Modal */}
-      <StudentOnboardingModal
-        isOpen={showStudentOnboardingModal}
-        initialSettings={userProfile?.studentSettings || loadGuestStudentSettings() || undefined}
-        isMandatory={!!user && userProfile?.userType === 'student' && !userProfile?.studentSettings?.studentOnboardingCompleted}
-        onComplete={handleCompleteStudentOnboarding}
+        isMandatory={!!user && !userProfile?.teacherSettings?.teacherOnboardingCompleted && !isSuperAdmin(user.email || '', userProfile?.role)}
+        onComplete={handleCompleteTeacherOnboarding}
+        onAppearanceChange={handleUpdateAppearanceMode}
         onClose={() => {
-          if (!!user && userProfile?.userType === 'student' && !userProfile?.studentSettings?.studentOnboardingCompleted) {
-            setShowStudentOnboardingModal(false);
-            setShowUserTypeModal(true);
-          } else {
-            setShowStudentOnboardingModal(false);
-          }
+          setShowTeacherOnboardingModal(false);
         }}
       />
 
@@ -2629,6 +2620,49 @@ const App: React.FC = () => {
         }}
         paperCount={history.length}
         isLoggingIn={isLoggingIn}
+      />
+
+      {/* Global Quick-Navigation Command Palette (Cmd+K / Ctrl+K) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onNewPaper={() => {
+          if (location.pathname !== '/') {
+            navigate('/');
+          }
+          handleCreateNew();
+        }}
+        onNavigateView={(targetView) => {
+          if (location.pathname !== '/') {
+            navigate('/');
+          }
+          setView(targetView);
+        }}
+        onNavigateRoute={(route) => {
+          navigate(route);
+        }}
+        onViewPaper={handleViewPaperFromPalette}
+        onToggleAppearance={() => {
+          const next = appearanceMode === 'dark' ? 'light' : 'dark';
+          handleUpdateAppearanceMode(next);
+        }}
+        onOpenShortcutsHelp={() => {
+          setIsShortcutsModalOpen(true);
+        }}
+        onSyncSyllabus={userProfile?.role === 'admin' ? handleSyncSyllabus : undefined}
+        appearanceMode={appearanceMode}
+        userProfile={userProfile}
+        isGuest={isGuest}
+        isUserAdmin={isUserAdmin}
+        history={history}
+        questionBanks={questionBanks}
+      />
+
+      {/* Global Keyboard Shortcuts Cheat Sheet Modal */}
+      <KeyboardShortcutsModal
+        isOpen={isShortcutsModalOpen}
+        onClose={() => setIsShortcutsModalOpen(false)}
+        onOpenPalette={() => setIsCommandPaletteOpen(true)}
       />
     </div>
   );

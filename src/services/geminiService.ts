@@ -11,6 +11,60 @@ console.log("API KEY EXISTS:", !!apiKey);
 const ai = new GoogleGenAI({ apiKey: apiKey || 'API_KEY_NOT_SET' });
 
 /**
+ * Safely parses JSON from an AI response string, handling markdown wrappers,
+ * codeblocks, and unexpected non-JSON prefixes without throwing raw SyntaxError.
+ */
+export function cleanAndParseJson<T = any>(rawText: string, fallback?: T): T {
+  if (!rawText || typeof rawText !== 'string') {
+    if (fallback !== undefined) return fallback;
+    throw new Error('Empty or invalid response received from AI.');
+  }
+
+  const trimmed = rawText.trim();
+
+  // If text starts with HTML tags or doctype, reject immediately
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith('<!doctype') || lower.startsWith('<html') || lower.startsWith('<?xml') || (lower.startsWith('<') && !lower.startsWith('<svg'))) {
+    if (fallback !== undefined) return fallback;
+    throw new Error('Received HTML document instead of structured JSON response.');
+  }
+
+  // 1. Try direct parse
+  try {
+    return JSON.parse(trimmed);
+  } catch (_) {}
+
+  // 2. Try markdown code fences ```json ... ``` or ``` ... ```
+  const codeBlockMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (codeBlockMatch && codeBlockMatch[1]) {
+    try {
+      return JSON.parse(codeBlockMatch[1].trim());
+    } catch (_) {}
+  }
+
+  // 3. Try outermost JSON object { ... }
+  const firstBrace = trimmed.indexOf('{');
+  const lastBrace = trimmed.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    try {
+      return JSON.parse(trimmed.slice(firstBrace, lastBrace + 1));
+    } catch (_) {}
+  }
+
+  // 4. Try outermost JSON array [ ... ]
+  const firstBracket = trimmed.indexOf('[');
+  const lastBracket = trimmed.lastIndexOf(']');
+  if (firstBracket !== -1 && lastBracket > firstBracket) {
+    try {
+      return JSON.parse(trimmed.slice(firstBracket, lastBracket + 1));
+    } catch (_) {}
+  }
+
+  if (fallback !== undefined) return fallback;
+  throw new Error('Failed to parse valid JSON from AI response.');
+}
+
+/**
  * Proxies the generateContent request to the backend server to secure the API key.
  * Falls back to client-side SDK if running locally without a proxy.
  */
@@ -20,25 +74,18 @@ export const generateContentProxy = async (params: {
   config?: any;
 }): Promise<{ text: string | null; candidates?: any[] }> => {
   const reqStart = performance.now();
+  let response: Response;
   try {
-    const response = await fetch('/api/ai/generateContent', {
+    response = await fetch('/api/ai/generateContent', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       body: JSON.stringify(params),
     });
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log(`[Gemini Proxy API] Completed in ${(performance.now() - reqStart).toFixed(0)}ms via backend server.`);
-      return data;
-    }
-    
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Server responded with status ${response.status}`);
-  } catch (err) {
-    console.warn(`[Gemini Proxy] Server route unreachable (${(performance.now() - reqStart).toFixed(0)}ms), utilizing direct client SDK:`, err);
+  } catch (netErr: any) {
+    console.warn(`[Gemini Proxy] Network error reaching proxy server (${(performance.now() - reqStart).toFixed(0)}ms):`, netErr?.message || netErr);
     if (apiKey) {
       const sdkStart = performance.now();
       const sdkResponse = await ai.models.generateContent(params);
@@ -48,8 +95,68 @@ export const generateContentProxy = async (params: {
         candidates: sdkResponse.candidates
       };
     }
-    throw err;
+    throw netErr;
   }
+
+  // Verify response body and content-type to avoid SyntaxError: Unexpected token '<' on HTML pages
+  const contentType = response.headers.get('content-type') || '';
+  const isJson = contentType.includes('application/json') || contentType.includes('json');
+  const rawBody = await response.text().catch(() => '');
+  const isHtml = !rawBody || rawBody.trim().startsWith('<') || rawBody.trim().toLowerCase().startsWith('<!doctype');
+
+  if (isHtml || !isJson) {
+    console.warn(`[Gemini Proxy] Server returned non-JSON response (${contentType}, status ${response.status}):`, rawBody.slice(0, 150));
+    if (apiKey) {
+      console.log(`[Gemini Direct SDK] Falling back to client-side SDK for ${params.model}...`);
+      const sdkResponse = await ai.models.generateContent(params);
+      return {
+        text: sdkResponse.text,
+        candidates: sdkResponse.candidates
+      };
+    }
+    throw new Error(`Server returned unexpected response (${response.status} ${response.statusText}).`);
+  }
+
+  if (response.ok) {
+    try {
+      const data = JSON.parse(rawBody);
+      console.log(`[Gemini Proxy API] Completed in ${(performance.now() - reqStart).toFixed(0)}ms via backend server.`);
+      return data;
+    } catch (parseErr: any) {
+      console.warn(`[Gemini Proxy API] Failed to parse JSON body from 200 OK:`, parseErr);
+      if (apiKey) {
+        console.log(`[Gemini Direct SDK] Falling back to client-side SDK for ${params.model}...`);
+        const sdkResponse = await ai.models.generateContent(params);
+        return {
+          text: sdkResponse.text,
+          candidates: sdkResponse.candidates
+        };
+      }
+      throw new Error(`Invalid JSON received from server: ${parseErr.message}`);
+    }
+  }
+  
+  let errorMsg = `Server responded with status ${response.status}`;
+  try {
+    const errorData = JSON.parse(rawBody);
+    if (errorData?.error) errorMsg = errorData.error;
+  } catch (_) {}
+
+  if (apiKey) {
+    console.warn(`[Gemini Proxy] Server proxy returned error (${errorMsg}), attempting client-side direct SDK fallback...`);
+    try {
+      const sdkResponse = await ai.models.generateContent(params);
+      return {
+        text: sdkResponse.text,
+        candidates: sdkResponse.candidates
+      };
+    } catch (sdkErr: any) {
+      console.error("[Gemini Direct SDK Fallback Error]:", sdkErr?.message || sdkErr);
+      throw new Error(sdkErr?.message || errorMsg);
+    }
+  }
+
+  throw new Error(errorMsg);
 };
 
 /**
@@ -117,11 +224,11 @@ const questionSchema: Schema = {
   properties: {
     question_id: { type: Type.STRING },
     section: { type: Type.STRING, description: "The section this question belongs to (e.g., 'Section A')." },
-    question_text: { type: Type.STRING, description: "The question content in UNICODE ONLY. No LaTeX. If a figure is used, append 'Refer to the figure below' to the text." },
+    question_text: { type: Type.STRING, description: "The question content. Format mathematical expressions clearly using standard LaTeX (e.g., $\\frac{a}{b}$, $\\sqrt{x}$, $x^2$) or clean Unicode. If a figure is used, append 'Refer to the figure below' to the text." },
     options: { 
       type: Type.ARRAY, 
       items: { type: Type.STRING },
-      description: "Array of 4 options for MCQs. Null/Empty for others. UNICODE ONLY." 
+      description: "Array of 4 options for MCQs. Null/Empty for others. Format math with standard LaTeX ($...$) or clean Unicode." 
     },
     answer_type: { type: Type.STRING, description: "MCQ | Assertion-Reason | Very Short Answer | Short Answer | Long Answer | Case Study" },
     marks: { type: Type.NUMBER },
@@ -156,7 +263,7 @@ const paperResponseSchema: Schema = {
 
 export const generateQuestionPaper = async (
   config: PaperConfig, 
-  modelId: string = 'gemini-3.7-flash',
+  modelId: string = 'gemini-3.8-flash',
   uid?: string
 ): Promise<GeneratedPaper> => {
   const genStartTime = performance.now();
@@ -272,26 +379,12 @@ export const generateQuestionPaper = async (
     EXISTING MANUAL QUESTIONS (Do NOT duplicate these, but include them in the final JSON output exactly as provided, preserving their IDs):
     ${JSON.stringify(manualQuestions)}
 
-    🚫 ABSOLUTE BAN ON LATEX / MATHML / KATEX:
-    - NEVER use backslashes like \\sqrt, \\frac, \\Delta.
-    - NEVER use tags like [[MATH]] or [[]].
-    - NEVER use ^ for powers (e.g. x^2 is FORBIDDEN).
-    - NEVER use / for fractions (e.g. 1/2 is FORBIDDEN).
-
-    ✅ STRICT UNICODE MATH FORMATTING RULES:
-    1. **Square Roots**: Use '√'. Example: √(x² + y²)
-    2. **Powers**: Use superscript characters ONLY. Example: x², y³, r⁴, 10⁻¹
-    3. **Pi**: Use 'π'.
-    4. **Triangles**: Use '△'. Example: △ABC.
-    5. **Fractions**: MUST be vertical using dashes.
-       Example:
-       x + 1
-       ─────
-       y - 1
-    6. **Ratios**: Use vertical format.
-       AB
-       ──
-       DE
+    📐 MATHEMATICAL FORMATTING GUIDELINES:
+    - Format mathematical expressions using standard LaTeX notation enclosed in $ for inline (e.g. $\\frac{a}{b}$, $\\sqrt{x^2 + y^2}$, $x^2 + 5x + 6 = 0$) or clean standard symbols.
+    - Fractions: Write as $\\frac{numerator}{denominator}$ or vertical fraction. NEVER use multi-line dashed ASCII blocks that disrupt text flow.
+    - Powers & Roots: Use $x^2$, $y^3$, $\\sqrt{x}$, $\\sqrt[3]{y}$ or standard Unicode.
+    - Geometric symbols: Use $\\triangle ABC$, $\\angle A$, $\\pi$, $\\theta$, $\\alpha$, $\\beta$, $\\degree$.
+    - Matrices & Vectors: Use standard LaTeX notation (e.g. $\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}$, $\\vec{v}$).
 
     🖼️ DIAGRAM / FIGURE RULES:
     1. **MATHEMATICS**: You MUST provide a 'diagram_prompt' for Geometry, Mensuration, Trigonometry, Coordinate Geometry, etc.
@@ -323,7 +416,7 @@ export const generateQuestionPaper = async (
     const durationMs = Math.round(performance.now() - genStartTime);
     const text = response.text;
     if (!text) throw new Error("No response received from AI.");
-    const data = JSON.parse(text);
+    const data = cleanAndParseJson(text);
 
     // Record non-blocking generation metric
     logGenerationMetric({
@@ -411,7 +504,7 @@ export const regenerateSingleQuestion = async (
 
   try {
     const response = await withRetry(() => generateContentProxy({
-      model: 'gemini-3.7-flash',
+      model: 'gemini-3.8-flash',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -428,7 +521,7 @@ export const regenerateSingleQuestion = async (
     
     const text = response.text;
     if(!text) throw new Error("Failed to regenerate");
-    return JSON.parse(text);
+    return cleanAndParseJson(text);
 
   } catch (error) {
     console.error("Regeneration failed", error);
@@ -450,10 +543,72 @@ export const generateQuestionBankUpdate = async (subject: string, grade: string,
     Format as clear Markdown with headers.`;
 
     const response = await withRetry(() => generateContentProxy({
-      model: 'gemini-3.7-flash',
+      model: 'gemini-3.8-flash',
       contents: prompt
     }));
     return response.text || "Failed to generate content.";
+};
+
+/**
+ * Helper to extract valid SVG markup from model output.
+ */
+export const extractSvgMarkup = (text: string): string | null => {
+  if (!text) return null;
+  // Match inside ```xml or ```svg code blocks
+  const codeBlockMatch = text.match(/```(?:xml|svg)?\s*([\s\S]*?)```/i);
+  const candidate = codeBlockMatch ? codeBlockMatch[1] : text;
+  
+  const svgStart = candidate.indexOf('<svg');
+  const svgEnd = candidate.lastIndexOf('</svg>');
+  if (svgStart !== -1 && svgEnd !== -1 && svgEnd > svgStart) {
+    let svg = candidate.slice(svgStart, svgEnd + 6).trim();
+    if (!svg.includes('xmlns="http://www.w3.org/2000/svg"')) {
+      svg = svg.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    return svg;
+  }
+  return null;
+};
+
+/**
+ * Encodes SVG string into a browser-safe data URI.
+ */
+export const svgToDataUrl = (svg: string): string => {
+  try {
+    const encoded = btoa(unescape(encodeURIComponent(svg)));
+    return `data:image/svg+xml;base64,${encoded}`;
+  } catch {
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }
+};
+
+/**
+ * Generates an SVG schematic placeholder when offline or model is overloaded.
+ */
+export const generateFallbackSvg = (prompt: string): string => {
+  const safeText = prompt.replace(/[<>&"']/g, (c) => {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '"': return '&quot;';
+      case "'": return '&apos;';
+      default: return c;
+    }
+  });
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 260" width="100%" height="100%">
+    <rect width="100%" height="100%" fill="#ffffff" stroke="#d1d5db" stroke-width="2" rx="8"/>
+    <rect x="20" y="20" width="460" height="220" fill="#fafafa" rx="6" stroke="#e5e7eb"/>
+    <circle cx="250" cy="95" r="42" fill="none" stroke="#1f2937" stroke-width="2.5" stroke-dasharray="5 3"/>
+    <line x1="165" y1="95" x2="335" y2="95" stroke="#1f2937" stroke-width="2"/>
+    <line x1="250" y1="52" x2="250" y2="138" stroke="#1f2937" stroke-width="2"/>
+    <polygon points="250,48 245,60 255,60" fill="#1f2937"/>
+    <polygon points="340,95 328,90 328,100" fill="#1f2937"/>
+    <text x="250" y="168" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#111827">ACADEMIC DIAGRAM SPECIFICATION</text>
+    <text x="250" y="192" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#4b5563">${safeText.slice(0, 75)}${safeText.length > 75 ? '...' : ''}</text>
+    <text x="250" y="212" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9ca3af">[Refer to question text for dimensions and notation]</text>
+  </svg>`;
 };
 
 export const generateDiagramImage = async (
@@ -461,87 +616,76 @@ export const generateDiagramImage = async (
   onProgress?: (status: 'generating' | 'retrying', attempt: number, maxAttempts: number) => void
 ): Promise<string> => {
   const maxAttempts = 2;
-  const imagePrompt = `
-    Generate a Nano-Banana style academic diagram.
-    Subject: School Exam (Math/Science).
-    Style: Nano-Banana Diagram Engine. Black and white, clean vector lines, white background. NO SHADING. High contrast.
-    Content: ${diagramPrompt}
-    Labels: Include clear text labels (A, B, C, P, Q, x, y) as described.
-    Use thick, clear lines suitable for printing.
-  `;
+  const svgPrompt = `You are an expert academic illustration engine for school examination papers (CBSE / NCERT / ICSE / State Board).
+Generate a clean, high-precision academic examination vector SVG diagram for this question requirement:
+"${diagramPrompt}"
 
-  let lastError: any = null;
+STRICT REQUIREMENTS:
+1. Output ONLY valid, self-contained SVG code starting with <svg and ending with </svg>.
+2. Dimensions & ViewBox: viewBox="0 0 500 350" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"
+3. Background: Always include a clean white background rect: <rect width="100%" height="100%" fill="#ffffff"/>
+4. Style: Academic textbook / examination paper standard.
+   - Lines: Crisp black vector lines (stroke="#111827", stroke-width="2" or "2.5").
+   - Fills: fill="none" for open outlines, fill="#f3f4f6" or light shading for shaded regions if asked.
+   - Construction / normal lines: stroke-dasharray="4 4".
+5. Labels & Notation:
+   - Use <text font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#111827">
+   - Label vertices (A, B, C, P, Q, O), center of circles, angles, and dimensions ("5 cm", "13 cm", "x", "θ") with generous offset padding so labels NEVER overlap geometry lines.
+6. Geometry & Physics details:
+   - For geometry: accurately construct shapes (triangles, circles, chords, tangents, quadrilaterals, right angles with square markers).
+   - For physics/optics: clean rays with arrows, lenses, mirrors, focal points (F, 2F).
+   - For electric circuits: battery (+ and -), resistors, switches, ammeters/voltmeters.
+7. Return strictly valid SVG without any markdown or code blocks if possible, or inside \`\`\`xml or \`\`\`svg.`;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const attemptStartTime = performance.now();
     try {
       if (attempt > 1) {
         if (onProgress) onProgress('retrying', attempt, maxAttempts);
-        const backoffMs = Math.min(2000 * Math.pow(2, attempt - 2) + Math.random() * 1000, 6000);
-        console.log(`[Nano Banana Diagram] Retrying attempt ${attempt}/${maxAttempts} after ${Math.round(backoffMs)}ms backoff...`);
-        await new Promise(resolve => setTimeout(resolve, backoffMs));
+        await new Promise(resolve => setTimeout(resolve, 800));
       } else {
         if (onProgress) onProgress('generating', 1, maxAttempts);
-        console.log(`[Nano Banana Diagram] Starting diagram generation (attempt 1/${maxAttempts})...`);
       }
 
-      // 25-second timeout guard per attempt to prevent infinite hanging
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        const timer = setTimeout(() => reject(new Error("Diagram generation timed out after 25s")), 25000);
-        if (typeof timer === 'object' && 'unref' in timer) {
-          (timer as any).unref();
+      const response = await generateContentProxy({
+        model: 'gemini-3.7-flash',
+        contents: svgPrompt,
+        config: {
+          temperature: 0.15,
         }
       });
 
-      const fetchPromise = generateContentProxy({
-        model: 'gemini-3.1-flash-lite-image', // Gemini Image model
-        contents: {
-          parts: [{ text: imagePrompt }]
-        }
-      });
-
-      const response = await Promise.race([fetchPromise, timeoutPromise]);
-
+      // 1. Check if candidates returned inlineData (e.g. from backend SVG proxy)
       if (response.candidates?.[0]?.content?.parts) {
         for (const part of response.candidates[0].content.parts) {
           if (part.inlineData && part.inlineData.data) {
-            const mimeType = part.inlineData.mimeType || 'image/png';
-            const duration = Math.round(performance.now() - attemptStartTime);
-            console.log(`[Nano Banana Diagram] Successfully generated diagram in ${duration}ms (attempt ${attempt}/${maxAttempts}).`);
+            const mimeType = part.inlineData.mimeType || 'image/svg+xml';
             return `data:${mimeType};base64,${part.inlineData.data}`;
           }
         }
-
-        // If candidates returned text instead of inlineData
-        const textParts = response.candidates[0].content.parts
-          .filter((p: any) => p.text)
-          .map((p: any) => p.text)
-          .join(' ');
-        if (textParts) {
-          throw new Error(`Model returned text response instead of image: "${textParts.slice(0, 100)}..."`);
-        }
       }
 
-      throw new Error("No image data returned from AI model response.");
+      // 2. Extract SVG markup from text response
+      const rawText = response.text || '';
+      const svg = extractSvgMarkup(rawText);
+      if (svg) {
+        const duration = Math.round(performance.now() - attemptStartTime);
+        console.log(`[Exam Diagram] Successfully generated vector SVG diagram in ${duration}ms.`);
+        return svgToDataUrl(svg);
+      }
+
+      if (attempt === maxAttempts) {
+        return svgToDataUrl(generateFallbackSvg(diagramPrompt));
+      }
     } catch (err: any) {
-      lastError = err;
-      const duration = Math.round(performance.now() - attemptStartTime);
-      const errMsg = err?.message || String(err);
-      
-      // If quota is exhausted or limit is 0, do not keep retrying in vain
-      const isZeroQuota = errMsg.includes('limit: 0') || errMsg.includes('RESOURCE_EXHAUSTED');
-      console.warn(`[Nano Banana Diagram] Attempt ${attempt}/${maxAttempts} failed in ${duration}ms:`, errMsg);
-      
-      if (isZeroQuota) {
-        throw new Error("Image model quota unavailable (limit: 0 on current tier). Diagram prompt preserved for reference.");
+      console.info(`[Exam Diagram] Attempt ${attempt}/${maxAttempts} fallback:`, err?.message || err);
+      if (attempt >= maxAttempts) {
+        return svgToDataUrl(generateFallbackSvg(diagramPrompt));
       }
-      if (attempt >= maxAttempts) break;
     }
   }
 
-  const finalMsg = lastError?.message || "Diagram generation failed after retry attempts.";
-  console.error(`[Nano Banana Diagram] Error:`, finalMsg);
-  throw new Error(finalMsg);
+  return svgToDataUrl(generateFallbackSvg(diagramPrompt));
 };
 
 // --- ROBUST EXTRACTION & PARSING LOGIC ---
@@ -582,8 +726,8 @@ export const parseQuestionsFromText = async (text: string, subjectContext: strin
            - Case Study / Source Based (4 Marks)
            - Long Answer (LAQ) (5 Marks)
         
-        🚫 ABSOLUTE BAN ON LATEX:
-        - Use √, ², ³, π, △, θ etc. No backslashes.
+        📐 MATHEMATICAL FORMATTING:
+        - Format math equations and formulas using standard LaTeX enclosed in $ or clean standard Unicode symbols.
         
         Output JSON:
         {
@@ -609,7 +753,7 @@ export const parseQuestionsFromText = async (text: string, subjectContext: strin
 
     try {
         const response = await withRetry(() => generateContentProxy({
-            model: 'gemini-3.7-flash',
+            model: 'gemini-3.8-flash',
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
@@ -633,7 +777,7 @@ export const parseQuestionsFromText = async (text: string, subjectContext: strin
             }
         }));
         
-        const data = JSON.parse(response.text || "{}");
+        const data = cleanAndParseJson<any>(response.text || "{}", {});
         const questions = data.questions || [];
         const metadata = data.metadata || {};
 
@@ -666,9 +810,10 @@ export const extractQuestionsFromUrl = async (url: string, subjectContext: strin
             body: JSON.stringify({ url })
           });
 
-          if (res.ok) {
-            const data = await res.json();
-            const rawHtml = data.contents;
+          const contentType = res.headers.get('content-type') || '';
+          if (res.ok && (contentType.includes('json') || contentType.includes('application/json'))) {
+            const data = await res.json().catch(() => null);
+            const rawHtml = data?.contents;
             if (rawHtml && typeof rawHtml === 'string') {
               const parser = new DOMParser();
               const doc = parser.parseFromString(rawHtml, 'text/html');
@@ -716,7 +861,7 @@ export const extractQuestionsFromUrl = async (url: string, subjectContext: strin
         `;
 
         const groundedResponse = await generateContentProxy({
-          model: 'gemini-3.7-flash',
+          model: 'gemini-3.8-flash',
           contents: searchPrompt,
           config: {
             tools: [{ googleSearch: {} }]
@@ -746,7 +891,7 @@ export const fetchSchoolLogoUrl = async (schoolName: string, branchName: string)
 
     try {
         const response = await withRetry(() => generateContentProxy({
-            model: "gemini-3.7-flash",
+            model: "gemini-3.8-flash",
             contents: query,
             config: {
                 tools: [{ googleSearch: {} }],
@@ -794,7 +939,7 @@ export const improveSelectedText = async (selectedText: string, context: string)
 
     try {
         const response = await withRetry(() => generateContentProxy({
-            model: 'gemini-3.7-flash',
+            model: 'gemini-3.8-flash',
             contents: prompt,
             config: {
                 temperature: 0.7,

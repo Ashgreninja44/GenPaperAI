@@ -304,7 +304,7 @@ export const migrateGuestPapersToFirestore = async (
   try {
     if (typeof window === 'undefined') return 0;
     const raw = sessionStorage.getItem('genpaper_pending_guest_papers');
-    if (!raw) return 0;
+    if (!raw || raw.trim().startsWith('<')) return 0;
     const guestPapers: GeneratedPaper[] = JSON.parse(raw);
     if (!Array.isArray(guestPapers) || guestPapers.length === 0) return 0;
 

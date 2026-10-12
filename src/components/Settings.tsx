@@ -4,7 +4,8 @@ import {
   ThemeAnimationConfig, 
   BackgroundMode, 
   CustomBackgroundConfig,
-  StudentProfileSettings 
+  TeacherProfileSettings,
+  AppearanceMode
 } from '../types';
 import { 
   Globe, 
@@ -26,7 +27,11 @@ import {
   GraduationCap,
   BookOpen,
   Plus,
-  X
+  X,
+  School,
+  Compass,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { GoogleIcon, MicrosoftIcon, EmailIcon } from './BrandIcons';
 import { ImageCropModal } from './ImageCropModal';
@@ -37,13 +42,6 @@ import {
   getEffectiveProfilePhoto,
   isUsingCustomProfilePicture
 } from '../services/profilePhotoService';
-import {
-  SUPPORTED_STUDENT_BOARDS,
-  SUPPORTED_STUDENT_GRADES,
-  LEARNING_GOAL_OPTIONS,
-  getAvailableSubjectsForGrade,
-  getSubjectVisualMeta
-} from '../services/studentCurriculumService';
 
 interface SettingsProps {
   profile: UserProfile;
@@ -52,9 +50,12 @@ interface SettingsProps {
   backgroundMode?: BackgroundMode;
   customBackground?: CustomBackgroundConfig | null;
   liquidGlassEnabled?: boolean;
+  appearanceMode?: AppearanceMode;
   onUpdateProfile: (updates: Partial<UserProfile>) => Promise<void> | void;
   onUpdateLiquidGlass?: (enabled: boolean) => Promise<void> | void;
+  onUpdateAppearanceMode?: (mode: AppearanceMode) => Promise<void> | void;
   onNavigateToThemeStudio: () => void;
+  onOpenTeacherOnboarding?: () => void;
   onBack: () => void;
 }
 
@@ -73,9 +74,12 @@ export const Settings: React.FC<SettingsProps> = ({
   backgroundMode = 'preset',
   customBackground = null,
   liquidGlassEnabled = true,
+  appearanceMode = 'dark',
   onUpdateProfile, 
   onUpdateLiquidGlass,
+  onUpdateAppearanceMode,
   onNavigateToThemeStudio,
+  onOpenTeacherOnboarding,
   onBack 
 }) => {
   const [name, setName] = useState(profile.name);
@@ -86,15 +90,20 @@ export const Settings: React.FC<SettingsProps> = ({
     schoolName: ''
   });
 
-  // Student Specific Settings
-  const [studentBoard, setStudentBoard] = useState(profile.studentSettings?.targetBoard || 'CBSE');
-  const [studentGrade, setStudentGrade] = useState(profile.studentSettings?.targetGrade || 'Class 10');
-  const [studentSubjects, setStudentSubjects] = useState<string[]>(profile.studentSettings?.enrolledSubjects || []);
-  const [studentGoals, setStudentGoals] = useState<string[]>(profile.studentSettings?.learningGoals || []);
-  const [studentExam, setStudentExam] = useState(profile.studentSettings?.targetExam || '');
-  const [studentScore, setStudentScore] = useState(profile.studentSettings?.targetScore || '90%+');
-  const [studentDailyMinutes, setStudentDailyMinutes] = useState(profile.studentSettings?.dailyStudyGoalMinutes || 45);
-  const [subjectToAdd, setSubjectToAdd] = useState('');
+  // Educator Specific Settings
+  const [teachingRole, setTeachingRole] = useState(profile.teacherSettings?.teachingRole || 'School Teacher');
+  const [institutionName, setInstitutionName] = useState(profile.teacherSettings?.institutionName || profile.defaultPaperSettings?.schoolName || '');
+  const [teacherGrades, setTeacherGrades] = useState<string[]>(
+    profile.teacherSettings?.preferredGrades && profile.teacherSettings.preferredGrades.length > 0
+      ? profile.teacherSettings.preferredGrades
+      : [profile.defaultPaperSettings?.grade || '10th']
+  );
+  const [teacherSubjects, setTeacherSubjects] = useState<string[]>(
+    profile.teacherSettings?.preferredSubjects && profile.teacherSettings.preferredSubjects.length > 0
+      ? profile.teacherSettings.preferredSubjects
+      : [profile.defaultPaperSettings?.subject || 'Science']
+  );
+  const [newTeacherSubject, setNewTeacherSubject] = useState('');
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -111,52 +120,31 @@ export const Settings: React.FC<SettingsProps> = ({
     if (profile.defaultPaperSettings) {
       setDefaultSettings(profile.defaultPaperSettings);
     }
-    if (profile.studentSettings) {
-      setStudentBoard(profile.studentSettings.targetBoard || 'CBSE');
-      setStudentGrade(profile.studentSettings.targetGrade || 'Class 10');
-      setStudentSubjects(profile.studentSettings.enrolledSubjects || []);
-      setStudentGoals(profile.studentSettings.learningGoals || []);
-      setStudentExam(profile.studentSettings.targetExam || '');
-      setStudentScore(profile.studentSettings.targetScore || '90%+');
-      setStudentDailyMinutes(profile.studentSettings.dailyStudyGoalMinutes || 45);
-    }
   }, [profile]);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      if (profile.userType === 'student') {
-        const updatedStudentSettings: StudentProfileSettings = {
-          ...(profile.studentSettings || {
-            studyStreak: 0,
-            bestStreak: 0,
-            lastActivityDate: '',
-            activityDates: [],
-            questionsSolved: 0,
-            correctAnswers: 0,
-            mockTestsCompleted: 0,
-            mockTestScores: [],
-            mistakes: []
-          }),
-          targetBoard: studentBoard,
-          targetGrade: studentGrade,
-          enrolledSubjects: studentSubjects,
-          learningGoals: studentGoals,
-          targetExam: studentExam,
-          targetScore: studentScore,
-          dailyStudyGoalMinutes: studentDailyMinutes,
-          studentOnboardingCompleted: true
-        };
-        await onUpdateProfile({
-          name,
-          studentSettings: updatedStudentSettings
-        });
-      } else {
-        await onUpdateProfile({
-          name,
-          defaultPaperSettings: defaultSettings
-        });
-      }
+      const updatedTeacherSettings: TeacherProfileSettings = {
+        ...(profile.teacherSettings || {}),
+        teachingRole,
+        institutionName: institutionName.trim() || undefined,
+        primaryBoard: defaultSettings.board,
+        preferredBoards: [defaultSettings.board],
+        primaryGrade: defaultSettings.grade,
+        preferredGrades: teacherGrades,
+        primarySubject: defaultSettings.subject,
+        preferredSubjects: teacherSubjects,
+        teacherOnboardingCompleted: true
+      };
+      await onUpdateProfile({
+        name,
+        defaultPaperSettings: {
+          ...defaultSettings,
+          schoolName: institutionName.trim() || defaultSettings.schoolName
+        },
+        teacherSettings: updatedTeacherSettings
+      });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3500);
     } catch (err) {
@@ -283,11 +271,11 @@ export const Settings: React.FC<SettingsProps> = ({
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <button 
           onClick={onBack}
-          className="text-white hover:text-white/80 flex items-center gap-2 font-medium drop-shadow-sm transition-colors text-sm sm:text-base cursor-pointer"
+          className="text-theme-foreground hover:opacity-80 flex items-center gap-2 font-medium drop-shadow-sm transition-colors text-sm sm:text-base cursor-pointer"
         >
           ← Back to Dashboard
         </button>
-        <h1 className="text-2xl sm:text-3xl font-black text-white drop-shadow-md">Account Settings</h1>
+        <h1 className="text-2xl sm:text-3xl font-black text-theme-foreground drop-shadow-md">Account Settings</h1>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -341,23 +329,19 @@ export const Settings: React.FC<SettingsProps> = ({
             <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 border border-gray-100">
               <div className="flex items-center gap-2.5">
                 <span className="text-xl">
-                  {profile.userType === 'student' ? '🎓' : '👨‍🏫'}
+                  👨‍🏫
                 </span>
                 <div>
                   <p className="text-xs font-bold text-gray-900">
-                    {profile.userType === 'student' ? 'Student Account' : 'Teacher Account'}
+                    Educator Account
                   </p>
                   <p className="text-[10px] text-gray-500 font-medium">
-                    {profile.userType === 'student' ? 'Student learning & practice mode' : 'Educator & exam creation mode'}
+                    Curriculum & Examination Generator Mode
                   </p>
                 </div>
               </div>
-              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                profile.userType === 'student'
-                  ? 'bg-amber-100 text-amber-900 border border-amber-200'
-                  : 'bg-purple-100 text-[#3C128D] border border-purple-200'
-              }`}>
-                {profile.userType === 'student' ? 'Student' : 'Teacher'}
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 text-[#3C128D] border border-purple-200">
+                Teacher
               </span>
             </div>
           </div>
@@ -550,15 +534,15 @@ export const Settings: React.FC<SettingsProps> = ({
           </div>
 
           {/* Appearance & Customization Section */}
-          <div className="glass-panel p-6 sm:p-8 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+          <div className="glass-panel p-6 sm:p-8 rounded-3xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-xl space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-white/10">
               <div className="flex items-center gap-2.5">
-                <span className="p-2 rounded-xl bg-purple-50 text-[#8A2CB0]">
+                <span className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-[#8A2CB0] dark:text-purple-300">
                   <Palette className="w-5 h-5" />
                 </span>
                 <div>
-                  <h2 className="text-lg font-black text-gray-900">Appearance & Customization</h2>
-                  <p className="text-xs text-gray-500 font-medium">Control Liquid Glass materials, themes, and wallpaper</p>
+                  <h2 className="text-lg font-black text-gray-900 dark:text-white">Appearance & Customization</h2>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">Control Light/Dark appearance mode, Liquid Glass materials, themes, and wallpaper</p>
                 </div>
               </div>
 
@@ -572,26 +556,97 @@ export const Settings: React.FC<SettingsProps> = ({
               </button>
             </div>
 
+            {/* Appearance Mode (Light vs Dark) Selector */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black text-gray-900 dark:text-white flex items-center gap-2">
+                    <span>Appearance Mode</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-purple-100 dark:bg-purple-950/60 text-[#8A2CB0] dark:text-purple-300 border border-purple-200 dark:border-purple-800/40">
+                      {appearanceMode === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                    Select your preferred system theme. Automatically applies across all workspaces, dialogs, and components.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <button
+                  type="button"
+                  id="settings-mode-light"
+                  onClick={() => onUpdateAppearanceMode && onUpdateAppearanceMode('light')}
+                  className={`p-3.5 rounded-xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
+                    appearanceMode === 'light'
+                      ? 'border-[#8A2CB0] bg-white shadow-md ring-2 ring-[#8A2CB0]/20 text-gray-900'
+                      : 'border-gray-200 dark:border-white/10 bg-white/60 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-800 text-gray-700 dark:text-slate-300'
+                  }`}
+                >
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                    appearanceMode === 'light'
+                      ? 'bg-amber-100 text-amber-600 shadow-sm'
+                      : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400'
+                  }`}>
+                    <Sun className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold">Light Mode</div>
+                    <div className="text-[10px] text-gray-500 dark:text-slate-400">Clean, luminous daylight</div>
+                  </div>
+                  {appearanceMode === 'light' && (
+                    <Check className="w-4 h-4 text-[#8A2CB0] shrink-0" />
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  id="settings-mode-dark"
+                  onClick={() => onUpdateAppearanceMode && onUpdateAppearanceMode('dark')}
+                  className={`p-3.5 rounded-xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
+                    appearanceMode === 'dark'
+                      ? 'border-[#8A2CB0] bg-slate-900 shadow-md ring-2 ring-[#8A2CB0]/30 text-white'
+                      : 'border-gray-200 dark:border-white/10 bg-white/60 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-800 text-gray-700 dark:text-slate-300'
+                  }`}
+                >
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                    appearanceMode === 'dark'
+                      ? 'bg-purple-950/80 text-purple-300 shadow-sm'
+                      : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400'
+                  }`}>
+                    <Moon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold">Dark Mode</div>
+                    <div className="text-[10px] text-gray-500 dark:text-slate-400">Deep obsidian luxury</div>
+                  </div>
+                  {appearanceMode === 'dark' && (
+                    <Check className="w-4 h-4 text-[#8A2CB0] shrink-0" />
+                  )}
+                </button>
+              </div>
+            </div>
+
             {/* Liquid Glass Toggle */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-50/70 to-indigo-50/50 border border-purple-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-50/70 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-950/20 border border-purple-100 dark:border-purple-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-start sm:items-center gap-3.5">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                   liquidGlassEnabled 
                     ? 'bg-[#8A2CB0] text-amber-300 shadow-md' 
-                    : 'bg-gray-200 text-gray-400'
+                    : 'bg-gray-200 dark:bg-slate-800 text-gray-400'
                 }`}>
                   <Sparkle className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-black text-gray-900">Liquid Glass Material</h3>
+                    <h3 className="text-sm font-black text-gray-900 dark:text-white">Liquid Glass Material</h3>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                      liquidGlassEnabled ? 'bg-purple-100 text-[#8A2CB0]' : 'bg-gray-200 text-gray-600'
+                      liquidGlassEnabled ? 'bg-purple-100 dark:bg-purple-900/60 text-[#8A2CB0] dark:text-purple-300' : 'bg-gray-200 dark:bg-slate-800 text-gray-600 dark:text-slate-400'
                     }`}>
                       {liquidGlassEnabled ? 'ON' : 'OFF'}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-600 mt-0.5 max-w-lg">
+                  <p className="text-xs text-gray-600 dark:text-slate-400 mt-0.5 max-w-lg">
                     {liquidGlassEnabled 
                       ? 'Luminous translucent frosted glass and specular sheen are active across all UI surfaces.' 
                       : 'Disabled. Interface surfaces use clean, solid opaque materials with high contrast.'}
@@ -606,21 +661,21 @@ export const Settings: React.FC<SettingsProps> = ({
                   onChange={(e) => onUpdateLiquidGlass && onUpdateLiquidGlass(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-7 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all after:shadow-sm peer-checked:bg-gradient-to-r peer-checked:from-[#3C128D] peer-checked:to-[#8A2CB0]"></div>
+                <div className="w-14 h-7 bg-gray-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-7 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all after:shadow-sm peer-checked:bg-gradient-to-r peer-checked:from-[#3C128D] peer-checked:to-[#8A2CB0]"></div>
               </label>
             </div>
 
             {/* Current Background Status Banner */}
-            <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-700 shadow-sm shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-700 border border-gray-200 dark:border-white/10 flex items-center justify-center text-gray-700 dark:text-slate-200 shadow-sm shrink-0">
                   {backgroundMode === 'custom' ? <ImageIcon className="w-4 h-4 text-amber-500" /> : <Sparkles className="w-4 h-4 text-[#8A2CB0]" />}
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-gray-800">
+                  <h4 className="text-xs font-bold text-gray-800 dark:text-slate-200">
                     {backgroundMode === 'custom' ? 'Custom Wallpaper Background' : `Preset Environment: ${activeThemeName}`}
                   </h4>
-                  <p className="text-[11px] text-gray-500">
+                  <p className="text-[11px] text-gray-500 dark:text-slate-400">
                     {backgroundMode === 'custom' 
                       ? (customBackground?.fileName ? `Image: ${customBackground.fileName}` : 'Personal uploaded wallpaper active')
                       : (isAnimOn ? 'Dynamic celestial & particle animations active' : 'Static background theme')}
@@ -631,7 +686,7 @@ export const Settings: React.FC<SettingsProps> = ({
               <button
                 type="button"
                 onClick={onNavigateToThemeStudio}
-                className="text-xs font-black text-[#8A2CB0] hover:text-[#3C128D] flex items-center gap-1 cursor-pointer"
+                className="text-xs font-black text-[#8A2CB0] dark:text-purple-400 hover:text-[#3C128D] flex items-center gap-1 cursor-pointer"
               >
                 <span>{backgroundMode === 'custom' ? 'Adjust Wallpaper' : 'Customize Environment'}</span>
                 <ArrowRight className="w-3 h-3" />
@@ -639,205 +694,65 @@ export const Settings: React.FC<SettingsProps> = ({
             </div>
           </div>
 
-          {/* Student Learning Profile OR Default Paper Settings */}
-          {profile.userType === 'student' ? (
-            <div className="glass-panel p-6 sm:p-8 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-black text-gray-900 flex items-center gap-2.5">
-                  <span className="p-2 rounded-xl bg-purple-50 text-[#8A2CB0]">
-                    <GraduationCap className="w-5 h-5" />
-                  </span>
-                  Student Learning Profile & Curriculum
-                </h2>
-                <span className="px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-purple-100 text-[#3C128D]">
-                  Student Mode
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Board Selection */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Education Board</label>
-                  <select 
-                    value={studentBoard}
-                    onChange={(e) => setStudentBoard(e.target.value)}
-                    className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-bold border border-gray-200 focus:border-[#8A2CB0] outline-none cursor-pointer"
-                  >
-                    {SUPPORTED_STUDENT_BOARDS.map(b => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Grade Selection */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Class / Grade</label>
-                  <select 
-                    value={studentGrade}
-                    onChange={(e) => setStudentGrade(e.target.value)}
-                    className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-bold border border-gray-200 focus:border-[#8A2CB0] outline-none cursor-pointer"
-                  >
-                    {SUPPORTED_STUDENT_GRADES.map(g => (
-                      <option key={g} value={g}>{g}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Enrolled Subjects */}
-                <div className="sm:col-span-2 space-y-2">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    Enrolled Subjects ({studentSubjects.length})
-                  </label>
-                  
-                  {/* Subject Chips */}
-                  <div className="flex flex-wrap gap-2">
-                    {studentSubjects.map(subName => {
-                      const meta = getSubjectVisualMeta(subName);
-                      return (
-                        <span 
-                          key={subName}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-[#3C128D] border border-purple-200 shadow-xs"
-                        >
-                          <span>{meta.icon}</span>
-                          <span>{subName}</span>
-                          {studentSubjects.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => setStudentSubjects(prev => prev.filter(s => s !== subName))}
-                              className="text-gray-400 hover:text-rose-500 transition-colors p-0.5"
-                              title={`Remove ${subName}`}
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          )}
-                        </span>
-                      );
-                    })}
-                  </div>
-
-                  {/* Add Subject Control */}
-                  {(() => {
-                    const availableForGrade = getAvailableSubjectsForGrade(studentBoard, studentGrade);
-                    const unselected = availableForGrade.filter(s => !studentSubjects.includes(s.name));
-                    if (unselected.length === 0) return null;
-                    return (
-                      <div className="flex items-center gap-2 pt-1">
-                        <select
-                          value={subjectToAdd}
-                          onChange={(e) => setSubjectToAdd(e.target.value)}
-                          className="p-2.5 bg-gray-50 rounded-xl text-xs font-bold text-gray-800 border border-gray-200 outline-none flex-1 max-w-xs"
-                        >
-                          <option value="">+ Select subject to add...</option>
-                          {unselected.map(s => (
-                            <option key={s.name} value={s.name}>{s.name} ({s.totalChapters} chapters)</option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          disabled={!subjectToAdd}
-                          onClick={() => {
-                            if (subjectToAdd && !studentSubjects.includes(subjectToAdd)) {
-                              setStudentSubjects(prev => [...prev, subjectToAdd]);
-                              setSubjectToAdd('');
-                            }
-                          }}
-                          className="px-3 py-2.5 rounded-xl bg-[#8A2CB0] text-white text-xs font-bold hover:bg-[#3C128D] transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Add Subject</span>
-                        </button>
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                {/* Learning Goals */}
-                <div className="sm:col-span-2 space-y-2">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    Primary Learning Goals
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {LEARNING_GOAL_OPTIONS.map(goal => {
-                      const isSelected = studentGoals.includes(goal.id);
-                      return (
-                        <button
-                          key={goal.id}
-                          type="button"
-                          onClick={() => {
-                            setStudentGoals(prev => 
-                              isSelected ? prev.filter(g => g !== goal.id) : [...prev, goal.id]
-                            );
-                          }}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                            isSelected 
-                              ? 'bg-[#3C128D] text-white border-[#3C128D] shadow-sm'
-                              : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
-                          }`}
-                        >
-                          {goal.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Target Exam */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Target Exam</label>
-                  <input 
-                    type="text"
-                    value={studentExam}
-                    onChange={(e) => setStudentExam(e.target.value)}
-                    placeholder="e.g. CBSE Class 10 Board Exam 2026"
-                    className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-medium border border-gray-200 focus:border-[#8A2CB0] outline-none"
-                  />
-                </div>
-
-                {/* Target Score */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Target Score / Percentage</label>
-                  <input 
-                    type="text"
-                    value={studentScore}
-                    onChange={(e) => setStudentScore(e.target.value)}
-                    placeholder="e.g. 95%+"
-                    className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-medium border border-gray-200 focus:border-[#8A2CB0] outline-none"
-                  />
-                </div>
-
-                {/* Daily Study Goal */}
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                    Daily Study Target (Minutes per day)
-                  </label>
-                  <div className="flex items-center gap-3">
-                    {[15, 30, 45, 60, 90].map(mins => (
-                      <button
-                        key={mins}
-                        type="button"
-                        onClick={() => setStudentDailyMinutes(mins)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
-                          studentDailyMinutes === mins 
-                            ? 'bg-[#8A2CB0] text-white border-[#8A2CB0]' 
-                            : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
-                        }`}
-                      >
-                        {mins} mins
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="glass-panel p-6 sm:p-8 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl">
-              <h2 className="text-lg font-black text-gray-900 mb-5 flex items-center gap-2.5">
+          {/* Educator Profile & Default Paper Settings */}
+          <div className="glass-panel p-6 sm:p-8 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/40 shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2.5">
                 <span className="p-2 rounded-xl bg-amber-50 text-amber-600">
-                  <Globe className="w-4 h-4" />
+                  <Globe className="w-5 h-5" />
                 </span>
-                Default Paper Settings
+                Educator Profile & Default Paper Settings
               </h2>
+                <div className="flex items-center gap-2">
+                  {onOpenTeacherOnboarding && (
+                    <button
+                      type="button"
+                      onClick={onOpenTeacherOnboarding}
+                      className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#8A2CB0] font-bold text-xs flex items-center gap-1.5 transition-colors border border-purple-200 cursor-pointer"
+                    >
+                      <Compass className="w-3.5 h-3.5" />
+                      <span>Relaunch Setup Wizard</span>
+                    </button>
+                  )}
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-amber-100 text-amber-800">
+                    Teacher Mode
+                  </span>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Teaching Role */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Teaching Role</label>
+                  <select
+                    value={teachingRole}
+                    onChange={(e) => setTeachingRole(e.target.value)}
+                    className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-bold border border-gray-200 focus:border-[#8A2CB0] outline-none cursor-pointer"
+                  >
+                    <option value="School Teacher">School Teacher</option>
+                    <option value="Private Tutor">Private Tutor</option>
+                    <option value="Coaching Faculty">Coaching Institute Faculty</option>
+                    <option value="HOD / Department Lead">HOD / Department Lead</option>
+                    <option value="Parent / Homeschooler">Parent / Homeschooler</option>
+                  </select>
+                </div>
+
+                {/* Institution / School Name */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">School / Institution Name</label>
+                  <input 
+                    type="text"
+                    value={institutionName}
+                    onChange={(e) => {
+                      setInstitutionName(e.target.value);
+                      setDefaultSettings(prev => ({ ...prev, schoolName: e.target.value }));
+                    }}
+                    placeholder="e.g. St. Xavier's International Academy"
+                    className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-medium border border-gray-200 focus:border-[#8A2CB0] outline-none"
+                  />
+                </div>
+
+                {/* Primary Board */}
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Default Board</label>
                   <select 
@@ -853,11 +768,18 @@ export const Settings: React.FC<SettingsProps> = ({
                   </select>
                 </div>
 
+                {/* Primary Grade */}
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Default Grade / Class</label>
                   <select 
                     value={defaultSettings.grade}
-                    onChange={(e) => setDefaultSettings({...defaultSettings, grade: e.target.value})}
+                    onChange={(e) => {
+                      const newGrade = e.target.value;
+                      setDefaultSettings(prev => ({ ...prev, grade: newGrade }));
+                      if (!teacherGrades.includes(newGrade)) {
+                        setTeacherGrades(prev => [...prev, newGrade]);
+                      }
+                    }}
                     className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-bold border border-gray-200 focus:border-[#8A2CB0] outline-none cursor-pointer"
                   >
                     {['6th', '7th', '8th', '9th', '10th', '11th', '12th'].map(g => (
@@ -866,19 +788,84 @@ export const Settings: React.FC<SettingsProps> = ({
                   </select>
                 </div>
 
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Default School Name</label>
+                {/* Primary Subject */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Default Primary Subject</label>
                   <input 
                     type="text"
-                    value={defaultSettings.schoolName}
-                    onChange={(e) => setDefaultSettings({...defaultSettings, schoolName: e.target.value})}
-                    placeholder="e.g. St. Xavier's International Academy"
+                    value={defaultSettings.subject}
+                    onChange={(e) => {
+                      const newSub = e.target.value;
+                      setDefaultSettings(prev => ({ ...prev, subject: newSub }));
+                      if (newSub && !teacherSubjects.includes(newSub)) {
+                        setTeacherSubjects(prev => [...prev, newSub]);
+                      }
+                    }}
+                    placeholder="e.g. Science, Mathematics, English"
                     className="w-full p-3.5 bg-gray-50 rounded-xl text-gray-800 font-medium border border-gray-200 focus:border-[#8A2CB0] outline-none"
                   />
                 </div>
+
+                {/* Preferred Teaching Subjects */}
+                <div className="sm:col-span-2 space-y-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Subjects You Teach
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {teacherSubjects.map(sub => (
+                      <span
+                        key={sub}
+                        className="px-3 py-1.5 rounded-xl bg-purple-50 text-[#8A2CB0] border border-purple-200 text-xs font-bold flex items-center gap-1.5"
+                      >
+                        {sub}
+                        {teacherSubjects.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setTeacherSubjects(prev => prev.filter(s => s !== sub))}
+                            className="hover:text-red-500 transition-colors cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2 pt-1">
+                    <input
+                      type="text"
+                      value={newTeacherSubject}
+                      onChange={(e) => setNewTeacherSubject(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (newTeacherSubject.trim() && !teacherSubjects.includes(newTeacherSubject.trim())) {
+                            setTeacherSubjects(prev => [...prev, newTeacherSubject.trim()]);
+                            setNewTeacherSubject('');
+                          }
+                        }
+                      }}
+                      placeholder="Add subject (e.g. Physics, History)..."
+                      className="flex-1 p-2.5 bg-gray-50 rounded-xl text-xs font-medium border border-gray-200 focus:border-[#8A2CB0] outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (newTeacherSubject.trim() && !teacherSubjects.includes(newTeacherSubject.trim())) {
+                          setTeacherSubjects(prev => [...prev, newTeacherSubject.trim()]);
+                          setNewTeacherSubject('');
+                        }
+                      }}
+                      disabled={!newTeacherSubject.trim()}
+                      className="px-3.5 py-2.5 rounded-xl bg-[#8A2CB0] text-white text-xs font-bold hover:bg-[#3C128D] transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
         </div>
       </div>
     </div>

@@ -124,8 +124,12 @@ export async function fetchWebpageContent(url: string): Promise<{ text: string; 
       body: JSON.stringify({ url })
     });
 
-    if (res.ok) {
-      const data = await res.json();
+    const contentType = res.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json') || contentType.includes('json');
+
+    if (res.ok && isJson) {
+      const data = await res.json().catch(() => null);
+      if (!data) throw new Error("No readable JSON returned from webpage proxy.");
       const rawHtml = data.contents;
       if (!rawHtml || typeof rawHtml !== 'string') {
         throw new Error("No readable content returned from webpage.");
@@ -161,8 +165,14 @@ export async function fetchWebpageContent(url: string): Promise<{ text: string; 
       return { text: cleanText.substring(0, 20000), url };
     }
 
-    const errData = await res.json().catch(() => ({}));
-    throw new Error(errData.error || `Server web fetch failed with status ${res.status}`);
+    let errMessage = `Server web fetch failed with status ${res.status}`;
+    try {
+      if (isJson) {
+        const errData = await res.json().catch(() => null);
+        if (errData?.error) errMessage = errData.error;
+      }
+    } catch (_) {}
+    throw new Error(errMessage);
   } catch (err: any) {
     console.warn(`[Web Research] Direct fetch failed for ${url}:`, err.message);
     throw err;
@@ -192,7 +202,7 @@ export async function performIntelligentWebResearch(params: {
     url,
     chapter,
     targetQuestionCount = 5,
-    modelId = 'gemini-3-flash-preview'
+    modelId = 'gemini-3.8-flash'
   } = params;
 
   const timestamp = Date.now();

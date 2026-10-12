@@ -103,7 +103,6 @@
       })();
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;600&family=Noto+Sans+Devanagari:wght@400;700&family=Noto+Serif+Devanagari:wght@400;700&family=Rozha+One&family=Yatra+One&family=Poppins:wght@300;400;500;600;700&family=Noto+Sans+Telugu:wght@400;700&family=Gidugu&family=NTR&family=Ramabhadra&family=Peddana&display=swap');
@@ -112,21 +111,22 @@
          SEMANTIC DESIGN TOKENS (LIGHT MODE / DEFAULT)
          ======================================================== */
       :root {
-        --foreground: #0f172a;               /* Slate 900 */
-        --foreground-muted: #334155;         /* Slate 700 */
-        --foreground-subtle: #64748b;        /* Slate 500 */
-        --background: #f8fafc;               /* Slate 50 */
-        --surface: rgba(255, 255, 255, 0.95);
-        --surface-elevated: #ffffff;
-        --surface-muted: #f1f5f9;
-        --border: #e2e8f0;
-        --border-strong: #cbd5e1;
-        --accent: #8A2CB0;
+        --foreground: #0f172a;               /* Slate 900 - Deep charcoal text */
+        --foreground-muted: #334155;         /* Slate 700 - Readable secondary text */
+        --foreground-subtle: #64748b;        /* Slate 500 - Caption / subtle text */
+        --background: #f8fafc;               /* Very light crisp neutral page background */
+        --surface: #ffffff;                  /* Primary card soft off-white */
+        --surface-secondary: #edf2f7;        /* Secondary card tinted neutral */
+        --surface-elevated: #ffffff;         /* Elevated popovers & modals */
+        --surface-muted: #e6ebf2;            /* Subtle muted neutral */
+        --border: #dbe2ea;                   /* Crisp subtle border */
+        --border-strong: #cbd5e1;            /* Stronger divider / control border */
+        --accent: #3C128D;                   /* Royal Purple brand accent */
         --accent-foreground: #ffffff;
-        --input-background: #ffffff;
-        --input-foreground: #0f172a;
-        --placeholder: #94a3b8;
-        --card-background: rgba(255, 255, 255, 0.95);
+        --input-background: #edf1f7;         /* Clearly distinguishable light gray */
+        --input-foreground: #0f172a;         /* High contrast dark text */
+        --placeholder: #64748b;
+        --card-background: #ffffff;
         --card-foreground: #0f172a;
       }
 
@@ -458,6 +458,11 @@
         50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.6; }
       }
 
+      .dark .premium-bg-wrapper,
+      [data-appearance="dark"] .premium-bg-wrapper {
+        background: radial-gradient(circle at 50% 0%, #180d38 0%, #0c0820 60%, #060411 100%) !important;
+      }
+
       /* High-Contrast Glass Panels for Content */
       .glass-panel {
         background: var(--surface);
@@ -465,16 +470,15 @@
         -webkit-backdrop-filter: blur(16px);
         border: 1px solid var(--border);
         box-shadow: 
-          0 10px 25px -5px rgba(0, 0, 0, 0.08),
-          0 8px 10px -6px rgba(0, 0, 0, 0.04),
-          inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+          0 10px 25px -5px rgba(0, 0, 0, 0.05),
+          0 8px 10px -6px rgba(0, 0, 0, 0.02);
         color: var(--foreground);
       }
 
       .dark .glass-panel,
       [data-appearance="dark"] .glass-panel,
       [data-theme="dark"] .glass-panel {
-        background: rgba(17, 24, 39, 0.92);
+        background: rgba(17, 24, 39, 0.94);
         border: 1px solid rgba(255, 255, 255, 0.12);
         box-shadow: 
           0 10px 25px -5px rgba(0, 0, 0, 0.5),
@@ -485,75 +489,59 @@
 
       /* Liquid Glass Navigation Bar - Premium Style */
       .liquid-nav {
-        /* Adjusted for dark mode: Semi-transparent frosted glass */
         background: linear-gradient(
           120deg, 
           rgba(255, 255, 255, 0.15) 0%, 
           rgba(255, 255, 255, 0.05) 100%
         );
-        
-        /* Strong blur for frosted glass effect */
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
-        
-        /* Soft glossy borders to emulate glass edges */
         border: 1px solid rgba(255, 255, 255, 0.25);
-        border-top: 1px solid rgba(255, 255, 255, 0.4); /* Top highlight */
-        border-left: 1px solid rgba(255, 255, 255, 0.4); /* Left highlight */
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        
-        /* Inner glow and drop shadow */
-        box-shadow: 
-          0 8px 32px 0 rgba(31, 38, 135, 0.15), 
-          inset 0 0 0 1px rgba(255, 255, 255, 0.1),
-          inset 0 0 20px rgba(255, 255, 255, 0.05);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
       }
 
       .light .liquid-nav,
       [data-appearance="light"] .liquid-nav {
-        background: linear-gradient(
-          120deg, 
-          rgba(255, 255, 255, 0.88) 0%, 
-          rgba(255, 255, 255, 0.72) 100%
-        );
-        border: 1px solid rgba(203, 213, 225, 0.8);
-        border-top: 1px solid rgba(255, 255, 255, 0.95);
-        border-left: 1px solid rgba(255, 255, 255, 0.95);
-        border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+        background: rgba(234, 238, 246, 0.94) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid #cbd5e1 !important;
         box-shadow: 
-          0 8px 32px 0 rgba(15, 23, 42, 0.08), 
-          0 2px 8px 0 rgba(15, 23, 42, 0.04),
-          inset 0 0 0 1px rgba(255, 255, 255, 0.7);
-      }
-
-      .light .orb,
-      [data-appearance="light"] .orb {
-        mix-blend-mode: multiply;
-        opacity: 0.35;
+          0 4px 18px -2px rgba(15, 23, 42, 0.07), 
+          0 2px 6px -1px rgba(15, 23, 42, 0.04) !important;
       }
       
       /* Slightly more transparent for interactive cards */
       .glass-card {
-        background: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.96);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.8);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid #e2e8f0;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         color: var(--foreground);
       }
 
       .dark .glass-card,
       [data-appearance="dark"] .glass-card {
-        background: rgba(30, 41, 59, 0.85);
+        background: rgba(30, 41, 59, 0.9);
         border: 1px solid rgba(255, 255, 255, 0.12);
         color: #f8fafc;
       }
       
-      .glass-card:hover {
+      .light .glass-card:hover,
+      [data-appearance="light"] .glass-card:hover {
         background: #ffffff;
-        transform: translateY(-4px);
-        box-shadow: 0 20px 25px -5px rgba(60, 18, 141, 0.15), 0 10px 10px -5px rgba(60, 18, 141, 0.04);
-        border-color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px -4px rgba(15, 23, 42, 0.08);
+        border-color: #cbd5e1;
+      }
+
+      .dark .glass-card:hover,
+      [data-appearance="dark"] .glass-card:hover {
+        background: rgba(30, 41, 59, 0.98);
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.4);
+        border-color: rgba(255, 255, 255, 0.22);
       }
 
       /* Liquid Glass Buttons */
@@ -715,17 +703,6 @@
         animation-play-state: paused;
       }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
-    "katex": "https://esm.sh/katex@0.16.9"
-  }
-}
-</script>
 <link rel="stylesheet" href="/src/index.css">
 </head>
   <body>

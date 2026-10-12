@@ -1,12 +1,14 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ThemeAnimationConfig, DEFAULT_THEME_ANIMATION_CONFIG, CustomBackgroundConfig, BackgroundMode } from '../types';
+import { ThemeAnimationConfig, DEFAULT_THEME_ANIMATION_CONFIG, CustomBackgroundConfig, BackgroundMode, AppearanceMode } from '../types';
+import { MoonIllustration } from './MoonIllustration';
 
 interface ThemeBackdropProps {
   theme: string;
   config?: ThemeAnimationConfig;
   backgroundMode?: BackgroundMode;
   customBackground?: CustomBackgroundConfig | null;
+  appearanceMode?: AppearanceMode;
   isInteractivePreview?: boolean;
 }
 
@@ -15,6 +17,7 @@ export const ThemeBackdrop: React.FC<ThemeBackdropProps> = ({
   config = DEFAULT_THEME_ANIMATION_CONFIG,
   backgroundMode = 'preset',
   customBackground = null,
+  appearanceMode = 'dark',
   isInteractivePreview = false 
 }) => {
   const currentConfig = config || DEFAULT_THEME_ANIMATION_CONFIG;
@@ -107,22 +110,18 @@ export const ThemeBackdrop: React.FC<ThemeBackdropProps> = ({
         {/* Customizable Moon */}
         {mid.showMoon && (
           <div 
-            className="absolute transition-all duration-300 pointer-events-none rounded-full"
+            className="absolute transition-all duration-300 pointer-events-none"
             style={{
               top: '12%',
               right: isInteractivePreview ? '12%' : '10%',
-              width: `${moonSize}px`,
-              height: `${moonSize}px`,
-              background: 'radial-gradient(circle at 35% 35%, #ffffff 0%, #e2e8f0 60%, #94a3b8 100%)',
-              boxShadow: `0 0 ${Math.round(moonSize * 0.4 * moonGlow)}px ${Math.round(15 * moonGlow)}px rgba(255, 255, 255, ${0.4 * moonGlow * globalIntensity}), 0 0 ${Math.round(moonSize * 0.8 * moonGlow)}px ${Math.round(30 * moonGlow)}px rgba(186, 230, 253, ${0.25 * moonGlow * globalIntensity})`,
               animation: isAnimEnabled ? `moonMove ${Math.max(40 / globalSpeed, 10)}s linear infinite` : 'none',
               transform: 'none'
             }}
           >
-            {/* Realistic Lunar Craters */}
-            <div className="absolute top-[25%] left-[30%] w-[18%] h-[18%] bg-slate-400/25 rounded-full blur-[0.5px]" />
-            <div className="absolute top-[55%] left-[20%] w-[24%] h-[24%] bg-slate-400/20 rounded-full blur-[0.5px]" />
-            <div className="absolute top-[45%] left-[60%] w-[28%] h-[28%] bg-slate-400/20 rounded-full blur-[0.5px]" />
+            <MoonIllustration
+              size={moonSize}
+              glowIntensity={moonGlow * globalIntensity}
+            />
           </div>
         )}
 
@@ -410,7 +409,7 @@ export const ThemeBackdrop: React.FC<ThemeBackdropProps> = ({
         {vib.showOrbs && Array.from({ length: orbCount }).map((_, i) => (
           <div
             key={i}
-            className="absolute rounded-full blur-[90px] opacity-25 pointer-events-none transition-all duration-500"
+            className="absolute rounded-full blur-[110px] pointer-events-none transition-all duration-500 opacity-25"
             style={{
               width: `${(35 + i * 5) * orbScale}vw`,
               height: `${(35 + i * 5) * orbScale}vw`,
@@ -486,13 +485,15 @@ export const ThemeBackdrop: React.FC<ThemeBackdropProps> = ({
       return renderCustomBackground();
     }
 
+    // Golden Sunset behavior is preserved
+    if (theme === 'sunset' || theme === 'Golden Sunset') {
+      return renderSunset();
+    }
+
     switch (theme) {
       case 'midnight':
       case 'Midnight Sky':
         return renderMidnight();
-      case 'sunset':
-      case 'Golden Sunset':
-        return renderSunset();
       case 'ocean':
       case 'Deep Ocean':
         return renderOcean();
@@ -507,8 +508,8 @@ export const ThemeBackdrop: React.FC<ThemeBackdropProps> = ({
   };
 
   const activeKey = backgroundMode === 'custom' && customBackground?.url
-    ? `custom-${customBackground.url}-${customBackground.brightness}-${customBackground.blur}-${customBackground.opacity}-${customBackground.overlayDarkness}`
-    : `${theme}-${isAnimEnabled ? 'anim-on' : 'anim-off'}`;
+    ? `custom-${customBackground.url}-${customBackground.brightness}-${customBackground.blur}-${customBackground.opacity}-${customBackground.overlayDarkness}-${appearanceMode}`
+    : `${theme}-${isAnimEnabled ? 'anim-on' : 'anim-off'}-${appearanceMode}`;
 
   return (
     <div className={`fixed inset-0 z-0 pointer-events-none ${isInteractivePreview ? 'relative h-full w-full' : ''}`}>

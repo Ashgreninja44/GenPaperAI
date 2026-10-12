@@ -789,9 +789,9 @@ const PaperForm: React.FC<PaperFormProps> = ({
   return (
     <div className="max-w-4xl mx-auto">
       <div className="glass-panel rounded-2xl overflow-hidden animate-fade-in">
-        <div className="p-6 border-b border-gray-100/50 bg-white/40">
-            <h2 className="text-2xl font-bold text-gray-800">Configure Paper</h2>
-            <p className="text-gray-500 text-sm mt-1">Define the parameters for your AI-generated assessment.</p>
+        <div className="p-6 border-b border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-slate-900/90">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Configure Paper</h2>
+            <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">Define the parameters for your AI-generated assessment.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-12">
@@ -799,23 +799,23 @@ const PaperForm: React.FC<PaperFormProps> = ({
           {/* STEP 1: BRANDING */}
           <div className="relative">
               <div className="absolute -left-3 top-0 bottom-0 w-1 bg-gradient-to-b from-[#8A2CB0] to-transparent rounded-full opacity-50"></div>
-              <h3 className="text-lg font-bold text-[#3C128D] mb-4 flex items-center gap-2">
+              <h3 className="text-lg font-bold text-[#3C128D] dark:text-purple-300 mb-4 flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-[#8A2CB0] text-white flex items-center justify-center text-xs">1</span>
                   Branding & Header
               </h3>
               
-              <div className="bg-white/50 p-6 rounded-xl border border-white/60 space-y-6 shadow-sm">
+              <div className="bg-white/60 dark:bg-slate-900/60 p-6 rounded-xl border border-slate-200/80 dark:border-white/10 space-y-6 shadow-sm backdrop-blur-sm">
                  
                  {/* School Name & Branch */}
                  <div ref={schoolContainerRef} className="relative">
                     <div className="flex flex-col md:flex-row gap-4">
                         <div className="relative flex-1">
-                            <label className="block text-sm font-bold text-gray-700 mb-2">School Name <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-2">School Name <span className="text-red-500">*</span></label>
                             {!isCustomSchoolMode ? (
                                 <div className="relative">
                                     <input
                                         type="text"
-                                        className={`w-full px-4 py-3 rounded-lg border bg-white/80 focus:ring-2 outline-none transition-all text-gray-900 placeholder:text-gray-400 ${schoolError ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-[#8A2CB0] focus:border-[#8A2CB0]'}`}
+                                        className={`w-full px-4 py-3 rounded-lg border bg-white/90 dark:bg-slate-800/90 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 outline-none transition-all ${schoolError ? 'border-red-500 focus:ring-red-200 dark:focus:ring-red-900/50' : 'border-slate-200 dark:border-slate-700 focus:ring-[#8A2CB0] focus:border-[#8A2CB0]'}`}
                                         placeholder="Select School..."
                                         value={schoolSearch}
                                         onChange={(e) => { setSchoolSearch(e.target.value); setIsSchoolDropdownOpen(true); }}
@@ -832,20 +832,20 @@ const PaperForm: React.FC<PaperFormProps> = ({
                                             ))}
                                         </div>
                                     )}
-                                    {schoolError && <p className="text-red-600 text-xs font-bold mt-1.5 animate-pulse">{schoolError}</p>}
+                                    {schoolError && <p className="text-red-600 dark:text-red-400 text-xs font-bold mt-1.5 animate-pulse">{schoolError}</p>}
                                 </div>
                             ) : (
                                 <div className="relative">
-                                    <input type="text" className="w-full px-4 py-3 rounded-lg border bg-white/80 focus:ring-2 outline-none" placeholder="Enter School Name" value={customSchoolName} onChange={(e) => { setCustomSchoolName(e.target.value); if(e.target.value) setSchoolError(null); }} autoFocus />
-                                    <button type="button" onClick={handleBackToSchoolList} className="absolute inset-y-0 right-0 px-3 text-gray-400 hover:text-red-500">Back</button>
-                                    {schoolError && <p className="text-red-600 text-xs font-bold mt-1.5 animate-pulse">{schoolError}</p>}
+                                    <input type="text" className="w-full px-4 py-3 rounded-lg border bg-white/90 dark:bg-slate-800/90 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-[#8A2CB0] outline-none" placeholder="Enter School Name" value={customSchoolName} onChange={(e) => { setCustomSchoolName(e.target.value); if(e.target.value) setSchoolError(null); }} autoFocus />
+                                    <button type="button" onClick={handleBackToSchoolList} className="absolute inset-y-0 right-0 px-3 text-slate-400 hover:text-red-500 dark:hover:text-red-400 font-medium">Back</button>
+                                    {schoolError && <p className="text-red-600 dark:text-red-400 text-xs font-bold mt-1.5 animate-pulse">{schoolError}</p>}
                                 </div>
                             )}
                         </div>
                         <div className="flex-1">
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Branch / Campus <span className="text-red-500">*</span></label>
-                            <input type="text" className={`w-full px-4 py-3 rounded-lg border bg-white/80 focus:ring-2 outline-none ${branchError ? 'border-red-500 focus:ring-red-200' : 'border-gray-200'}`} placeholder="e.g. Budawada, Hyderabad" value={branchName} onChange={(e) => { setBranchName(e.target.value); if(e.target.value) setBranchError(null); }} />
-                            {branchError && <p className="text-red-600 text-xs font-bold mt-1.5 animate-pulse">{branchError}</p>}
+                            <label className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-2">Branch / Campus <span className="text-red-500">*</span></label>
+                            <input type="text" className={`w-full px-4 py-3 rounded-lg border bg-white/90 dark:bg-slate-800/90 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 outline-none ${branchError ? 'border-red-500 focus:ring-red-200 dark:focus:ring-red-900/50' : 'border-slate-200 dark:border-slate-700 focus:ring-[#8A2CB0] focus:border-[#8A2CB0]'}`} placeholder="e.g. Budawada, Hyderabad" value={branchName} onChange={(e) => { setBranchName(e.target.value); if(e.target.value) setBranchError(null); }} />
+                            {branchError && <p className="text-red-600 dark:text-red-400 text-xs font-bold mt-1.5 animate-pulse">{branchError}</p>}
                         </div>
                     </div>
                  </div>
@@ -853,52 +853,53 @@ const PaperForm: React.FC<PaperFormProps> = ({
                   {/* Logo & Styling */}
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                        <label className="block text-sm font-bold text-gray-700 dark:text-slate-200 mb-2">
                             School Logo (Optional)
                         </label>
-                        <div className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all ${logoError ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-white/60'}`}>
+                        <div className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all ${logoError ? 'border-red-400 bg-red-50 dark:bg-red-950/30' : 'border-slate-300 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white/80 dark:hover:bg-slate-800/80'}`}>
                             {effectiveLogo ? (
                                 <div className="flex items-center gap-4">
-                                    <div className="w-20 h-20 border rounded bg-white flex items-center justify-center overflow-hidden shadow-sm">
+                                    <div className="w-20 h-20 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 flex items-center justify-center overflow-hidden shadow-sm">
                                         <img 
                                             src={effectiveLogo} 
                                             className="w-full h-full object-contain" 
+                                            alt="School logo"
                                         />
                                     </div>
                                     <div className="text-left flex-1 min-w-0">
-                                        <p className="text-sm font-bold truncate">Custom Logo</p>
+                                        <p className="text-sm font-bold truncate text-slate-900 dark:text-white">Custom Logo</p>
                                         <div className="flex gap-3">
-                                            <label className="text-xs font-bold text-[#8A2CB0] cursor-pointer hover:underline">
+                                            <label className="text-xs font-bold text-[#8A2CB0] dark:text-purple-400 cursor-pointer hover:underline">
                                                 Change
                                                 <input type="file" onChange={handleLogoUpload} className="hidden" accept="image/*" />
                                             </label>
-                                            <button type="button" onClick={handleRemoveLogo} className="text-xs text-red-500 font-bold hover:underline">Remove</button>
+                                            <button type="button" onClick={handleRemoveLogo} className="text-xs text-red-500 dark:text-red-400 font-bold hover:underline">Remove</button>
                                         </div>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center">
                                     <input type="file" id="logo-upload" onChange={handleLogoUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*" />
-                                    <svg className="w-8 h-8 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-8 h-8 text-gray-400 dark:text-slate-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
-                                    <div className="text-gray-400 text-sm font-medium">Upload Logo Manually</div>
-                                    <p className="text-[10px] text-gray-400 mt-1">PNG, JPG up to 2MB</p>
+                                    <div className="text-slate-600 dark:text-slate-300 text-sm font-medium">Upload Logo Manually</div>
+                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">PNG, JPG up to 2MB</p>
                                 </div>
                             )}
                         </div>
                         {logoError && (
                             <div className="flex items-center gap-1 mt-1.5">
-                                <svg className="w-3 h-3 text-red-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-                                <p className="text-red-600 text-xs font-bold">{logoError}</p>
+                                <svg className="w-3 h-3 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                <p className="text-red-600 dark:text-red-400 text-xs font-bold">{logoError}</p>
                             </div>
                         )}
                     </div>
                     <div>
-                         <label className="block text-sm font-bold mb-2 text-gray-700">Logo Placement</label>
+                         <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-slate-200">Logo Placement</label>
                          <div className="flex flex-wrap gap-2 sm:gap-3 mb-6">
                              {[{ id: 'left', label: 'Left' }, { id: 'center', label: 'Center' }, { id: 'right', label: 'Right' }].map((opt) => (
-                                 <label key={opt.id} className={`flex-1 min-w-[80px] py-3 rounded-lg border text-center text-sm font-semibold cursor-pointer transition-all ${logoPlacement === opt.id ? 'bg-[#f3e8ff] border-[#8A2CB0] text-[#3C128D] shadow-sm' : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200'}`}>
+                                 <label key={opt.id} className={`flex-1 min-w-[80px] py-3 rounded-lg border text-center text-sm font-semibold cursor-pointer transition-all ${logoPlacement === opt.id ? 'bg-[#f3e8ff] dark:bg-purple-950/60 border-[#8A2CB0] dark:border-purple-400 text-[#3C128D] dark:text-purple-200 shadow-sm' : 'bg-white dark:bg-slate-800/90 hover:bg-gray-50 dark:hover:bg-slate-700/80 text-gray-700 dark:text-slate-200 border-gray-200 dark:border-slate-700'}`}>
                                      <input type="radio" name="logoPlacement" value={opt.id} checked={logoPlacement === opt.id} onChange={(e) => setLogoPlacement(e.target.value as any)} className="hidden" />
                                      {opt.label}
                                  </label>
@@ -906,9 +907,9 @@ const PaperForm: React.FC<PaperFormProps> = ({
                          </div>
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                              <div>
-                                 <label className="block text-xs font-bold text-gray-500 mb-1">Heading Font <span className="text-red-500">*</span></label>
+                                 <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">Heading Font <span className="text-red-500">*</span></label>
                                  <select 
-                                     className={`w-full px-2 py-2.5 rounded border text-sm dark-dropdown ${headingFontError ? 'border-red-500 bg-red-50' : 'border-gray-200'}`} 
+                                     className={`w-full px-2 py-2.5 rounded border text-sm dark-dropdown bg-white dark:bg-slate-800 text-slate-900 dark:text-white ${headingFontError ? 'border-red-500 bg-red-50 dark:bg-red-950/30' : 'border-gray-200 dark:border-slate-700'}`} 
                                      value={headingFont} 
                                      onChange={(e) => {
                                          setHeadingFont(e.target.value);
@@ -918,12 +919,12 @@ const PaperForm: React.FC<PaperFormProps> = ({
                                      <option value="" disabled>Select heading font</option>
                                      {FONT_OPTIONS.map((font) => (<option key={font.value} value={font.value}>{font.label}</option>))}
                                  </select>
-                                 {headingFontError && <p className="text-red-600 text-[10px] font-bold mt-1">{headingFontError}</p>}
+                                 {headingFontError && <p className="text-red-600 dark:text-red-400 text-[10px] font-bold mt-1">{headingFontError}</p>}
                              </div>
                              <div>
-                                 <label className="block text-xs font-bold text-gray-500 mb-1">Body Font <span className="text-red-500">*</span></label>
+                                 <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">Body Font <span className="text-red-500">*</span></label>
                                  <select 
-                                     className={`w-full px-2 py-2.5 rounded border text-sm dark-dropdown ${bodyFontError ? 'border-red-500 bg-red-50' : 'border-gray-200'}`} 
+                                     className={`w-full px-2 py-2.5 rounded border text-sm dark-dropdown bg-white dark:bg-slate-800 text-slate-900 dark:text-white ${bodyFontError ? 'border-red-500 bg-red-50 dark:bg-red-950/30' : 'border-gray-200 dark:border-slate-700'}`} 
                                      value={bodyFont} 
                                      onChange={(e) => {
                                          setBodyFont(e.target.value);
@@ -933,7 +934,7 @@ const PaperForm: React.FC<PaperFormProps> = ({
                                      <option value="" disabled>Select body font</option>
                                      {FONT_OPTIONS.map((font) => (<option key={font.value} value={font.value}>{font.label}</option>))}
                                  </select>
-                                 {bodyFontError && <p className="text-red-600 text-[10px] font-bold mt-1">{bodyFontError}</p>}
+                                 {bodyFontError && <p className="text-red-600 dark:text-red-400 text-[10px] font-bold mt-1">{bodyFontError}</p>}
                              </div>
                          </div>
                     </div>
@@ -944,17 +945,17 @@ const PaperForm: React.FC<PaperFormProps> = ({
           {/* STEP 2: SPECS */}
           <div className="relative">
              <div className="absolute -left-3 top-0 bottom-0 w-1 bg-gradient-to-b from-[#8A2CB0] to-transparent rounded-full opacity-50"></div>
-             <h3 className="text-lg font-bold text-[#3C128D] mb-4 flex items-center gap-2">
+             <h3 className="text-lg font-bold text-[#3C128D] dark:text-purple-300 mb-4 flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-[#8A2CB0] text-white flex items-center justify-center text-xs">2</span>
                   Paper Specifications
               </h3>
              
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Academic Session</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">Academic Session</label>
                   <select 
                     required 
-                    className="w-full px-4 py-2.5 rounded-lg border dark-dropdown" 
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white dark-dropdown" 
                     value={academicSession} 
                     onChange={(e) => setAcademicSession(e.target.value)}
                   >
@@ -965,21 +966,21 @@ const PaperForm: React.FC<PaperFormProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Board / Curriculum</label>
-                  <select required className="w-full px-4 py-2.5 rounded-lg border dark-dropdown" value={selectedBoard} onChange={handleBoardChange}>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">Board / Curriculum</label>
+                  <select required className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white dark-dropdown" value={selectedBoard} onChange={handleBoardChange}>
                     {BOARDS.map((board) => (<option key={board} value={board}>{board}</option>))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Class</label>
-                  <select required className="w-full px-4 py-2.5 rounded-lg border dark-dropdown" value={selectedClass} onChange={handleClassChange}>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">Class</label>
+                  <select required className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white dark-dropdown" value={selectedClass} onChange={handleClassChange}>
                     <option value="" disabled>Select Class</option>
                     {GRADES.map((grade) => (<option key={grade} value={grade}>{grade}</option>))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Subject / Language</label>
-                  <select required disabled={!selectedClass} className="w-full px-4 py-2.5 rounded-lg border dark-dropdown disabled:opacity-50" value={selectedSubject} onChange={handleSubjectChange}>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">Subject / Language</label>
+                  <select required disabled={!selectedClass} className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white dark-dropdown disabled:opacity-50" value={selectedSubject} onChange={handleSubjectChange}>
                     <option value="" disabled>{!selectedClass ? 'Select Class first' : 'Select Subject'}</option>
                     {availableSubjects.map((subj) => (<option key={subj} value={subj}>{subj}</option>))}
                   </select>
@@ -987,57 +988,57 @@ const PaperForm: React.FC<PaperFormProps> = ({
 
                 {/* Chapter Selection */}
                 {selectedSubject && availableChapters.length > 0 && (
-                   <div className="md:col-span-2 bg-white/50 p-6 rounded-xl border border-white/60 text-center">
+                   <div className="md:col-span-2 bg-white/50 dark:bg-slate-900/60 p-6 rounded-xl border border-white/60 dark:border-white/10 text-center backdrop-blur-sm">
                       <div className="flex justify-between items-center mb-3">
-                          <label className="block text-sm font-bold text-gray-700">Chapter Selection <span className="text-red-500">*</span></label>
+                          <label className="block text-sm font-bold text-gray-700 dark:text-slate-200">Chapter Selection <span className="text-red-500">*</span></label>
                           <label className="flex items-center gap-2 cursor-pointer select-none">
                               <input type="checkbox" checked={isAllSelected} ref={input => { if (input) input.indeterminate = isIndeterminate; }} onChange={handleSelectAll} className="w-4 h-4 text-[#8A2CB0]" />
-                              <span className="text-sm font-semibold text-[#8A2CB0]">Select All</span>
+                              <span className="text-sm font-semibold text-[#8A2CB0] dark:text-purple-400">Select All</span>
                           </label>
                       </div>
-                      <div className="max-h-64 overflow-y-auto pr-2 border border-gray-200 rounded-lg bg-white">
+                      <div className="max-h-64 overflow-y-auto pr-2 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800/90 text-left">
                           {finalDisplayChapters.map((chapter, index) => (
-                              <label key={index} className="flex items-start gap-3 p-3 hover:bg-gray-50 border-b last:border-0 border-gray-100 cursor-pointer">
+                              <label key={index} className="flex items-start gap-3 p-3 hover:bg-gray-50 dark:hover:bg-slate-700/60 border-b last:border-0 border-gray-100 dark:border-slate-700/50 cursor-pointer">
                                   <input type="checkbox" checked={selectedChapters.includes(chapter)} onChange={() => handleChapterToggle(chapter)} className="mt-1 w-4 h-4 text-[#8A2CB0]" />
-                                  <span className="text-sm text-gray-700">{chapter}</span>
+                                  <span className="text-sm text-gray-700 dark:text-slate-200">{chapter}</span>
                               </label>
                           ))}
                       </div>
-                      {chapterError && <p className="text-red-600 text-sm font-bold mt-2">{chapterError}</p>}
+                      {chapterError && <p className="text-red-600 dark:text-red-400 text-sm font-bold mt-2">{chapterError}</p>}
                    </div>
                 )}
 
                 {selectedSubject && availableChapters.length === 0 && (
-                  <div className="md:col-span-2 bg-red-50 p-6 rounded-xl border border-red-200 text-center">
-                    <p className="text-red-600 font-bold italic">⚠️ No syllabus loaded for this subject.</p>
-                    <p className="text-red-400 text-xs mt-1">Please wait for update or contact admin.</p>
+                  <div className="md:col-span-2 bg-red-50 dark:bg-red-950/30 p-6 rounded-xl border border-red-200 dark:border-red-900/40 text-center">
+                    <p className="text-red-600 dark:text-red-400 font-bold italic">⚠️ No syllabus loaded for this subject.</p>
+                    <p className="text-red-400 dark:text-red-300 text-xs mt-1">Please wait for update or contact admin.</p>
                   </div>
                 )}
                 
                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Test Type <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">Test Type <span className="text-red-500">*</span></label>
                     <select 
-                        className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown ${testTypeError ? 'border-red-500 bg-red-50' : 'border-gray-200'}`} 
+                        className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown bg-white dark:bg-slate-800 text-slate-900 dark:text-white ${testTypeError ? 'border-red-500 bg-red-50 dark:bg-red-950/30' : 'border-gray-200 dark:border-slate-700'}`} 
                         value={testType} 
                         onChange={handleTestTypeChange}
                     >
                         <option value="" disabled>Select test type</option>
                         {TEST_TYPES.map((type) => (<option key={type} value={type} disabled={type === "CBSE Board Exam" && selectedClass !== "Class 10"}>{type}{type === "CBSE Board Exam" && selectedClass !== "Class 10" ? " (Class 10 Only)" : ""}</option>))}
                     </select>
-                    {testTypeError && <p className="text-red-600 text-xs font-bold mt-1.5">{testTypeError}</p>}
+                    {testTypeError && <p className="text-red-600 dark:text-red-400 text-xs font-bold mt-1.5">{testTypeError}</p>}
                     {isCustomTest && (
                         <div className="mt-3">
-                            <label className="block text-xs font-bold text-gray-500 mb-1">Custom Test Name <span className="text-red-500">*</span></label>
-                            <input type="text" className="w-full px-4 py-2.5 rounded-lg border border-gray-200" placeholder="e.g. Unit Test 3" value={customTestName} onChange={handleCustomTestNameChange} />
-                            {customTestNameError && <p className="text-red-600 text-xs font-bold mt-1.5">{customTestNameError}</p>}
+                            <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">Custom Test Name <span className="text-red-500">*</span></label>
+                            <input type="text" className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white" placeholder="e.g. Unit Test 3" value={customTestName} onChange={handleCustomTestNameChange} />
+                            {customTestNameError && <p className="text-red-600 dark:text-red-400 text-xs font-bold mt-1.5">{customTestNameError}</p>}
                         </div>
                     )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Difficulty <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">Difficulty <span className="text-red-500">*</span></label>
                   <select 
-                    className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown ${difficultyError ? 'border-red-500 bg-red-50' : 'border-gray-200'}`} 
+                    className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown bg-white dark:bg-slate-800 text-slate-900 dark:text-white ${difficultyError ? 'border-red-500 bg-red-50 dark:bg-red-950/30' : 'border-gray-200 dark:border-slate-700'}`} 
                     value={difficulty} 
                     onChange={(e) => {
                       setDifficulty(e.target.value as any);
@@ -1049,13 +1050,13 @@ const PaperForm: React.FC<PaperFormProps> = ({
                     <option value="Medium">Medium</option>
                     <option value="Hard">Hard</option>
                   </select>
-                  {difficultyError && <p className="text-red-600 text-xs font-bold mt-1.5">{difficultyError}</p>}
+                  {difficultyError && <p className="text-red-600 dark:text-red-400 text-xs font-bold mt-1.5">{difficultyError}</p>}
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Total Marks <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">Total Marks <span className="text-red-500">*</span></label>
                     <select 
-                        className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown ${totalMarksError ? 'border-red-500 bg-red-50' : 'border-gray-200'}`}
+                        className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown bg-white dark:bg-slate-800 text-slate-900 dark:text-white ${totalMarksError ? 'border-red-500 bg-red-50 dark:bg-red-950/30' : 'border-gray-200 dark:border-slate-700'}`}
                         value={totalMarks || ''} 
                         onChange={(e) => {
                             const val = parseInt(e.target.value) || 0;
@@ -1068,17 +1069,17 @@ const PaperForm: React.FC<PaperFormProps> = ({
                             <option key={m} value={m}>{m} Marks</option>
                         ))}
                     </select>
-                    {totalMarksError && <p className="text-red-600 text-xs font-bold mt-1.5">{totalMarksError}</p>}
+                    {totalMarksError && <p className="text-red-600 dark:text-red-400 text-xs font-bold mt-1.5">{totalMarksError}</p>}
                 </div>
 
                 <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Time Allowed <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">Time Allowed <span className="text-red-500">*</span></label>
                     <div className="flex gap-4">
                          <div className="relative w-full md:w-1/2">
                             <select 
                                 value={timePreset} 
                                 onChange={handlePresetChange} 
-                                className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown disabled:opacity-50 ${timeAllowedError && timePreset !== 'Custom' ? 'border-red-500 bg-red-50' : 'border-gray-200'}`}
+                                className={`w-full px-4 py-2.5 rounded-lg border dark-dropdown bg-white dark:bg-slate-800 text-slate-900 dark:text-white disabled:opacity-50 ${timeAllowedError && timePreset !== 'Custom' ? 'border-red-500 bg-red-50 dark:bg-red-950/30' : 'border-gray-200 dark:border-slate-700'}`}
                             >
                                 <option value="" disabled>Select time allowed</option>
                                 <option value="30 Minutes">30 Minutes</option>
@@ -1095,20 +1096,20 @@ const PaperForm: React.FC<PaperFormProps> = ({
                          {timePreset === 'Custom' && (
                             <input 
                                 type="text" 
-                                className={`w-full md:w-1/2 px-4 py-2.5 rounded-lg border ${timeAllowedError ? 'border-red-500 bg-red-50' : 'border-gray-200'}`} 
+                                className={`w-full md:w-1/2 px-4 py-2.5 rounded-lg border bg-white dark:bg-slate-800 text-slate-900 dark:text-white ${timeAllowedError ? 'border-red-500 bg-red-50 dark:bg-red-950/30' : 'border-gray-200 dark:border-slate-700'}`} 
                                 placeholder="e.g. 90 Minutes" 
                                 value={customTime} 
                                 onChange={handleCustomTimeChange} 
                             />
                          )}
                     </div>
-                    {timeAllowedError && <p className="text-red-600 text-sm font-bold mt-1.5">{timeAllowedError}</p>}
+                    {timeAllowedError && <p className="text-red-600 dark:text-red-400 text-sm font-bold mt-1.5">{timeAllowedError}</p>}
                 </div>
                 
                  <div className="md:col-span-2">
-                    <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg bg-gray-50 hover:bg-white transition-colors cursor-pointer">
+                    <label className="flex items-center gap-3 p-4 border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer">
                         <input type="checkbox" className="w-5 h-5 text-[#8A2CB0]" checked={includeFigures} onChange={(e) => setIncludeFigures(e.target.checked)} />
-                        <div><span className="block text-sm font-bold text-gray-900">Include Figures & Diagrams</span><span className="block text-xs text-gray-500">Useful for Science, Geography etc. (Math diagrams are auto-included)</span></div>
+                        <div><span className="block text-sm font-bold text-gray-900 dark:text-white">Include Figures & Diagrams</span><span className="block text-xs text-gray-500 dark:text-slate-400">Useful for Science, Geography etc. (Math diagrams are auto-included)</span></div>
                     </label>
                  </div>
              </div>
@@ -1117,21 +1118,21 @@ const PaperForm: React.FC<PaperFormProps> = ({
           {/* STEP 3: QUESTION SOURCES (HYBRID MODE) */}
           <div className="relative">
              <div className="absolute -left-3 top-0 bottom-0 w-1 bg-gradient-to-b from-[#8A2CB0] to-transparent rounded-full opacity-50"></div>
-             <h3 className="text-lg font-bold text-[#3C128D] mb-4 flex items-center gap-2">
+             <h3 className="text-lg font-bold text-[#3C128D] dark:text-purple-300 mb-4 flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-[#8A2CB0] text-white flex items-center justify-center text-xs">3</span>
                   Question Sources
              </h3>
              
-             <div className="bg-white/80 p-6 rounded-xl border border-[#8A2CB0]/30 shadow-lg relative overflow-hidden">
+             <div className="bg-white/80 dark:bg-slate-900/60 p-6 rounded-xl border border-[#8A2CB0]/30 dark:border-white/10 shadow-lg relative overflow-hidden backdrop-blur-sm">
                 {/* Visual Accent */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#8A2CB0]/5 rounded-bl-full pointer-events-none"></div>
 
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 relative z-10">
                      <div className="text-center sm:text-left">
-                        <h4 className="font-bold text-gray-800">Source Mode</h4>
-                        <p className="text-xs text-gray-500">Select where examination questions should originate from</p>
+                        <h4 className="font-bold text-gray-800 dark:text-white">Source Mode</h4>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">Select where examination questions should originate from</p>
                      </div>
-                     <div className="flex flex-wrap sm:flex-nowrap bg-gray-100 p-1 rounded-xl w-full sm:w-auto justify-center gap-1">
+                     <div className="flex flex-wrap sm:flex-nowrap bg-gray-100 dark:bg-slate-800 p-1 rounded-xl w-full sm:w-auto justify-center gap-1">
                          {[
                            { id: 'ai', label: 'AI Auto-Gen', icon: Sparkles },
                            { id: 'bank', label: 'Question Bank', icon: Database },
@@ -1146,8 +1147,8 @@ const PaperForm: React.FC<PaperFormProps> = ({
                                 onClick={() => setSourceTab(tab.id as any)}
                                 className={`px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 justify-center cursor-pointer ${
                                   sourceTab === tab.id 
-                                    ? 'bg-white shadow-xs text-[#8A2CB0] ring-1 ring-black/5 font-black' 
-                                    : 'text-gray-500 hover:text-gray-900'
+                                    ? 'bg-white dark:bg-slate-900 shadow-xs text-[#8A2CB0] dark:text-purple-300 ring-1 ring-black/5 dark:ring-white/10 font-black' 
+                                    : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
                                 }`}
                              >
                                 <Icon className="w-3.5 h-3.5" />
@@ -1160,13 +1161,13 @@ const PaperForm: React.FC<PaperFormProps> = ({
                   
                   <div className="relative z-10 min-h-[120px]">
                     {sourceTab === 'ai' && (
-                        <div className="flex items-center gap-4 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100">
-                            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                        <div className="flex items-center gap-4 p-4 bg-indigo-50/50 dark:bg-indigo-950/30 rounded-xl border border-indigo-100 dark:border-indigo-900/40">
+                            <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/60 flex items-center justify-center text-indigo-600 dark:text-indigo-300">
                                 <Sparkles className="w-5 h-5" />
                             </div>
                             <div>
-                                <h5 className="font-bold text-indigo-900 text-sm">Automatic Curriculum Generation</h5>
-                                <p className="text-xs text-indigo-700 mt-0.5">
+                                <h5 className="font-bold text-indigo-900 dark:text-indigo-200 text-sm">Automatic Curriculum Generation</h5>
+                                <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-0.5">
                                     The AI will generate questions strictly mapped to the syllabus, board, and question count specs chosen above.
                                 </p>
                             </div>
@@ -1176,13 +1177,13 @@ const PaperForm: React.FC<PaperFormProps> = ({
                     {sourceTab === 'bank' && (
                         <div className="space-y-4 animate-fade-in">
                             {isGuest ? (
-                                <div className="p-4 rounded-xl bg-purple-50 border border-purple-200 text-center space-y-3">
-                                    <div className="w-10 h-10 rounded-full bg-purple-100 text-[#8A2CB0] flex items-center justify-center mx-auto">
+                                <div className="p-4 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/40 text-center space-y-3">
+                                    <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/60 text-[#8A2CB0] dark:text-purple-300 flex items-center justify-center mx-auto">
                                         <Database className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <h5 className="font-bold text-gray-900 text-sm">Question Bank requires an account</h5>
-                                        <p className="text-xs text-gray-500 max-w-md mx-auto mt-1">
+                                        <h5 className="font-bold text-gray-900 dark:text-white text-sm">Question Bank requires an account</h5>
+                                        <p className="text-xs text-gray-500 dark:text-slate-400 max-w-md mx-auto mt-1">
                                             Sign in to access your saved questions, create custom question repositories, and import syllabus banks.
                                         </p>
                                     </div>
@@ -1195,19 +1196,19 @@ const PaperForm: React.FC<PaperFormProps> = ({
                                     </button>
                                 </div>
                             ) : !selectedSubject ? (
-                                <p className="text-red-500 text-xs font-bold bg-red-50 p-3 rounded-xl border border-red-100">⚠ Please select a subject in Step 2 first.</p>
+                                <p className="text-red-500 dark:text-red-400 text-xs font-bold bg-red-50 dark:bg-red-950/30 p-3 rounded-xl border border-red-100 dark:border-red-900/40">⚠ Please select a subject in Step 2 first.</p>
                             ) : relevantBanks.length === 0 ? (
-                                <p className="text-gray-500 text-xs italic p-4 text-center border-2 border-dashed border-gray-200 rounded-xl">
+                                <p className="text-gray-500 dark:text-slate-400 text-xs italic p-4 text-center border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl">
                                     No question banks found for {selectedSubject} ({selectedClass}). 
-                                    <br/><span className="text-[11px] text-purple-600 font-semibold">Open Question Bank in Dashboard to create or import one.</span>
+                                    <br/><span className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold">Open Question Bank in Dashboard to create or import one.</span>
                                 </p>
                             ) : (
                                 <div className="space-y-2">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Choose Saved Question Bank</label>
+                                    <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Choose Saved Question Bank</label>
                                     <select 
                                         value={selectedBankId} 
                                         onChange={(e) => handleBankSelection(e.target.value)}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark-dropdown text-xs font-semibold"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white dark-dropdown text-xs font-semibold"
                                     >
                                         <option value="">-- Choose a Question Bank --</option>
                                         {relevantBanks.map(b => (
@@ -1222,17 +1223,17 @@ const PaperForm: React.FC<PaperFormProps> = ({
                     )}
 
                     {sourceTab === 'research' && (
-                        <div className="p-5 rounded-2xl bg-indigo-50/40 border border-indigo-100/80 space-y-3 animate-fade-in">
+                        <div className="p-5 rounded-2xl bg-indigo-50/40 dark:bg-indigo-950/30 border border-indigo-100/80 dark:border-indigo-900/40 space-y-3 animate-fade-in">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
                                         <Globe className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <h5 className="font-bold text-gray-900 text-xs sm:text-sm">
+                                        <h5 className="font-bold text-gray-900 dark:text-white text-xs sm:text-sm">
                                           Intelligent Web Research & Grounding
                                         </h5>
-                                        <p className="text-[11px] text-gray-500">
+                                        <p className="text-[11px] text-gray-500 dark:text-slate-400">
                                           Search NCERT, CBSE, and educational portals using real-time Google Grounding.
                                         </p>
                                     </div>
@@ -1258,7 +1259,7 @@ const PaperForm: React.FC<PaperFormProps> = ({
 
                     {sourceTab === 'url' && (
                         <div className="space-y-3 animate-fade-in">
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-gray-500 dark:text-slate-400">
                               Extract questions from educational web pages or paste raw document text.
                             </p>
                             <div className="flex gap-2">
@@ -1266,7 +1267,7 @@ const PaperForm: React.FC<PaperFormProps> = ({
                                     type="text" 
                                     value={extractionUrl}
                                     onChange={(e) => setExtractionUrl(e.target.value)}
-                                    className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[#8A2CB0] outline-none"
+                                    className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-[#8A2CB0] outline-none"
                                     placeholder="https://example.com/class-10-sample-questions"
                                 />
                                 <button 
@@ -1286,7 +1287,7 @@ const PaperForm: React.FC<PaperFormProps> = ({
                             </div>
                             
                             {extractionError && (
-                                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-bold text-red-700 flex items-start gap-2 animate-fade-in">
+                                <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 rounded-xl text-xs font-bold text-red-700 dark:text-red-400 flex items-start gap-2 animate-fade-in">
                                     <span className="shrink-0">⚠️</span>
                                     <span>{extractionError}</span>
                                 </div>
@@ -1295,16 +1296,16 @@ const PaperForm: React.FC<PaperFormProps> = ({
                             {/* Manual Paste Fallback */}
                             <div className="relative my-2">
                                 <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                                    <div className="w-full border-t border-gray-200"></div>
+                                    <div className="w-full border-t border-gray-200 dark:border-slate-700"></div>
                                 </div>
                                 <div className="relative flex justify-center">
-                                    <span className="bg-white px-2 text-[10px] text-gray-400 uppercase font-black tracking-wider">OR Paste Document Text</span>
+                                    <span className="bg-white dark:bg-slate-900 px-2 text-[10px] text-gray-400 dark:text-slate-500 uppercase font-black tracking-wider">OR Paste Document Text</span>
                                 </div>
                             </div>
 
                             <div className="relative">
                                 <textarea 
-                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[#8A2CB0] outline-none min-h-[90px]"
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-[#8A2CB0] outline-none min-h-[90px]"
                                     placeholder="Paste questions or curriculum content here..."
                                     value={pasteText}
                                     onChange={(e) => setPasteText(e.target.value)}
@@ -1313,7 +1314,7 @@ const PaperForm: React.FC<PaperFormProps> = ({
                                     type="button" 
                                     onClick={handleTextParse}
                                     disabled={isExtracting || !pasteText.trim()}
-                                    className="absolute bottom-2.5 right-2.5 px-3.5 py-1.5 rounded-lg bg-gray-800 hover:bg-black text-white text-xs font-bold disabled:opacity-50 transition-colors cursor-pointer"
+                                    className="absolute bottom-2.5 right-2.5 px-3.5 py-1.5 rounded-lg bg-gray-800 dark:bg-slate-700 hover:bg-black dark:hover:bg-slate-600 text-white text-xs font-bold disabled:opacity-50 transition-colors cursor-pointer"
                                 >
                                     {isExtracting ? 'Parsing...' : 'Parse Text'}
                                 </button>
@@ -1323,50 +1324,50 @@ const PaperForm: React.FC<PaperFormProps> = ({
 
                     {/* PREVIEW AREA */}
                     {(sourceTab !== 'ai' && previewQuestions.length > 0) && (
-                        <div className="mt-6 pt-4 border-t border-gray-200">
+                        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-slate-700">
                             {extractedMetadata && (
-                                <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg animate-fade-in">
-                                    <h5 className="text-xs font-bold text-blue-700 uppercase mb-2 flex items-center gap-2">
+                                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/40 rounded-lg animate-fade-in">
+                                    <h5 className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase mb-2 flex items-center gap-2">
                                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                         Content Identified
                                     </h5>
                                     <div className="flex flex-wrap gap-4 text-xs">
-                                        {extractedMetadata.subject && <div><span className="text-gray-500">Subject:</span> <span className="font-bold text-gray-800">{extractedMetadata.subject}</span></div>}
-                                        {extractedMetadata.topic && <div><span className="text-gray-500">Topic:</span> <span className="font-bold text-gray-800">{extractedMetadata.topic}</span></div>}
-                                        {extractedMetadata.grade && <div><span className="text-gray-500">Level:</span> <span className="font-bold text-gray-800">{extractedMetadata.grade}</span></div>}
+                                        {extractedMetadata.subject && <div><span className="text-gray-500 dark:text-slate-400">Subject:</span> <span className="font-bold text-gray-800 dark:text-white">{extractedMetadata.subject}</span></div>}
+                                        {extractedMetadata.topic && <div><span className="text-gray-500 dark:text-slate-400">Topic:</span> <span className="font-bold text-gray-800 dark:text-white">{extractedMetadata.topic}</span></div>}
+                                        {extractedMetadata.grade && <div><span className="text-gray-500 dark:text-slate-400">Level:</span> <span className="font-bold text-gray-800 dark:text-white">{extractedMetadata.grade}</span></div>}
                                     </div>
                                 </div>
                             )}
 
-                            <h4 className="font-bold text-gray-700 mb-3 flex justify-between items-center">
+                            <h4 className="font-bold text-gray-700 dark:text-slate-200 mb-3 flex justify-between items-center">
                                 <span>Generated Questions</span>
-                                <span className="text-xs bg-gray-200 px-2 py-1 rounded text-gray-600">{previewQuestions.length} Available</span>
+                                <span className="text-xs bg-gray-200 dark:bg-slate-700 px-2 py-1 rounded text-gray-600 dark:text-slate-300">{previewQuestions.length} Available</span>
                             </h4>
                             <div className="max-h-80 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
                                 {previewQuestions.map((q, idx) => {
                                     const isSelected = manualQuestions.some(mq => mq.question_id === q.question_id);
                                     return (
-                                        <div key={idx} className={`p-3 rounded-lg border transition-all ${isSelected ? 'bg-[#f3e8ff] border-[#8A2CB0] shadow-sm' : 'bg-gray-50 border-gray-200 hover:bg-white hover:border-gray-300'}`}>
+                                        <div key={idx} className={`p-3 rounded-lg border transition-all ${isSelected ? 'bg-[#f3e8ff] dark:bg-purple-950/60 border-[#8A2CB0] dark:border-purple-400 shadow-sm' : 'bg-gray-50 dark:bg-slate-800/60 border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 hover:border-gray-300 dark:border-slate-600'}`}>
                                             <div className="flex gap-3 items-start mb-2">
-                                                <div onClick={() => toggleManualQuestion(q)} className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 cursor-pointer transition-colors ${isSelected ? 'bg-[#8A2CB0] border-[#8A2CB0]' : 'bg-white border-gray-300'}`}>
+                                                <div onClick={() => toggleManualQuestion(q)} className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 cursor-pointer transition-colors ${isSelected ? 'bg-[#8A2CB0] border-[#8A2CB0]' : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600'}`}>
                                                     {isSelected && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex justify-between items-start mb-1">
-                                                        <span className="text-[10px] font-bold text-gray-500 uppercase bg-white px-1.5 py-0.5 rounded border border-gray-100">{q.answer_type}</span>
+                                                        <span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-gray-100 dark:border-slate-700">{q.answer_type}</span>
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-[10px] font-bold text-gray-500">{q.marks}M</span>
+                                                            <span className="text-[10px] font-bold text-gray-500 dark:text-slate-400">{q.marks}M</span>
                                                             <button 
                                                                 type="button" 
                                                                 onClick={() => handleDeletePreviewQuestion(q.question_id)}
-                                                                className="text-gray-400 hover:text-red-500 transition-colors"
+                                                                className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                                                             >
                                                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                             </button>
                                                         </div>
                                                     </div>
                                                     <textarea 
-                                                        className="w-full bg-transparent text-sm text-gray-800 border-none focus:ring-0 p-0 resize-none min-h-[40px]"
+                                                        className="w-full bg-transparent text-sm text-gray-800 dark:text-slate-200 border-none focus:ring-0 p-0 resize-none min-h-[40px]"
                                                         value={q.question_text}
                                                         onChange={(e) => handleEditPreviewQuestion(q.question_id, e.target.value)}
                                                     />
@@ -1375,7 +1376,7 @@ const PaperForm: React.FC<PaperFormProps> = ({
                                             {q.options && q.options.length > 0 && (
                                                 <div className="ml-8 grid grid-cols-2 gap-2 mt-2">
                                                     {q.options.map((opt, oIdx) => (
-                                                        <div key={oIdx} className="text-[11px] text-gray-600 bg-white/50 px-2 py-1 rounded border border-gray-100 truncate">
+                                                        <div key={oIdx} className="text-[11px] text-gray-600 dark:text-slate-300 bg-white/50 dark:bg-slate-800/80 px-2 py-1 rounded border border-gray-100 dark:border-slate-700 truncate">
                                                             {String.fromCharCode(65 + oIdx)}. {opt}
                                                         </div>
                                                     ))}
@@ -1391,7 +1392,7 @@ const PaperForm: React.FC<PaperFormProps> = ({
                  
                  {/* Selection Summary Footer */}
                  {manualQuestions.length > 0 && (
-                     <div className="mt-4 -mb-2 -mx-2 p-3 bg-[#3C128D] text-white rounded-lg flex justify-between items-center shadow-lg transform translate-y-2">
+                     <div className="mt-4 -mb-2 -mx-2 p-3 bg-[#3C128D] dark:bg-purple-950/80 text-white rounded-lg flex justify-between items-center shadow-lg transform translate-y-2 border border-purple-500/30">
                          <div className="flex items-center gap-3">
                             <div className="bg-white/20 p-2 rounded-full">
                                 <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
@@ -1408,20 +1409,20 @@ const PaperForm: React.FC<PaperFormProps> = ({
           </div>
           
           {/* Instructions */}
-          <div className="bg-white/50 p-6 rounded-xl border border-white/60">
+          <div className="bg-white/50 dark:bg-slate-900/60 p-6 rounded-xl border border-white/60 dark:border-white/10 backdrop-blur-sm">
              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-bold text-gray-700">General Instructions</label>
-                <span className="text-xs text-gray-400">Optional</span>
+                <label className="block text-sm font-bold text-gray-700 dark:text-slate-200">General Instructions</label>
+                <span className="text-xs text-gray-400 dark:text-slate-500">Optional</span>
              </div>
-             <textarea className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white/80 transition-all h-24 resize-y text-sm" placeholder="Enter general instructions..." value={generalInstructions} onChange={(e) => { if (e.target.value.length <= MAX_INSTRUCTION_CHARS) setGeneralInstructions(e.target.value); }} />
+             <textarea className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 transition-all h-24 resize-y text-sm focus:ring-2 focus:ring-[#8A2CB0] outline-none" placeholder="Enter general instructions..." value={generalInstructions} onChange={(e) => { if (e.target.value.length <= MAX_INSTRUCTION_CHARS) setGeneralInstructions(e.target.value); }} />
           </div>
 
-          <hr className="border-gray-200/50" />
+          <hr className="border-gray-200/50 dark:border-slate-700/50" />
 
           {/* Table / Custom Builder / Dynamic Subject Pattern */}
           <div>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
                   {isCustomTest ? 'Custom Format Builder' : activePattern ? `${selectedSubject} Blueprint & Distribution` : 'Question Distribution'}
                 </h3>
                 {currentCalculatedMarks !== null && (
@@ -1431,13 +1432,13 @@ const PaperForm: React.FC<PaperFormProps> = ({
                         type="button"
                         onClick={handleAutoDistribute}
                         disabled={!totalMarks || totalMarks <= 0}
-                        className="px-3 py-1.5 bg-[#8A2CB0] hover:bg-[#732494] text-white rounded-lg text-xs font-bold transition-all whitespace-nowrap shadow-sm disabled:opacity-50"
+                        className="px-3 py-1.5 bg-[#8A2CB0] hover:bg-[#732494] text-white rounded-lg text-xs font-bold transition-all whitespace-nowrap shadow-sm disabled:opacity-50 cursor-pointer"
                         title="Auto distribute question counts to match total marks"
                       >
                         Auto Distribute
                       </button>
                     )}
-                    <span className={`text-xs sm:text-sm font-bold px-3 py-1 rounded-full ${currentCalculatedMarks === totalMarks ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-orange-100 text-orange-700 border border-orange-200'}`}>
+                    <span className={`text-xs sm:text-sm font-bold px-3 py-1 rounded-full ${currentCalculatedMarks === totalMarks ? 'bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800/40' : 'bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800/40'}`}>
                       Allocated: {currentCalculatedMarks} / {totalMarks || 0} Marks
                     </span>
                   </div>
@@ -1446,45 +1447,45 @@ const PaperForm: React.FC<PaperFormProps> = ({
             
             {isCustomTest ? (
                 <div className="space-y-4 animate-fade-in">
-                    {customSections.length === 0 && <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-xl bg-white/30 text-gray-500"><p>No sections added yet. Click "Add Section" to design your test.</p></div>}
+                    {customSections.length === 0 && <div className="text-center p-8 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-xl bg-white/30 dark:bg-slate-900/40 text-gray-500 dark:text-slate-400"><p>No sections added yet. Click "Add Section" to design your test.</p></div>}
                     {customSections.map((section, index) => (
-                        <div key={section.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 relative group transition-all hover:shadow-md">
-                            <div className="absolute top-2 right-2"><button type="button" onClick={() => handleRemoveSection(section.id)} className="text-gray-400 hover:text-red-500 p-1" title="Delete Section"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div>
+                        <div key={section.id} className="bg-white dark:bg-slate-800/90 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 relative group transition-all hover:shadow-md">
+                            <div className="absolute top-2 right-2"><button type="button" onClick={() => handleRemoveSection(section.id)} className="text-gray-400 hover:text-red-500 p-1 cursor-pointer" title="Delete Section"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div>
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                                <div className="md:col-span-3"><label className="block text-xs font-bold text-gray-500 mb-1">Section Title</label><input type="text" value={section.title} onChange={(e) => handleUpdateSection(section.id, 'title', e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm font-bold text-gray-800 focus:ring-2 focus:ring-[#8A2CB0] outline-none" placeholder="e.g. Section A" /></div>
-                                <div className="md:col-span-4"><label className="block text-xs font-bold text-gray-500 mb-1">Question Type</label><select value={section.type} onChange={(e) => handleUpdateSection(section.id, 'type', e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#8A2CB0] outline-none">{QUESTION_TYPES_DROPDOWN.map(t => (<option key={t.value} value={t.value}>{t.label}</option>))}</select></div>
-                                <div className="md:col-span-2"><label className="block text-xs font-bold text-gray-500 mb-1">Count</label><input type="number" min="1" value={section.count} onChange={(e) => handleUpdateSection(section.id, 'count', parseInt(e.target.value) || 0)} className="w-full px-3 py-2 border rounded-lg text-sm text-center focus:ring-2 focus:ring-[#8A2CB0] outline-none" /></div>
-                                <div className="md:col-span-2"><label className="block text-xs font-bold text-gray-500 mb-1">Marks/Q</label><input type="number" min="0.5" step="0.5" value={section.marksPerQuestion} onChange={(e) => handleUpdateSection(section.id, 'marksPerQuestion', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border rounded-lg text-sm text-center focus:ring-2 focus:ring-[#8A2CB0] outline-none" /></div>
-                                <div className="md:col-span-1 pb-2 text-right"><span className="text-sm font-bold text-[#8A2CB0]">{section.count * section.marksPerQuestion}</span></div>
+                                <div className="md:col-span-3"><label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">Section Title</label><input type="text" value={section.title} onChange={(e) => handleUpdateSection(section.id, 'title', e.target.value)} className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg text-sm font-bold text-gray-800 dark:text-white focus:ring-2 focus:ring-[#8A2CB0] outline-none" placeholder="e.g. Section A" /></div>
+                                <div className="md:col-span-4"><label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">Question Type</label><select value={section.type} onChange={(e) => handleUpdateSection(section.id, 'type', e.target.value)} className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white dark-dropdown rounded-lg text-sm focus:ring-2 focus:ring-[#8A2CB0] outline-none">{QUESTION_TYPES_DROPDOWN.map(t => (<option key={t.value} value={t.value}>{t.label}</option>))}</select></div>
+                                <div className="md:col-span-2"><label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">Count</label><input type="number" min="1" value={section.count} onChange={(e) => handleUpdateSection(section.id, 'count', parseInt(e.target.value) || 0)} className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-lg text-sm text-center focus:ring-2 focus:ring-[#8A2CB0] outline-none" /></div>
+                                <div className="md:col-span-2"><label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">Marks/Q</label><input type="number" min="0.5" step="0.5" value={section.marksPerQuestion} onChange={(e) => handleUpdateSection(section.id, 'marksPerQuestion', parseFloat(e.target.value) || 0)} className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-lg text-sm text-center focus:ring-2 focus:ring-[#8A2CB0] outline-none" /></div>
+                                <div className="md:col-span-1 pb-2 text-right"><span className="text-sm font-bold text-[#8A2CB0] dark:text-purple-400">{section.count * section.marksPerQuestion}</span></div>
                             </div>
                         </div>
                     ))}
-                    <button type="button" onClick={handleAddSection} className="w-full py-3 border-2 border-dashed border-[#8A2CB0]/30 text-[#8A2CB0] rounded-xl hover:bg-[#8A2CB0]/5 hover:border-[#8A2CB0] transition-all font-bold text-sm flex items-center justify-center gap-2"><span>+ Add Section</span></button>
-                    <div className="flex justify-between items-center text-sm font-medium text-gray-600 px-2"><span>Total Questions: <strong className="text-gray-900">{customTotalQuestions}</strong></span><span className={customTotalMarks !== totalMarks ? "text-orange-600 font-bold" : "text-green-600 font-bold"}>Total Calculated: {customTotalMarks} / {totalMarks}</span></div>
-                    {customTotalMarks !== totalMarks && <p className="text-xs text-orange-600 text-right px-2">Marks distribution does not match total marks.</p>}
+                    <button type="button" onClick={handleAddSection} className="w-full py-3 border-2 border-dashed border-[#8A2CB0]/30 dark:border-purple-500/40 text-[#8A2CB0] dark:text-purple-400 rounded-xl hover:bg-[#8A2CB0]/5 dark:hover:bg-purple-950/20 hover:border-[#8A2CB0] transition-all font-bold text-sm flex items-center justify-center gap-2 cursor-pointer"><span>+ Add Section</span></button>
+                    <div className="flex justify-between items-center text-sm font-medium text-gray-600 dark:text-slate-300 px-2"><span>Total Questions: <strong className="text-gray-900 dark:text-white">{customTotalQuestions}</strong></span><span className={customTotalMarks !== totalMarks ? "text-orange-600 dark:text-orange-400 font-bold" : "text-green-600 dark:text-green-400 font-bold"}>Total Calculated: {customTotalMarks} / {totalMarks}</span></div>
+                    {customTotalMarks !== totalMarks && <p className="text-xs text-orange-600 dark:text-orange-400 text-right px-2">Marks distribution does not match total marks.</p>}
                 </div>
             ) : activePattern ? (
                 <div className="space-y-6 animate-fade-in">
                     {/* Pattern Header Card */}
-                    <div className="bg-gradient-to-r from-[#f3e8ff] to-[#faf5ff] border border-[#d8b4fe] p-5 rounded-2xl shadow-sm">
+                    <div className="bg-gradient-to-r from-[#f3e8ff] to-[#faf5ff] dark:from-purple-950/40 dark:to-indigo-950/40 border border-[#d8b4fe] dark:border-purple-800/40 p-5 rounded-2xl shadow-sm">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div>
                                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${activePattern.isVerified ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'}`}>
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${activePattern.isVerified ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/40' : 'bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800/40'}`}>
                                         {activePattern.isVerified ? '✓ Verified Pattern' : '⚠️ Pattern Verification Notice'}
                                     </span>
-                                    <span className="text-xs font-semibold text-[#8A2CB0] bg-white px-2 py-0.5 rounded border border-[#8A2CB0]/20">
+                                    <span className="text-xs font-semibold text-[#8A2CB0] dark:text-purple-300 bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-[#8A2CB0]/20 dark:border-purple-500/20">
                                         Session {activePattern.academicSession}
                                     </span>
-                                    <span className="text-xs text-gray-500 font-medium">
+                                    <span className="text-xs text-gray-500 dark:text-slate-400 font-medium">
                                         {activePattern.totalMarks} Marks • {activePattern.duration}
                                     </span>
                                 </div>
-                                <h4 className="font-bold text-[#3C128D] text-base md:text-lg">
+                                <h4 className="font-bold text-[#3C128D] dark:text-purple-200 text-base md:text-lg">
                                     {activePattern.displayName}
                                 </h4>
                                 {activePattern.sourceReference && (
-                                    <p className="text-[11px] text-gray-500 italic mt-1">
+                                    <p className="text-[11px] text-gray-500 dark:text-slate-400 italic mt-1">
                                         Source: {activePattern.sourceReference}
                                     </p>
                                 )}
@@ -1494,7 +1495,7 @@ const PaperForm: React.FC<PaperFormProps> = ({
                                 <button
                                     type="button"
                                     onClick={handleResetToOfficialPattern}
-                                    className="px-3 py-1.5 bg-white border border-[#8A2CB0]/30 hover:bg-[#8A2CB0]/5 text-[#8A2CB0] rounded-lg text-xs font-bold transition-all whitespace-nowrap shadow-sm"
+                                    className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-[#8A2CB0]/30 dark:border-purple-500/30 hover:bg-[#8A2CB0]/5 dark:hover:bg-purple-950/30 text-[#8A2CB0] dark:text-purple-300 rounded-lg text-xs font-bold transition-all whitespace-nowrap shadow-sm cursor-pointer"
                                     title="Reset question distribution to official standard counts"
                                 >
                                     Reset to Official
@@ -1502,7 +1503,7 @@ const PaperForm: React.FC<PaperFormProps> = ({
                                 <button
                                     type="button"
                                     onClick={handleAutoDistributePattern}
-                                    className="px-3 py-1.5 bg-[#8A2CB0] hover:bg-[#732494] text-white rounded-lg text-xs font-bold transition-all whitespace-nowrap shadow-sm"
+                                    className="px-3 py-1.5 bg-[#8A2CB0] hover:bg-[#732494] text-white rounded-lg text-xs font-bold transition-all whitespace-nowrap shadow-sm cursor-pointer"
                                     title="Scale distribution to fit current total marks"
                                 >
                                     Auto Distribute
@@ -1520,20 +1521,20 @@ const PaperForm: React.FC<PaperFormProps> = ({
                             }, 0);
 
                             return (
-                                <div key={section.id} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                                <div key={section.id} className="border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm bg-white dark:bg-slate-900">
                                     {/* Section Header */}
-                                    <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 flex flex-col sm:flex-row justify-between sm:items-center gap-1">
+                                    <div className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-b border-gray-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between sm:items-center gap-1">
                                         <div>
-                                            <span className="font-bold text-gray-900 text-sm">
+                                            <span className="font-bold text-gray-900 dark:text-white text-sm">
                                                 {section.title}
                                             </span>
                                             {section.instructions && (
-                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
                                                     {section.instructions}
                                                 </p>
                                             )}
                                         </div>
-                                        <div className="text-xs font-bold text-[#8A2CB0] bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200 self-start sm:self-auto">
+                                        <div className="text-xs font-bold text-[#8A2CB0] dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 px-2.5 py-1 rounded-full border border-purple-200 dark:border-purple-800/40 self-start sm:self-auto">
                                             Section Total: {sectionMarks} Marks
                                         </div>
                                     </div>
@@ -1541,7 +1542,7 @@ const PaperForm: React.FC<PaperFormProps> = ({
                                     {/* Question Types Table */}
                                     <div className="overflow-x-auto">
                                         <table className="min-w-full text-xs sm:text-sm">
-                                            <thead className="bg-gray-50/50 text-gray-500 font-semibold border-b border-gray-100">
+                                            <thead className="bg-gray-50/50 dark:bg-slate-800/50 text-gray-500 dark:text-slate-400 font-semibold border-b border-gray-100 dark:border-slate-800">
                                                 <tr>
                                                     <th className="px-4 py-2 text-left">Question Type & Scope</th>
                                                     <th className="px-3 py-2 text-center w-24">Marks/Q</th>
@@ -1549,41 +1550,41 @@ const PaperForm: React.FC<PaperFormProps> = ({
                                                     <th className="px-4 py-2 text-right w-24">Subtotal</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-gray-100">
+                                            <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                                                 {section.questionTypes.map((qt) => {
                                                     const currentCount = patternCounts[qt.id] !== undefined ? patternCounts[qt.id] : qt.defaultCount;
                                                     const rowTotal = currentCount * qt.defaultMarksPerQuestion;
 
                                                     return (
-                                                        <tr key={qt.id} className="hover:bg-purple-50/30 transition-colors">
-                                                            <td className="px-4 py-2.5 text-gray-800">
-                                                                <div className="font-semibold text-gray-900">
+                                                        <tr key={qt.id} className="hover:bg-purple-50/30 dark:hover:bg-purple-950/20 transition-colors">
+                                                            <td className="px-4 py-2.5 text-gray-800 dark:text-slate-200">
+                                                                <div className="font-semibold text-gray-900 dark:text-white">
                                                                     {qt.name}
                                                                 </div>
                                                                 {qt.description && (
-                                                                    <div className="text-xs text-gray-500 mt-0.5">
+                                                                    <div className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
                                                                         {qt.description}
                                                                     </div>
                                                                 )}
                                                                 {qt.internalChoiceNote && (
-                                                                    <div className="text-[10px] text-[#8A2CB0] font-medium mt-0.5">
+                                                                    <div className="text-[10px] text-[#8A2CB0] dark:text-purple-300 font-medium mt-0.5">
                                                                         ℹ️ {qt.internalChoiceNote}
                                                                     </div>
                                                                 )}
                                                             </td>
-                                                            <td className="px-3 py-2.5 text-center text-gray-600 font-medium">
+                                                            <td className="px-3 py-2.5 text-center text-gray-600 dark:text-slate-300 font-medium">
                                                                 {qt.defaultMarksPerQuestion}M
                                                             </td>
                                                             <td className="px-3 py-2 text-center">
                                                                 <input 
                                                                     type="number" 
                                                                     min="0" 
-                                                                    className="w-16 text-center px-2 py-1 rounded border border-gray-300 outline-none focus:ring-2 focus:ring-[#8A2CB0] focus:border-[#8A2CB0] bg-white font-semibold text-gray-800" 
+                                                                    className="w-16 text-center px-2 py-1 rounded border border-gray-300 dark:border-slate-600 outline-none focus:ring-2 focus:ring-[#8A2CB0] focus:border-[#8A2CB0] bg-white dark:bg-slate-800 font-semibold text-gray-800 dark:text-white" 
                                                                     value={currentCount} 
                                                                     onChange={(e) => handlePatternCountChange(qt.id, e.target.value)} 
                                                                 />
                                                             </td>
-                                                            <td className="px-4 py-2.5 text-right font-bold text-gray-800">
+                                                            <td className="px-4 py-2.5 text-right font-bold text-gray-800 dark:text-white">
                                                                 {rowTotal}
                                                             </td>
                                                         </tr>
@@ -1598,20 +1599,20 @@ const PaperForm: React.FC<PaperFormProps> = ({
                     </div>
                 </div>
             ) : (
-                <div className="overflow-hidden border border-gray-200 rounded-xl shadow-sm bg-white animate-fade-in">
+                <div className="overflow-hidden border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm bg-white dark:bg-slate-900 animate-fade-in">
                     <table className="min-w-full text-sm">
-                        <thead className="bg-gray-50/80 text-gray-600 font-semibold border-b border-gray-200"><tr><th className="px-4 py-3 text-left">Type</th><th className="px-4 py-3 text-center">Marks/Q</th><th className="px-4 py-3 text-center">Count</th><th className="px-4 py-3 text-right">Total</th></tr></thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <thead className="bg-gray-50/80 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 font-semibold border-b border-gray-200 dark:border-slate-700"><tr><th className="px-4 py-3 text-left">Type</th><th className="px-4 py-3 text-center">Marks/Q</th><th className="px-4 py-3 text-center">Count</th><th className="px-4 py-3 text-right">Total</th></tr></thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                             {QUESTION_SPECS.map((spec) => (
-                                <tr key={spec.key} className="hover:bg-gray-50/50 transition-colors">
-                                    <td className="px-4 py-3 text-gray-800 font-medium">{spec.label}</td>
-                                    <td className="px-4 py-3 text-center text-gray-500">{spec.marks}</td>
-                                    <td className="px-4 py-2 text-center"><input type="number" min="0" className={`w-16 text-center px-2 py-1 rounded border outline-none focus:ring-1 focus:border-[#8A2CB0] ${errors[spec.key] ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white'}`} value={counts[spec.key]} onChange={(e) => handleCountChange(spec.key, e.target.value)} onBlur={() => handleBlur(spec.key)} />{errors[spec.key] && <div className="text-[10px] text-red-500 mt-1">{errors[spec.key]}</div>}</td>
-                                    <td className="px-4 py-3 text-right font-bold text-gray-700">{counts[spec.key] ? parseInt(counts[spec.key]) * spec.marks : 0}</td>
+                                <tr key={spec.key} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                                    <td className="px-4 py-3 text-gray-800 dark:text-slate-200 font-medium">{spec.label}</td>
+                                    <td className="px-4 py-3 text-center text-gray-500 dark:text-slate-400">{spec.marks}</td>
+                                    <td className="px-4 py-2 text-center"><input type="number" min="0" className={`w-16 text-center px-2 py-1 rounded border outline-none focus:ring-1 focus:border-[#8A2CB0] ${errors[spec.key] ? 'border-red-500 bg-red-50 dark:bg-red-950/30 dark:border-red-800' : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white'}`} value={counts[spec.key]} onChange={(e) => handleCountChange(spec.key, e.target.value)} onBlur={() => handleBlur(spec.key)} />{errors[spec.key] && <div className="text-[10px] text-red-500 mt-1">{errors[spec.key]}</div>}</td>
+                                    <td className="px-4 py-3 text-right font-bold text-gray-700 dark:text-slate-200">{counts[spec.key] ? parseInt(counts[spec.key]) * spec.marks : 0}</td>
                                 </tr>
                             ))}
                         </tbody>
-                        <tfoot className="bg-gray-50 border-t border-gray-200"><tr><td colSpan={3} className="px-4 py-3 text-right font-bold text-gray-600">Total Marks</td><td className={`px-4 py-3 text-right font-bold ${currentCalculatedMarks === totalMarks ? 'text-green-600' : 'text-orange-600'}`}>{currentCalculatedMarks || 0} / {totalMarks}</td></tr></tfoot>
+                        <tfoot className="bg-gray-50 dark:bg-slate-800/80 border-t border-gray-200 dark:border-slate-700"><tr><td colSpan={3} className="px-4 py-3 text-right font-bold text-gray-600 dark:text-slate-300">Total Marks</td><td className={`px-4 py-3 text-right font-bold ${currentCalculatedMarks === totalMarks ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>{currentCalculatedMarks || 0} / {totalMarks}</td></tr></tfoot>
                     </table>
                 </div>
             )}
@@ -1621,7 +1622,7 @@ const PaperForm: React.FC<PaperFormProps> = ({
               <button 
                 type="button" 
                 onClick={handleResetForm} 
-                className="px-5 py-3.5 border border-gray-200 text-gray-500 rounded-xl font-bold hover:bg-gray-100 hover:text-gray-700 transition-colors text-sm" 
+                className="px-5 py-3.5 border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 rounded-xl font-bold hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-slate-200 transition-colors text-sm cursor-pointer" 
                 disabled={isGenerating}
               >
                 Reset Form
@@ -1629,14 +1630,14 @@ const PaperForm: React.FC<PaperFormProps> = ({
               <button 
                 type="button" 
                 onClick={onCancel} 
-                className="flex-1 py-3.5 border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-colors text-sm" 
+                className="flex-1 py-3.5 border border-gray-300 dark:border-slate-600 rounded-xl font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors text-sm cursor-pointer" 
                 disabled={isGenerating}
               >
                 Cancel
               </button>
               <button 
                 type="submit" 
-                className="flex-1 btn-glass btn-glass-primary py-3.5 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 text-sm" 
+                className="flex-1 btn-glass btn-glass-primary py-3.5 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 text-sm cursor-pointer" 
                 disabled={isGenerating}
               >
                 {isGenerating ? (<><svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Generating...</span></>) : (<span>Generate Paper ✨</span>)}

@@ -64,8 +64,8 @@ export const BrandWordmark: React.FC<BrandWordmarkProps> = ({
   userProfile,
   isGuest,
   className = "inline-flex items-center tracking-tight font-extrabold whitespace-nowrap select-none",
-  textClassName = "text-white dark:text-white font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]",
-  aiClassName = "text-amber-300 dark:text-amber-300 font-black ml-0.5 drop-shadow-[0_0_12px_rgba(251,191,36,0.8)] tracking-wide",
+  textClassName = "text-slate-900 dark:text-white font-black drop-shadow-xs dark:drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]",
+  aiClassName = "text-amber-500 dark:text-amber-300 font-black ml-0.5 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)] dark:drop-shadow-[0_0_12px_rgba(251,191,36,0.8)] tracking-wide",
   iconSize = "w-4 h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5",
   showBadge = true,
 }) => {
@@ -79,7 +79,7 @@ export const BrandWordmark: React.FC<BrandWordmarkProps> = ({
       {/* Account Status / Role Badge appearing directly after "AI" */}
       {badge.type === 'guest' && (
         <span 
-          className="inline-flex items-center ml-1.5 text-amber-200 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-400/30 border border-amber-300/60 shadow-sm transform -translate-y-0.5" 
+          className="inline-flex items-center ml-1.5 text-amber-900 dark:text-amber-200 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-200/90 dark:bg-amber-400/30 border border-amber-300 dark:border-amber-300/60 shadow-xs dark:shadow-sm transform -translate-y-0.5" 
           title={badge.title}
           aria-label={badge.title}
         >

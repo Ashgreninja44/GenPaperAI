@@ -464,11 +464,11 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
 
       {/* Title & Introduction */}
       <div className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white drop-shadow-sm flex items-center gap-3">
-          <Palette className="w-8 h-8 text-[#8A2CB0] dark:text-amber-300" />
+        <h1 className="text-3xl sm:text-4xl font-black text-theme-foreground drop-shadow-sm flex items-center gap-3">
+          <Palette className="w-8 h-8 text-amber-300" />
           Appearance & Customization
         </h1>
-        <p className="text-gray-600 dark:text-white/80 text-sm sm:text-base mt-2 max-w-3xl leading-relaxed">
+        <p className="text-theme-foreground-muted text-sm sm:text-base mt-2 max-w-3xl leading-relaxed">
           Personalize your workspace experience with Light or Dark Mode, GenPaperAI Liquid Glass material styling, atmospheric themes, and custom background options.
         </p>
       </div>
@@ -542,7 +542,7 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                 </span>
               </div>
               <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
-                Crisp daylight palette with bright surfaces, high-contrast typography, and gentle ambient tinting.
+                Clean daylight workspace with high-contrast surfaces, deep slate typography, and signature GenPaperAI purple accents.
               </p>
             </div>
           </button>
@@ -583,7 +583,7 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                 </span>
               </div>
               <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
-                Deep nocturnal atmosphere optimized for low-light comfort, glowing accents, and eye safety.
+                Deep royal purple and indigo workspace with luminous glowing accents, atmospheric depth, and crisp readability.
               </p>
             </div>
           </button>
@@ -1171,6 +1171,7 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                   theme={selectedThemeId} 
                   config={config} 
                   backgroundMode="preset"
+                  appearanceMode={activeAppearanceMode}
                   isInteractivePreview={true} 
                 />
 

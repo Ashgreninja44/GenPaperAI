@@ -373,8 +373,10 @@ export interface UserPreferences {
 }
 
 // Administrative Permission Roles (Governs platform access levels)
-// 'teacher' and 'student' are retained in the union for backward compatibility with legacy database records.
-export type UserRole = 'user' | 'admin' | 'super_admin' | 'plus' | 'teacher' | 'student';
+// Clean architectural separation: AdminRole is strictly 'user' | 'admin' | 'super_admin'.
+// Legacy UserRole includes 'plus', 'teacher', 'student' solely for backward compatibility with older Firestore records.
+export type AdminRole = 'user' | 'admin' | 'super_admin';
+export type UserRole = AdminRole | 'plus' | 'teacher' | 'student';
 
 // Account Type (Governs workspace experience: Paper generation vs. Student study practice)
 export type UserType = 'teacher' | 'student';
@@ -470,31 +472,43 @@ export interface ClassroomBatch {
   board: string;
   grade: string;
   subject: string;
+  description?: string;
   createdAt: number;
   studentCount: number;
   activeAssignmentsCount: number;
 }
 
 export interface ClassroomStudent {
-  uid: string;
-  name: string;
-  email: string;
+  id?: string;
+  classroomId: string;
+  studentUid: string;
+  studentName: string;
+  studentEmail?: string;
   rollNumber?: string;
   joinedAt: number;
   status: 'active' | 'invited' | 'suspended';
   overallMastery?: number;
+  completedAssignmentsCount?: number;
+  averageScore?: number;
 }
 
 export interface ClassroomAssignment {
   id: string;
   classroomId: string;
+  classroomName?: string;
+  classroomCode?: string;
   paperId: string;
   paperTitle: string;
   teacherUid: string;
+  teacherName?: string;
+  description?: string;
   assignedAt: number;
   dueAt: number;
   durationMinutes: number;
   totalMarks: number;
+  passMarks?: number;
+  allowInstantFeedback?: boolean;
+  questions?: StudentPracticeQuestion[];
   status: 'draft' | 'published' | 'closed';
   submissionCount: number;
   evaluatedCount: number;
@@ -505,17 +519,25 @@ export interface StudentAssignmentSubmission {
   id: string;
   assignmentId: string;
   classroomId: string;
+  classroomName?: string;
+  paperTitle?: string;
   studentUid: string;
   studentName: string;
+  studentEmail?: string;
   submittedAt: number;
+  timeSpentSeconds?: number;
   answers: Array<{
     questionId: string;
     studentAnswerText: string;
+    isCorrect?: boolean;
+    scoreAwarded?: number;
+    rubricFeedback?: string;
     timeSpentSeconds?: number;
   }>;
   status: 'submitted' | 'evaluating' | 'graded';
   score?: number;
   maxScore?: number;
+  percentage?: number;
   feedback?: string;
   weakTopicsIdentified?: string[];
 }
@@ -586,6 +608,164 @@ export interface StudentProfileSettings {
     completedAt: number;
   }>;
   mistakes?: StudentMistakeRecord[];
+  
+  // Phase 2: Persisted AI Tutor History
+  tutorHistory?: StudentTutorMessage[];
+  
+  // Phase 3: Persisted Mock Test Attempts
+  mockTestAttempts?: StudentMockTestAttempt[];
+  
+  // Phase 7: Real Topic-Level Analytics Performance
+  topicPerformance?: Record<string, StudentTopicPerformance>;
+  
+  // Phase 8 & 9: Custom & AI Revision Flashcards
+  revisionCards?: StudentRevisionCard[];
+  
+  // Phase 10: Daily Study Plan
+  dailyPlanState?: DailyStudyPlanState;
+  
+  // Phase 11: Continue Learning State
+  continueLearning?: StudentContinueLearningState;
+  
+  // Phase 12: Persistent Saved Questions (Bookmarks)
+  savedQuestions?: StudentSavedQuestion[];
+}
+
+export type TeacherAssignment = ClassroomAssignment;
+
+export interface MistakeExplanationBreakdown {
+  misconception: string;
+  whyIncorrect: string;
+  keyRule: string;
+  stepByStep: string[];
+  goldenTakeaway: string;
+}
+
+export interface StudentTutorMessage {
+  id: string;
+  sender: 'user' | 'tutor';
+  text: string;
+  timestamp: number;
+  topic?: string;
+  subject?: string;
+  practiceQuestion?: StudentPracticeQuestion;
+  suggestedPrompts?: string[];
+  suggestedFollowUps?: string[];
+  isLoading?: boolean;
+}
+
+export interface StudentMockTestConfig {
+  board: string;
+  grade: string;
+  subject: string;
+  chapter?: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard' | 'Standard';
+  questionCount: number;
+  totalMarks: number;
+  durationMinutes: number;
+  questionTypes?: string[];
+}
+
+export interface StudentMockTestAttempt {
+  id: string;
+  testId: string;
+  title: string;
+  subject: string;
+  grade: string;
+  board: string;
+  startedAt: number;
+  submittedAt?: number;
+  durationMinutes: number;
+  totalMarks: number;
+  score: number;
+  maxScore: number;
+  percentage: number;
+  questions: StudentPracticeQuestion[];
+  answers: Record<string, string>;
+  isCorrectMap: Record<string, boolean>;
+  evaluatedAt?: number;
+  timeSpentSeconds?: number;
+}
+
+export interface StudentRevisionCard {
+  id: string;
+  subject: string;
+  chapter: string;
+  topic: string;
+  front: string; // Question / Concept / Prompt
+  back: string; // Answer / Explanation / Core Principle
+  keyPoint?: string;
+  formula?: string;
+  createdAt: number;
+  lastReviewed?: number;
+  reviewCount?: number;
+  isAiGenerated?: boolean;
+  fromMistakeId?: string;
+}
+
+export interface StudentSavedQuestion {
+  id: string;
+  question: StudentPracticeQuestion;
+  savedAt: number;
+  subject: string;
+  topic: string;
+  notes?: string;
+}
+
+export interface StudentTopicPerformance {
+  subject: string;
+  chapter: string;
+  topic: string;
+  totalAttempts: number;
+  correctCount: number;
+  accuracy: number; // 0 - 100 percentage
+  status: 'weak' | 'developing' | 'strong';
+  lastPracticedAt: number;
+}
+
+export interface DailyStudyTask {
+  id: string;
+  type: 'practice_weak_topic' | 'review_mistakes' | 'revision_cards' | 'mock_test' | 'ai_tutor';
+  title: string;
+  description: string;
+  subject: string;
+  topic?: string;
+  completed: boolean;
+  targetCount?: number;
+  currentCount?: number;
+  completedAt?: number;
+}
+
+export interface DailyStudyPlanState {
+  date: string; // 'YYYY-MM-DD'
+  tasks: DailyStudyTask[];
+  dailyGoalMinutes: number;
+  estimatedMinutes: number;
+  completedTasksCount: number;
+  totalTasksCount: number;
+}
+
+export interface StudentContinueLearningState {
+  subject: string;
+  chapter?: string;
+  topic?: string;
+  activityType: 'practice' | 'mock_test' | 'revision' | 'ai_tutor' | 'assignment';
+  activityTitle: string;
+  timestamp: number;
+  meta?: Record<string, any>;
+}
+
+export interface TeacherProfileSettings {
+  teachingRole?: string; // e.g. 'School Teacher' | 'Coaching Faculty' | 'Private Tutor' | 'Professor / Lecturer' | 'Academic Coordinator'
+  institutionName?: string;
+  primaryBoard?: string;
+  preferredBoards?: string[];
+  primaryGrade?: string;
+  preferredGrades?: string[];
+  primarySubject?: string;
+  preferredSubjects?: string[];
+  teacherOnboardingCompleted?: boolean;
+  onboardingCompletedAt?: number;
 }
 
 export interface UserProfile {
@@ -612,6 +792,7 @@ export interface UserProfile {
   isPlusSubscriber?: boolean;
   subscriptionDetails?: UserSubscriptionDetails;
   studentSettings?: StudentProfileSettings;
+  teacherSettings?: TeacherProfileSettings;
   defaultPaperSettings?: {
     board?: string;
     grade?: string;

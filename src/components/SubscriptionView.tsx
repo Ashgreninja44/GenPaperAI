@@ -65,7 +65,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <button 
           onClick={onBack}
-          className="text-white hover:text-white/80 flex items-center gap-2 font-bold drop-shadow-sm transition-colors text-sm sm:text-base cursor-pointer"
+          className="text-theme-foreground hover:opacity-80 flex items-center gap-2 font-bold drop-shadow-sm transition-colors text-sm sm:text-base cursor-pointer"
         >
           ← Back to Dashboard
         </button>
@@ -78,11 +78,11 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
       </div>
 
       {/* Main Title Section */}
-      <div className="text-center max-w-2xl mx-auto mb-10 text-white">
+      <div className="text-center max-w-2xl mx-auto mb-10 text-theme-foreground">
         <h1 className="text-3xl sm:text-4xl font-black drop-shadow-md tracking-tight mb-3">
           Subscription & Plans
         </h1>
-        <p className="text-sm sm:text-base text-white/90 leading-relaxed font-medium">
+        <p className="text-sm sm:text-base text-theme-foreground-muted leading-relaxed font-medium">
           Choose the right tier for your teaching workflow. Transparent limits, zero hidden charges, and reliable examination tools.
         </p>
       </div>

@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Question } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
+import { MathRenderer } from './MathRenderer';
 import { improveSelectedText } from '../services/geminiService';
 
 interface QuestionCardProps {
@@ -216,26 +217,28 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
 
       {/* Question Content */}
       <div className="mb-4 text-gray-800 text-sm leading-relaxed">
-        <div 
-          contentEditable={isEditingEnabled}
-          data-id={question.question_id}
-          data-field="question"
-          onBlur={(e) => {
-            const newText = e.currentTarget.innerText;
-            if (newText !== question.question_text) {
-              onUpdateText(question.question_id, newText);
-            }
-          }}
-          suppressContentEditableWarning={true}
-          className={`outline-none transition-all whitespace-pre-wrap cursor-text ${
-            isEditingEnabled 
-            ? 'focus:ring-2 focus:ring-[#8A2CB0]/20 rounded p-1 -m-1 hover:bg-gray-50/50 border border-dashed border-[#8A2CB0]/30' 
-            : ''
-          }`}
-          title={isEditingEnabled ? "Click to edit question text" : ""}
-        >
-          {question.question_text}
-        </div>
+        {isEditingEnabled ? (
+          <div 
+            contentEditable={true}
+            data-id={question.question_id}
+            data-field="question"
+            onBlur={(e) => {
+              const newText = e.currentTarget.innerText;
+              if (newText !== question.question_text) {
+                onUpdateText(question.question_id, newText);
+              }
+            }}
+            suppressContentEditableWarning={true}
+            className="outline-none transition-all whitespace-pre-wrap cursor-text focus:ring-2 focus:ring-[#8A2CB0]/20 rounded p-1 -m-1 hover:bg-gray-50/50 border border-dashed border-[#8A2CB0]/30"
+            title="Click to edit question text"
+          >
+            {question.question_text}
+          </div>
+        ) : (
+          <div className="outline-none transition-all">
+            <MathRenderer content={question.question_text} />
+          </div>
+        )}
         
         {/* Diagram / Image Section */}
         {question.image_url && (
@@ -391,26 +394,28 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
             {question.options.map((opt, i) => (
               <div key={i} className="flex items-start gap-2 text-xs text-gray-600 bg-gray-50/50 p-2 rounded border border-gray-100">
                 <span className="font-bold text-[#8A2CB0]">{String.fromCharCode(65 + i)})</span>
-                <div 
-                  contentEditable={isEditingEnabled}
-                  data-id={question.question_id}
-                  data-field={`option-${i}`}
-                  onBlur={(e) => {
-                    const newText = e.currentTarget.innerText;
-                    if (newText !== opt) {
-                      onUpdateOption(question.question_id, i, newText);
-                    }
-                  }}
-                  suppressContentEditableWarning={true}
-                  className={`flex-1 outline-none transition-all whitespace-pre-wrap cursor-text ${
-                    isEditingEnabled 
-                    ? 'focus:ring-2 focus:ring-[#8A2CB0]/20 rounded px-1 hover:bg-white border border-dashed border-[#8A2CB0]/20' 
-                    : ''
-                  }`}
-                  title={isEditingEnabled ? "Click to edit option" : ""}
-                >
-                  {opt}
-                </div>
+                {isEditingEnabled ? (
+                  <div 
+                    contentEditable={true}
+                    data-id={question.question_id}
+                    data-field={`option-${i}`}
+                    onBlur={(e) => {
+                      const newText = e.currentTarget.innerText;
+                      if (newText !== opt) {
+                        onUpdateOption(question.question_id, i, newText);
+                      }
+                    }}
+                    suppressContentEditableWarning={true}
+                    className="flex-1 outline-none transition-all whitespace-pre-wrap cursor-text focus:ring-2 focus:ring-[#8A2CB0]/20 rounded px-1 hover:bg-white border border-dashed border-[#8A2CB0]/20"
+                    title="Click to edit option"
+                  >
+                    {opt}
+                  </div>
+                ) : (
+                  <div className="flex-1 outline-none transition-all">
+                    <MathRenderer content={opt} />
+                  </div>
+                )}
               </div>
             ))}
           </div>

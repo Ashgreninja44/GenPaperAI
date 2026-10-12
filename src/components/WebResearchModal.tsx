@@ -153,7 +153,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
         chapter: chapter.trim() || undefined,
         url: mode === 'url' ? url.trim() : undefined,
         targetQuestionCount: questionCount,
-        modelId: webResearchConfig?.researchModel || 'gemini-3-flash-preview'
+        modelId: webResearchConfig?.researchModel || 'gemini-3.8-flash'
       });
 
       clearTimeout(stepTimer1);
@@ -270,7 +270,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
                   Live Google AI Grounding
                 </span>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-slate-400">
                 Ground question papers in authoritative curriculum sources, NCERT textbooks, and live web research.
               </p>
             </div>
@@ -318,12 +318,12 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1.5">
-                      <Icon className={`w-4 h-4 ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400'}`} />
+                      <Icon className={`w-4 h-4 ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-slate-500'}`} />
                       <span className="text-xs font-black text-gray-900 dark:text-white">
                         {info.title}
                       </span>
                     </div>
-                    <p className="text-[11px] text-gray-500 leading-relaxed line-clamp-2">
+                    <p className="text-[11px] text-gray-500 dark:text-slate-400 leading-relaxed line-clamp-2">
                       {info.desc}
                     </p>
                   </button>
@@ -455,7 +455,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
             )}
 
             <div className="flex items-center justify-between pt-1">
-              <div className="flex items-center gap-2 text-xs text-gray-500">
+              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
                 <span>Preserves grounding citations • Strict Unicode Math formatting</span>
               </div>
@@ -504,7 +504,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
                       <FileText className="w-4 h-4 text-indigo-500" />
                       Curriculum Research Summary: {result.topic}
                     </h3>
-                    <span className="text-[10px] font-bold text-gray-400">
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500">
                       {new Date(result.timestamp).toLocaleTimeString()}
                     </span>
                   </div>
@@ -516,7 +516,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
                 {/* Key Concepts Pills */}
                 {result.keyConcepts && result.keyConcepts.length > 0 && (
                   <div>
-                    <span className="text-[11px] font-bold text-gray-400 block mb-1.5 uppercase tracking-wider">
+                    <span className="text-[11px] font-bold text-gray-400 dark:text-slate-500 block mb-1.5 uppercase tracking-wider">
                       Key Concepts Explored:
                     </span>
                     <div className="flex flex-wrap gap-1.5">
@@ -535,7 +535,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
                 {/* Verified Grounding Sources */}
                 {result.sources && result.sources.length > 0 && (
                   <div>
-                    <span className="text-[11px] font-bold text-gray-400 block mb-1.5 uppercase tracking-wider">
+                    <span className="text-[11px] font-bold text-gray-400 dark:text-slate-500 block mb-1.5 uppercase tracking-wider">
                       Verified Curriculum & Web Sources ({result.sources.length}):
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -551,7 +551,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
                             <div className="font-bold text-gray-800 dark:text-gray-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
                               {src.title}
                             </div>
-                            <div className="text-[10px] text-gray-400 font-mono truncate">
+                            <div className="text-[10px] text-gray-400 dark:text-slate-500 font-mono truncate">
                               {src.domain}
                             </div>
                           </div>
@@ -566,7 +566,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
                                 CBSE
                               </span>
                             )}
-                            <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-indigo-500" />
+                            <ExternalLink className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 group-hover:text-indigo-500" />
                           </div>
                         </a>
                       ))}
@@ -582,7 +582,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
                     <h3 className="text-sm font-black text-gray-900 dark:text-white">
                       Formulated Questions ({result.suggestedQuestions?.length || 0})
                     </h3>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 dark:text-slate-400">
                       • {selectedQuestionIds.size} selected
                     </span>
                   </div>
@@ -639,7 +639,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
                                 <CheckCircle2 className="w-2.5 h-2.5" /> Researched
                               </span>
                               {q.chapter && (
-                                <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-500">
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-slate-400">
                                   {q.chapter}
                                 </span>
                               )}
@@ -689,7 +689,7 @@ export const WebResearchModal: React.FC<WebResearchModalProps> = ({
               <select
                 value={targetBankId}
                 onChange={(e) => setTargetBankId(e.target.value)}
-                className="px-2.5 py-1.5 text-xs rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-medium text-gray-900 dark:text-gray-100"
+                className="px-2.5 py-1.5 text-xs rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-medium text-gray-900 dark:text-gray-100 dark-dropdown"
               >
                 <option value="new">Create New Subject Bank</option>
                 {existingBanks.map(b => (

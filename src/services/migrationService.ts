@@ -16,39 +16,11 @@ export const CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION = 1;
  * 4. Existing/legacy accounts (created before this deployment) have missing or 0 accountTypeMigrationVersion.
  */
 export function isLegacyUserRequiringMigration(
-  user: { email?: string | null; role?: string } | null,
-  profile: UserProfile | null
+  _user: { email?: string | null; role?: string } | null,
+  _profile: UserProfile | null
 ): boolean {
-  if (!user || !profile) {
-    return false;
-  }
-
-  // 1. Platform Owner / Super Admin Exemption (Requirement 5 & 7):
-  // The verified Platform Owner must NEVER be forced to select Teacher/Student during migration.
-  if (isSuperAdmin(user.email, profile.role)) {
-    return false;
-  }
-
-  // 2. Already completed migration (or created post-deployment):
-  if (
-    typeof profile.accountTypeMigrationVersion === 'number' &&
-    profile.accountTypeMigrationVersion >= CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION &&
-    !!profile.userType
-  ) {
-    return false;
-  }
-
-  // 3. Newly created accounts going through standard first-time onboarding:
-  // If it's a new account created with accountTypeMigrationVersion = 1 and needsOnboarding = true
-  if (
-    profile.needsOnboarding === true &&
-    profile.accountTypeMigrationVersion === CURRENT_ACCOUNT_TYPE_MIGRATION_VERSION
-  ) {
-    return false;
-  }
-
-  // 4. Legacy Account: Created before deployment, missing migration version
-  return true;
+  // In the Teacher-First platform, users never need to choose account type.
+  return false;
 }
 
 /**

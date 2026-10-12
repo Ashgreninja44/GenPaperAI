@@ -55,11 +55,11 @@ const Profile: React.FC<ProfileProps> = ({
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <button 
           onClick={onBack}
-          className="text-white hover:text-white/80 flex items-center gap-2 font-medium drop-shadow-sm transition-colors text-sm sm:text-base cursor-pointer"
+          className="text-theme-foreground hover:opacity-80 flex items-center gap-2 font-medium drop-shadow-sm transition-colors text-sm sm:text-base cursor-pointer"
         >
           ← Back to Dashboard
         </button>
-        <h1 className="text-2xl sm:text-3xl font-black text-white drop-shadow-md">My Profile</h1>
+        <h1 className="text-2xl sm:text-3xl font-black text-theme-foreground drop-shadow-md">My Profile</h1>
       </div>
 
       <div className="glass-panel overflow-hidden rounded-3xl shadow-2xl bg-white/95 backdrop-blur-xl">
@@ -189,12 +189,8 @@ const Profile: React.FC<ProfileProps> = ({
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <span className="text-gray-500 text-sm">Account Type</span>
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 ${
-                                profile.userType === 'student'
-                                  ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                                  : 'bg-purple-50 text-purple-800 border border-purple-200'
-                            }`}>
-                                {profile.userType === 'student' ? '🎓 Student Account' : '👨‍🏫 Teacher Account'}
+                            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 bg-purple-50 text-purple-800 border border-purple-200">
+                                👨‍🏫 Teacher Account
                             </span>
                         </div>
                         <div className="flex items-center justify-between">

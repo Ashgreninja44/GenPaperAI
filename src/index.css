@@ -1,3 +1,5 @@
+@import "katex/dist/katex.min.css";
+
 /* ========================================================
    SEMANTIC DESIGN TOKENS (LIGHT MODE / DEFAULT)
    ======================================================== */
@@ -7,23 +9,65 @@
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  color-scheme: light;
 
+  /* Text & Foreground */
   --foreground: #0f172a;               /* Slate 900 */
   --foreground-muted: #334155;         /* Slate 700 */
   --foreground-subtle: #64748b;        /* Slate 500 */
-  --background: #f8fafc;               /* Slate 50 */
-  --surface: rgba(255, 255, 255, 0.95);
-  --surface-elevated: #ffffff;
-  --surface-muted: #f1f5f9;
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
-  --accent: #8A2CB0;
+  --foreground-inverted: #f8fafc;      /* Slate 50 */
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+
+  /* Backgrounds & Surfaces */
+  --background: #f8fafc;               /* Clean, flat, neutral Light Mode background */
+  --page-gradient: #f8fafc;
+  --surface: #ffffff;                  /* Primary card soft off-white surface */
+  --surface-elevated: #ffffff;         /* Elevated modals / popovers */
+  --surface-secondary: #edf2f7;        /* Secondary card tinted neutral surface */
+  --surface-muted: #e6ebf2;
+
+  /* Borders & Dividers */
+  --border: #dbe2ea;                   /* Crisp subtle border */
+  --border-strong: #cbd5e1;            /* Slate 300 */
+
+  /* Brand Accents */
+  --accent: #3C128D;                   /* Royal Purple */
+  --accent-hover: #2e0c70;
   --accent-foreground: #ffffff;
-  --input-background: #ffffff;
+  --accent-light: rgba(138, 44, 176, 0.08);
+  --accent-subtle: rgba(138, 44, 176, 0.06);
+
+  /* Premium / Gold */
+  --premium: #d97706;                  /* Warm Amber / Gold */
+  --premium-foreground: #0f172a;
+
+  /* Interactive Elements */
+  --input: #edf1f7;                    /* Clearly distinguishable light gray surface */
+  --input-background: #edf1f7;
   --input-foreground: #0f172a;
-  --placeholder: #94a3b8;
-  --card-background: rgba(255, 255, 255, 0.95);
+  --input-border: #cbd5e1;
+  --focus-ring: rgba(60, 18, 141, 0.25);
+  --placeholder: #64748b;
+  --card-background: #ffffff;
   --card-foreground: #0f172a;
+
+  /* Theme Page Background Foreground Tokens (Contrast-driven based on actual background) */
+  --theme-foreground: #ffffff;
+  --theme-foreground-muted: rgba(255, 255, 255, 0.85);
+  --theme-foreground-subtle: rgba(255, 255, 255, 0.70);
+
+  /* Status Tokens */
+  --action-primary: #3C128D;
+  --action-primary-hover: #2e0c70;
+  --action-primary-foreground: #ffffff;
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+  --warning: #d97706;
+  --warning-foreground: #ffffff;
+  --error: #dc2626;
+  --error-foreground: #ffffff;
 }
 
 /* ========================================================
@@ -32,48 +76,119 @@
 .dark,
 [data-appearance="dark"],
 [data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Text & Foreground */
   --foreground: #f8fafc;               /* Slate 50 - High contrast */
-  --foreground-muted: #cbd5e1;         /* Slate 300 - Readable subordinate */
+  --foreground-muted: #e2e8f0;         /* Slate 200 - Readable subordinate */
   --foreground-subtle: #94a3b8;        /* Slate 400 - Readable caption */
-  --background: #0b0f19;
-  --surface: rgba(17, 24, 39, 0.92);   /* Dark gray 900 */
+  --foreground-inverted: #0f172a;      /* Slate 900 */
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+
+  /* Backgrounds & Surfaces */
+  --background: #090d16;               /* Dark Navy/Slate 950 */
+  --page-gradient: radial-gradient(circle at 50% 0%, #180d38 0%, #0c0820 60%, #060411 100%);
+  --surface: rgba(17, 24, 39, 0.94);   /* Dark gray 900 */
   --surface-elevated: #1e293b;         /* Slate 800 */
-  --surface-muted: rgba(30, 41, 59, 0.75);
+  --surface-secondary: rgba(30, 41, 59, 0.7);
+  --surface-muted: rgba(30, 41, 59, 0.85);
+
+  /* Borders & Dividers */
   --border: rgba(255, 255, 255, 0.12);
   --border-strong: rgba(255, 255, 255, 0.22);
-  --accent: #a855f7;
+
+  /* Brand Accents */
+  --accent: #a855f7;                   /* Purple 500 */
+  --accent-hover: #9333ea;
   --accent-foreground: #ffffff;
+  --accent-light: rgba(168, 85, 247, 0.15);
+  --accent-subtle: rgba(168, 85, 247, 0.15);
+
+  /* Premium / Gold */
+  --premium: #fbbf24;
+  --premium-foreground: #0f172a;
+
+  /* Interactive Elements */
+  --input: #1e293b;
   --input-background: #1e293b;
   --input-foreground: #f8fafc;
+  --input-border: #334155;
+  --focus-ring: rgba(168, 85, 247, 0.35);
   --placeholder: #94a3b8;
-  --card-background: rgba(17, 24, 39, 0.92);
+  --card-background: rgba(17, 24, 39, 0.94);
   --card-foreground: #f8fafc;
+
+  /* Theme Page Background Foreground Tokens */
+  --theme-foreground: #ffffff;
+  --theme-foreground-muted: rgba(255, 255, 255, 0.85);
+  --theme-foreground-subtle: rgba(255, 255, 255, 0.70);
+
+  /* Status Tokens */
+  --action-primary: #8A2CB0;
+  --action-primary-hover: #9d35c8;
+  --action-primary-foreground: #ffffff;
+  --success: #22c55e;
+  --success-foreground: #ffffff;
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
+  --error: #ef4444;
+  --error-foreground: #ffffff;
 }
 
-/* Theme Presets Customization */
+/* Theme Presets Customization & Contrast Specifications */
 [data-theme="default"], .theme-default {
   --accent: #8A2CB0;
   --accent-foreground: #ffffff;
+  --theme-foreground: #ffffff;
+  --theme-foreground-muted: rgba(255, 255, 255, 0.85);
+  --theme-foreground-subtle: rgba(255, 255, 255, 0.70);
 }
 
 [data-theme="ocean"], .theme-ocean {
   --accent: #38bdf8;
   --accent-foreground: #082f49;
+  --theme-foreground: #ffffff;
+  --theme-foreground-muted: rgba(255, 255, 255, 0.85);
+  --theme-foreground-subtle: rgba(255, 255, 255, 0.70);
 }
 
 [data-theme="sunset"], .theme-sunset {
   --accent: #f97316;
   --accent-foreground: #ffffff;
+  --theme-foreground: #ffffff;
+  --theme-foreground-muted: rgba(255, 255, 255, 0.85);
+  --theme-foreground-subtle: rgba(255, 255, 255, 0.70);
 }
 
 [data-theme="forest"], .theme-forest {
   --accent: #10b981;
   --accent-foreground: #ffffff;
+  --theme-foreground: #ffffff;
+  --theme-foreground-muted: rgba(255, 255, 255, 0.85);
+  --theme-foreground-subtle: rgba(255, 255, 255, 0.70);
 }
 
 [data-theme="midnight"], .theme-midnight {
   --accent: #c084fc;
   --accent-foreground: #ffffff;
+  --theme-foreground: #ffffff;
+  --theme-foreground-muted: rgba(255, 255, 255, 0.85);
+  --theme-foreground-subtle: rgba(255, 255, 255, 0.70);
+}
+
+/* Semantic Theme Foreground Utilities for Page-Level Text */
+.text-theme-foreground {
+  color: var(--theme-foreground) !important;
+}
+
+.text-theme-foreground-muted {
+  color: var(--theme-foreground-muted) !important;
+}
+
+.text-theme-foreground-subtle {
+  color: var(--theme-foreground-subtle) !important;
 }
 
 body {
@@ -193,6 +308,143 @@ textarea[class*="bg-slate-900"] {
   color: #0f172a;
 }
 
+/* ========================================================
+   GLOBAL CONTRAST & LEGACY TEXT TOKEN ENFORCEMENT
+   Fixes root causes of dark-on-dark text globally across
+   cards, dialogs, dropdowns, inputs, tables, and dashboards
+   ======================================================== */
+.dark .glass-panel.bg-white,
+[data-appearance="dark"] .glass-panel.bg-white,
+.dark .glass-panel.bg-white\/95,
+[data-appearance="dark"] .glass-panel.bg-white\/95 {
+  background-color: rgba(17, 24, 39, 0.94) !important;
+  color: #f8fafc !important;
+}
+
+.dark .glass-card.bg-white,
+[data-appearance="dark"] .glass-card.bg-white,
+.dark .glass-card.bg-white\/90,
+[data-appearance="dark"] .glass-card.bg-white\/90 {
+  background-color: rgba(30, 41, 59, 0.9) !important;
+  color: #f8fafc !important;
+}
+
+/* Ensure text on glass panels in dark mode defaults to readable tones */
+.dark .glass-panel h1,
+.dark .glass-panel h2,
+.dark .glass-panel h3,
+.dark .glass-panel h4,
+[data-appearance="dark"] .glass-panel h1,
+[data-appearance="dark"] .glass-panel h2,
+[data-appearance="dark"] .glass-panel h3,
+[data-appearance="dark"] .glass-panel h4 {
+  color: #f8fafc;
+}
+
+/* Global text fallbacks for legacy gray utility classes without dark equivalents */
+.dark .text-gray-900:not([class*="dark:text-"]),
+[data-appearance="dark"] .text-gray-900:not([class*="dark:text-"]) {
+  color: #f8fafc;
+}
+
+.dark .text-gray-800:not([class*="dark:text-"]),
+[data-appearance="dark"] .text-gray-800:not([class*="dark:text-"]) {
+  color: #f1f5f9;
+}
+
+.dark .text-gray-700:not([class*="dark:text-"]),
+[data-appearance="dark"] .text-gray-700:not([class*="dark:text-"]) {
+  color: #e2e8f0;
+}
+
+.dark .text-gray-600:not([class*="dark:text-"]),
+[data-appearance="dark"] .text-gray-600:not([class*="dark:text-"]) {
+  color: #cbd5e1;
+}
+
+.dark .text-gray-500:not([class*="dark:text-"]),
+[data-appearance="dark"] .text-gray-500:not([class*="dark:text-"]) {
+  color: #94a3b8;
+}
+
+.dark .border-gray-100:not([class*="dark:border-"]),
+.dark .border-gray-200:not([class*="dark:border-"]),
+[data-appearance="dark"] .border-gray-100:not([class*="dark:border-"]),
+[data-appearance="dark"] .border-gray-200:not([class*="dark:border-"]) {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Light and Dark mode liquid-nav styling */
+.light .liquid-nav,
+[data-appearance="light"] .liquid-nav {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03) !important;
+}
+
+.dark .liquid-nav,
+[data-appearance="dark"] .liquid-nav {
+  background: rgba(17, 24, 39, 0.75) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35) !important;
+}
+
+.light .liquid-nav .text-white:not([class*="bg-"]):not([class*="fill-"]):not(.preserve-white),
+[data-appearance="light"] .liquid-nav .text-white:not([class*="bg-"]):not([class*="fill-"]):not(.preserve-white) {
+  color: #0f172a !important;
+}
+
+.light .liquid-nav button:not([class*="bg-"]):not([class*="text-"]):not([class*="preserve-"]),
+[data-appearance="light"] .liquid-nav button:not([class*="bg-"]):not([class*="text-"]):not([class*="preserve-"]) {
+  color: #334155 !important;
+}
+
+/* Light mode panels and cards */
+.light .glass-panel,
+[data-appearance="light"] .glass-panel {
+  background: #ffffff !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02) !important;
+  color: #0f172a !important;
+}
+
+.light .glass-card,
+[data-appearance="light"] .glass-card {
+  background: #ffffff !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.02) !important;
+  color: #0f172a !important;
+}
+
+/* When Liquid Glass is disabled in Light Mode, ensure solid crisp surface */
+.light.liquid-glass-disabled .liquid-nav,
+.light body.liquid-glass-disabled .liquid-nav,
+body.light.liquid-glass-disabled .liquid-nav,
+[data-appearance="light"].liquid-glass-disabled .liquid-nav,
+[data-appearance="light"] .liquid-glass-disabled.liquid-nav {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+}
+
+.dark.liquid-glass-disabled .liquid-nav,
+.dark body.liquid-glass-disabled .liquid-nav,
+body.dark.liquid-glass-disabled .liquid-nav,
+[data-appearance="dark"].liquid-glass-disabled .liquid-nav,
+[data-appearance="dark"] .liquid-glass-disabled.liquid-nav {
+  background: #13112c !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+  color: #f8fafc !important;
+}
+
 /* Theme Animations */
 @keyframes float-slow {
   0%, 100% { transform: translate(0, 0) scale(1); }
@@ -243,8 +495,8 @@ textarea[class*="bg-slate-900"] {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: radial-gradient(circle, #fff, #ccc);
-  box-shadow: 0 0 25px rgba(255,255,255,0.4);
+  background: radial-gradient(circle at 42% 40%, #F9F7EE 0%, #F2ECE0 35%, #E5DCBE 70%, #D8CDAF 90%, #A49585 100%);
+  box-shadow: 0 0 25px rgba(250, 245, 230, 0.65), 0 0 45px rgba(230, 220, 195, 0.35);
   animation: moonMove 60s linear infinite;
 }
 
@@ -378,14 +630,28 @@ body.dark.liquid-glass-disabled .glass-card,
   color: #f8fafc !important;
 }
 
-.liquid-glass-disabled .liquid-nav,
-body.liquid-glass-disabled .liquid-nav,
-.liquid-glass-disabled.liquid-nav {
-  background: #250954 !important;
+.dark .liquid-glass-disabled .liquid-nav,
+.dark body.liquid-glass-disabled .liquid-nav,
+[data-appearance="dark"] .liquid-glass-disabled .liquid-nav,
+[data-appearance="dark"].liquid-glass-disabled .liquid-nav {
+  background: #13112c !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border: 1px solid rgba(255, 255, 255, 0.18) !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+  color: #f8fafc !important;
+}
+
+.light .liquid-glass-disabled .liquid-nav,
+.light body.liquid-glass-disabled .liquid-nav,
+[data-appearance="light"] .liquid-glass-disabled .liquid-nav,
+[data-appearance="light"].liquid-glass-disabled .liquid-nav {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
 }
 
 .liquid-glass-disabled .btn-glass,

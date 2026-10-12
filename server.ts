@@ -111,8 +111,17 @@ Sitemap: ${baseUrl}/sitemap.xml
   app.use(express.static(path.join(process.cwd(), 'public')));
   app.use('/assets', express.static(path.join(process.cwd(), 'public', 'assets')));
 
+  function normalizeModel(modelName?: string): string {
+    if (!modelName) return 'gemini-3.8-flash';
+    const m = modelName.trim().toLowerCase();
+    if (m === 'gemini-2.5-flash' || m === 'gemini-3-flash-preview' || m === 'gemini-3.7-flash' || m.includes('flash-preview')) {
+      return 'gemini-3.8-flash';
+    }
+    return modelName;
+  }
+
   // API Route for Gemini Proxy (Server-side model generation)
-  app.post('/api/ai/generateContent', async (req: any, res: any) => {
+  app.post(['/api/ai/generateContent', '/api/ai/generateContent/', '/api/ai/generate', '/api/gemini/generate'], async (req: any, res: any) => {
     try {
       const { model, contents, config, systemInstruction, generationConfig } = req.body;
       const key = process.env.GEMINI_API_KEY;
@@ -125,24 +134,156 @@ Sitemap: ${baseUrl}/sitemap.xml
         ...(generationConfig || {})
       };
 
-      const targetModel = model || 'gemini-3.7-flash';
+      const targetModel = normalizeModel(model);
       const ai = getAiInstance(key);
-      const response = await ai.models.generateContent({
-        model: targetModel,
-        contents,
-        config: effectiveConfig
-      });
+
+      // If an image model was specifically requested, handle potential free-tier quota limits (limit: 0)
+      if (typeof targetModel === 'string' && (targetModel.includes('image') || targetModel === 'gemini-3.1-flash-lite-image')) {
+        try {
+          const response = await ai.models.generateContent({
+            model: targetModel,
+            contents,
+            config: effectiveConfig
+          });
+          return res.json({
+            text: response.text,
+            candidates: response.candidates || null
+          });
+        } catch (imgErr: any) {
+          console.info(`[Backend Gemini Proxy] Model '${targetModel}' failed (${imgErr?.status || imgErr?.message || 'unavailable'}). Automatically generating vector SVG diagram via gemini-3.7-flash.`);
+          try {
+            // Extract text prompt from contents
+            let promptText = '';
+            if (typeof contents === 'string') {
+              promptText = contents;
+            } else if (contents?.parts && Array.isArray(contents.parts)) {
+              promptText = contents.parts.map((p: any) => p.text || '').join(' ');
+            } else if (Array.isArray(contents)) {
+              promptText = contents.map((c: any) => c?.parts?.map((p: any) => p.text || '').join(' ') || '').join(' ');
+            }
+
+            const svgPrompt = `Generate a clean, high-precision academic examination SVG vector diagram for:
+${promptText}
+
+Requirements:
+- Return ONLY valid, complete SVG code starting with <svg and ending with </svg>.
+- White background (<rect width="100%" height="100%" fill="white"/>), clean black vector lines (stroke="#111827", stroke-width="2"), high contrast.
+- Clear labels (A, B, C, dimensions, angles) matching the prompt.
+- viewBox="0 0 500 350".`;
+
+            const fallbackResp = await ai.models.generateContent({
+              model: 'gemini-3.8-flash',
+              contents: svgPrompt,
+              config: { temperature: 0.2 }
+            });
+
+            const svgText = fallbackResp.text || '';
+            const svgMatch = svgText.match(/<svg[\s\S]*?<\/svg>/i);
+            const finalSvg = svgMatch 
+              ? svgMatch[0] 
+              : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 350"><rect width="100%" height="100%" fill="white"/><text x="250" y="175" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#374151">Academic Diagram: ${promptText.slice(0, 50)}</text></svg>`;
+            
+            const base64Data = Buffer.from(finalSvg).toString('base64');
+            return res.json({
+              text: finalSvg,
+              candidates: [{
+                content: {
+                  parts: [{
+                    inlineData: {
+                      mimeType: 'image/svg+xml',
+                      data: base64Data
+                    }
+                  }]
+                }
+              }]
+            });
+          } catch (fallbackErr: any) {
+            console.warn("[Backend Gemini Proxy] SVG fallback generation failed, returning schematic SVG placeholder:", fallbackErr?.message);
+            const finalSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 350"><rect width="100%" height="100%" fill="white" stroke="#e5e7eb"/><text x="250" y="175" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#374151">Academic Diagram</text></svg>`;
+            const base64Data = Buffer.from(finalSvg).toString('base64');
+            return res.json({
+              text: finalSvg,
+              candidates: [{
+                content: {
+                  parts: [{
+                    inlineData: {
+                      mimeType: 'image/svg+xml',
+                      data: base64Data
+                    }
+                  }]
+                }
+              }]
+            });
+          }
+        }
+      }
+
+      let response;
+      const executeWithRetry = async (modelToUse: string) => {
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            return await ai.models.generateContent({
+              model: modelToUse,
+              contents,
+              config: effectiveConfig
+            });
+          } catch (err: any) {
+            const errStr = String(err?.message || '').toLowerCase();
+            const isNetworkOrTransient = 
+              errStr.includes('fetch failed') ||
+              errStr.includes('econnreset') ||
+              errStr.includes('etimedout') ||
+              errStr.includes('econnrefused') ||
+              err?.status === 503 || err?.status === 429;
+            
+            if (isNetworkOrTransient && attempt < 3) {
+              console.warn(`[Backend Gemini Proxy] Attempt ${attempt} for model '${modelToUse}' failed (${err?.message || 'transient'}). Retrying in ${600 * attempt}ms...`);
+              await new Promise(r => setTimeout(r, 600 * attempt));
+              continue;
+            }
+            throw err;
+          }
+        }
+        throw new Error("Max execution attempts reached");
+      };
+
+      try {
+        response = await executeWithRetry(targetModel);
+      } catch (primaryErr: any) {
+        const isUnavailable = primaryErr?.status === 503 || 
+                              primaryErr?.status === 429 ||
+                              String(primaryErr?.message || '').includes('503') ||
+                              String(primaryErr?.message || '').includes('UNAVAILABLE') ||
+                              String(primaryErr?.message || '').includes('high demand') ||
+                              String(primaryErr?.message || '').includes('RESOURCE_EXHAUSTED') ||
+                              String(primaryErr?.message || '').toLowerCase().includes('fetch failed');
+        if (isUnavailable) {
+          const fallbackModel = targetModel === 'gemini-3.8-flash' ? 'gemini-3.1-flash-lite' : 'gemini-3.8-flash';
+          console.info(`[Backend Gemini Proxy] Model '${targetModel}' unavailable/failed (${primaryErr?.message}), automatically falling back to '${fallbackModel}'...`);
+          try {
+            response = await executeWithRetry(fallbackModel);
+          } catch (secondaryErr: any) {
+            throw secondaryErr;
+          }
+        } else {
+          throw primaryErr;
+        }
+      }
       
       res.json({
         text: response.text,
         candidates: response.candidates || null
       });
     } catch (err: any) {
-      console.error("[Backend Gemini Proxy Error]:", err);
       const isQuota = err?.status === 429 || 
                       err?.message?.includes('429') || 
                       err?.message?.includes('RESOURCE_EXHAUSTED') ||
                       err?.message?.includes('quota');
+      if (isQuota) {
+        console.info(`[Backend Gemini Proxy] Model '${req.body?.model || 'default'}' rate/quota reached.`);
+      } else {
+        console.error("[Backend Gemini Proxy Error]:", err?.message || err);
+      }
       const statusCode = isQuota ? 429 : (err.status || err.statusCode || 500);
       res.status(statusCode).json({ 
         error: err.message || String(err),
@@ -195,6 +336,15 @@ Sitemap: ${baseUrl}/sitemap.xml
       }
       res.status(500).json({ error: err.message || "Failed to fetch webpage content." });
     }
+  });
+
+  // Explicit 404 handler for any unhandled /api routes so they NEVER fall through to HTML/Vite
+  app.use('/api', (req: any, res: any) => {
+    res.status(404).json({
+      error: `API route not found: ${req.method} ${req.originalUrl || req.url}`,
+      code: 404,
+      status: 'NOT_FOUND'
+    });
   });
 
   // Vite middleware for development

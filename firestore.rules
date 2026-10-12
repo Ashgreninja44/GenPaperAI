@@ -52,7 +52,7 @@ service cloud.firestore {
       allow create: if isOwner(userId) && isValidUser(incoming()) && (
         incoming().role in ['user', 'plus'] || isDeveloperEmail()
       );
-      allow update: if (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phoneNumber', 'profilePhoto', 'customProfilePhoto', 'providerPhoto', 'selectedTheme', 'preferences', 'defaultPaperSettings', 'studentSettings', 'lastLogin', 'userType', 'needsOnboarding', 'lastUserTypeUpdate', 'userTypeUpdatedBy', 'accountTypeMigrationVersion', 'accountTypeMigrationCompletedAt']) && (
+      allow update: if (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phoneNumber', 'profilePhoto', 'customProfilePhoto', 'providerPhoto', 'selectedTheme', 'preferences', 'defaultPaperSettings', 'studentSettings', 'teacherSettings', 'lastLogin', 'userType', 'needsOnboarding', 'lastUserTypeUpdate', 'userTypeUpdatedBy', 'accountTypeMigrationVersion', 'accountTypeMigrationCompletedAt']) && (
                          !incoming().diff(existing()).affectedKeys().hasAny(['userType']) ||
                          !('userType' in existing()) ||
                          !('accountTypeMigrationVersion' in existing()) ||
@@ -138,9 +138,58 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
+    // --- Classrooms & Batches ---
+    match /classrooms/{classroomId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        resource.data.teacherUid == request.auth.uid || 
+        request.resource.data.teacherUid == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['studentCount', 'activeAssignmentsCount']) ||
+        isAdmin()
+      );
+      allow delete: if isSignedIn() && (resource.data.teacherUid == request.auth.uid || isAdmin());
+    }
+
+    // --- Classroom Enrolled Members ---
+    match /classroom_members/{memberId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (
+        resource.data.studentUid == request.auth.uid || 
+        resource.data.teacherUid == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    // --- Classroom Assignments ---
+    match /classroom_assignments/{assignmentId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        resource.data.teacherUid == request.auth.uid || 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['submissionCount', 'evaluatedCount', 'averageScore']) ||
+        isAdmin()
+      );
+      allow delete: if isSignedIn() && (resource.data.teacherUid == request.auth.uid || isAdmin());
+    }
+
+    // --- Student Assignment Submissions ---
+    match /assignment_submissions/{submissionId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.studentUid == request.auth.uid;
+      allow update: if isSignedIn() && (
+        resource.data.studentUid == request.auth.uid || 
+        resource.data.teacherUid == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isSignedIn() && (resource.data.studentUid == request.auth.uid || isAdmin());
+    }
+
     // --- Legacy Support ---
     match /paperQuestions/{paperId}/questions/{questionId} {
       allow read, write: if isSignedIn(); 
     }
   }
 }
+

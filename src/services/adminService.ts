@@ -357,8 +357,8 @@ export async function setAnnouncementConfig(
 
 export const DEFAULT_AI_MODELS: AIModelConfig[] = [
   {
-    id: 'gemini-3.7-flash',
-    name: 'Gemini 3.7 Flash',
+    id: 'gemini-3.8-flash',
+    name: 'Gemini 3.8 Flash',
     provider: 'Google DeepMind',
     enabled: true,
     isDefault: true,
@@ -403,7 +403,7 @@ export const DEFAULT_AI_MODELS: AIModelConfig[] = [
 ];
 
 export const DEFAULT_MODEL_REGISTRY: AIModelRegistry = {
-  defaultModel: 'gemini-3.7-flash',
+  defaultModel: 'gemini-3.8-flash',
   models: DEFAULT_AI_MODELS,
   updatedAt: Date.now()
 };
@@ -418,7 +418,7 @@ export function subscribeToAIModelRegistry(
       if (snapshot.exists()) {
         const data = snapshot.data() as AIModelRegistry;
         callback({
-          defaultModel: data.defaultModel || 'gemini-3-flash-preview',
+          defaultModel: data.defaultModel || 'gemini-3.8-flash',
           models: data.models && data.models.length > 0 ? data.models : DEFAULT_AI_MODELS,
           updatedAt: data.updatedAt || Date.now(),
           updatedBy: data.updatedBy
@@ -500,7 +500,7 @@ export async function getAIModelRegistry(): Promise<AIModelRegistry> {
     if (snap.exists()) {
       const data = snap.data() as AIModelRegistry;
       return {
-        defaultModel: data.defaultModel || 'gemini-3-flash-preview',
+        defaultModel: data.defaultModel || 'gemini-3.8-flash',
         models: data.models && data.models.length > 0 ? data.models : DEFAULT_AI_MODELS,
         updatedAt: data.updatedAt || Date.now(),
         updatedBy: data.updatedBy
@@ -540,7 +540,7 @@ export async function testAIConnection(): Promise<{ success: boolean; latencyMs:
   const start = performance.now();
   try {
     const response = await generateContentProxy({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.8-flash',
       contents: 'Respond strictly with the single word "OK" if online.',
       config: {
         maxOutputTokens: 5,
@@ -653,8 +653,8 @@ export function testAuthProviders(): {
 export const DEFAULT_WEB_RESEARCH_CONFIG: WebResearchConfig = {
   enabled: true,
   allowedModes: ['quick', 'deep', 'curriculum', 'url'],
-  researchModel: 'gemini-3-flash-preview',
-  fallbackModel: 'gemini-2.5-flash',
+  researchModel: 'gemini-3.8-flash',
+  fallbackModel: 'gemini-3.8-flash',
   maxSourcesPerResearch: 6,
   freeResearchLimit: 10,
   plusResearchLimit: 200,

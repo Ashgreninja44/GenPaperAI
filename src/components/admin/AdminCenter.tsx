@@ -71,11 +71,11 @@ export const AdminCenter: React.FC<AdminCenterProps> = ({
   const [securityEvents, setSecurityEvents] = useState<SecurityEventEntry[]>([]);
   const [metrics, setMetrics] = useState<GenerationMetricEntry[]>([]);
   const [aiRegistry, setAiRegistry] = useState<AIModelRegistry>({
-    defaultModel: 'gemini-3-flash-preview',
+    defaultModel: 'gemini-3.8-flash',
     models: [
       {
-        id: 'gemini-3-flash-preview',
-        name: 'Gemini 3 Flash Preview',
+        id: 'gemini-3.8-flash',
+        name: 'Gemini 3.8 Flash',
         provider: 'Google DeepMind',
         enabled: true,
         isDefault: true,

@@ -11,6 +11,7 @@ import {
 } from '../types';
 import { SYLLABUS_DATA, GRADES, BOARDS } from '../constants';
 import MarkdownRenderer from './MarkdownRenderer';
+import { MathRenderer } from './MathRenderer';
 import { generateQuestionBankUpdate } from '../services/geminiService';
 import { 
   migrateBankToStructured, 
@@ -323,7 +324,7 @@ export const QuestionBankView: React.FC<QuestionBankProps> = ({
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <button 
           onClick={onBack}
-          className="text-white hover:text-white/80 flex items-center gap-2 font-medium drop-shadow-sm transition-colors cursor-pointer"
+          className="text-theme-foreground hover:opacity-80 flex items-center gap-2 font-bold drop-shadow-sm transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </button>
@@ -670,9 +671,9 @@ export const QuestionBankView: React.FC<QuestionBankProps> = ({
                                 </div>
 
                                 {/* Question Text */}
-                                <p className="text-xs font-semibold text-gray-900 dark:text-white leading-relaxed">
-                                  {q.text}
-                                </p>
+                                <div className="text-xs font-semibold text-gray-900 dark:text-white leading-relaxed">
+                                  <MathRenderer content={q.text} />
+                                </div>
 
                                 {/* Options if MCQ */}
                                 {q.options && q.options.length > 0 && (
@@ -680,9 +681,10 @@ export const QuestionBankView: React.FC<QuestionBankProps> = ({
                                     {q.options.map((opt, optIdx) => (
                                       <div
                                         key={optIdx}
-                                        className="p-1.5 px-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-300 font-mono"
+                                        className="p-1.5 px-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-300 font-mono flex items-start gap-1.5"
                                       >
-                                        {String.fromCharCode(65 + optIdx)}. {opt}
+                                        <span className="font-bold">{String.fromCharCode(65 + optIdx)}.</span>
+                                        <div className="flex-1"><MathRenderer content={opt} /></div>
                                       </div>
                                     ))}
                                   </div>
@@ -691,7 +693,8 @@ export const QuestionBankView: React.FC<QuestionBankProps> = ({
                                 {/* Solution */}
                                 {q.solution && (
                                   <div className="p-2 rounded-xl bg-gray-50 dark:bg-gray-900/60 border border-gray-200/60 dark:border-gray-800 text-[11px] text-gray-600 dark:text-gray-400">
-                                    <strong className="text-gray-700 dark:text-gray-300">Solution:</strong> {q.solution}
+                                    <strong className="text-gray-700 dark:text-gray-300 mr-1">Solution:</strong>
+                                    <MathRenderer content={q.solution} inline />
                                   </div>
                                 )}
 
